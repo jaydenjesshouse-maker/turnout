@@ -539,6 +539,9 @@ details.more>*:last-child{margin-bottom:14px}
 
 .card.nophoto{margin-top:14px}.card.nophoto b{font-size:16px}.card.nophoto p{margin:6px 0 0;font-size:14px;line-height:1.45;color:var(--ash)}
 
+.btn.danger{color:#A8322D;box-shadow:inset 0 0 0 1.5px #A8322D}.btn.danger.sure{background:#A8322D;color:#fff}
+@media (prefers-color-scheme:dark){.btn.danger{color:#E2827C;box-shadow:inset 0 0 0 1.5px #E2827C}}
+
 </style>
 </head>
 <body>
@@ -1015,7 +1018,7 @@ var Engine = (function () {
   function render(outfit, W, h, opts) {
     opts = opts || {};
     var ids = ['coat', 'over', 'bottom', 'shoes', 'shirt', 'top'].map(function (s) { return outfit[s]; });
-    var k = ids.join('|') + '@' + h + (opts.overlap || '') + '~' + (opts.dotted || []).join(',');
+    var k = ids.join('|') + '@' + h + (opts.overlap || '') + '~' + (opts.dotted || []).join(',') + '^' + (opts.coat || 'beside');
     if (outMem[k]) return outMem[k];
     outMem[k] = cacheGet(k).then(function (hit) { return hit || draw0(outfit, W, h, opts, k); });
     outMem[k].catch(function () { delete outMem[k]; });
@@ -1035,6 +1038,9 @@ var Engine = (function () {
       gs = gs.filter(Boolean);
       if (!parts.bottom || !(parts.top || parts.shirt)) throw new Error('missing photos');
       var G = {}; keys.forEach(function (s, i) { G[s] = gs[i]; });
+      var coatMode = parts.coat && parts.over && (opts.coat || 'beside') !== 'worn' ? (opts.coat || 'beside') :   // two layers on top: the coat goes alongside
+        (parts.coat && opts.coat === 'beside' && opts.coatAlways ? 'beside' : 'worn'), sideCoat = null;
+      if (coatMode !== 'worn') { sideCoat = { it: parts.coat, g: G.coat }; delete parts.coat; keys = keys.filter(function (s) { return s !== 'coat'; }); }
       var upper = parts.top || parts.shirt, upperG = G.top || G.shirt, upperKind = parts.top ? 'knit' : 'shirt';
       var lenOf = function (it) { return +it.length || REAL[it.kind] || 74; };
       var topLen = lenOf(upper), botLen = lenOf(parts.bottom), ov = opts.overlap || OVERLAP;
@@ -1047,10 +1053,18 @@ var Engine = (function () {
       // layers keep their real size, so the same cardigan is the same length whatever is under it;
       // anything underneath that would stick out is trimmed to the layer's outline instead
       var widest = 0; keys.forEach(function (s) { widest = Math.max(widest, G[s].g.bw * scaleOf(s) * (s === 'over' || s === 'coat' ? 1.2 : 1)); });   // layers can grow a little to reach the trousers
-      var cw = Math.ceil(widest + 24 * DPR), ch = Math.ceil(h * DPR);
+      var sideSc = sideCoat ? (lenOf(sideCoat.it) * PX) / sideCoat.g.g.len * (coatMode === 'inset' ? 0.5 : 1) : 0, sideW = sideCoat ? sideCoat.g.g.bw * sideSc : 0;
+      var extra = coatMode === 'beside' ? sideW * 0.8 : coatMode === 'inset' ? sideW * 0.45 : 0;
+      var cw = Math.ceil(widest + 24 * DPR + extra), ch = Math.ceil(h * DPR);
       var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
       var x = cv.getContext('2d'); x.imageSmoothingQuality = 'high';
-      var cx = cw / 2, top0 = 3 * PX;                      // shoulders sit 3 cm from the top
+      var cx = (cw - extra) / 2, top0 = 3 * PX;                      // shoulders sit 3 cm from the top
+      if (coatMode === 'beside') {                                   // laid behind, to the right, like a styled flat-lay
+        var sg0 = sideCoat.g.g, sim = sideCoat.g.im, scx = cx + widest * 0.5 + sideW * 0.25;
+        x.save(); x.shadowColor = 'rgba(40,32,24,.24)'; x.shadowBlur = 14 * DPR; x.shadowOffsetY = 5 * DPR;
+        x.drawImage(sim, scx - sg0.cx * sideSc, top0 + 4 * PX - sg0.top * sideSc, sim.naturalWidth * sideSc, sim.naturalHeight * sideSc); x.restore();
+        if (dotted.indexOf(sideCoat.it.id) >= 0) outline(x, sim, scx - sg0.cx * sideSc, top0 + 4 * PX - sg0.top * sideSc, sim.naturalWidth * sideSc, sim.naturalHeight * sideSc, DPR);
+      }
       var hemY = top0 + topLen * PX, waistY = hemY - ov * PX, botEnd = waistY + botLen * PX;
       function draw(s, yTop, shadow) {
         var gg = G[s].g, sc = scaleOf(s), im = G[s].im, dx = cx - gg.cx * sc, dy = yTop - gg.top * sc, dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
@@ -1138,6 +1152,11 @@ var Engine = (function () {
       }
       if (parts.over) drawOpen('over', top0 - 0.5 * PX);
       if (parts.coat) drawOpen('coat', top0 - 1 * PX);
+      if (coatMode === 'inset') {                                    // a small coat in the corner: "with this on top"
+        var iim = sideCoat.g.im, iw = iim.naturalWidth * sideSc, ih = iim.naturalHeight * sideSc, rr = Math.max(iw, ih) * 0.62, icx = cw - rr - 6 * DPR, icy = ch - rr - 10 * DPR;
+        x.save(); x.fillStyle = 'rgba(245,241,234,.94)'; x.shadowColor = 'rgba(40,32,24,.2)'; x.shadowBlur = 12 * DPR; x.shadowOffsetY = 3 * DPR; x.beginPath(); x.arc(icx, icy, rr, 0, Math.PI * 2); x.fill(); x.restore();
+        x.drawImage(iim, icx - iw / 2, icy - ih / 2, iw, ih);
+      }
       return new Promise(function (res) {
         var meta = { w: cw / DPR, h: h, hem: hemY / ch, waist: waistY / ch };
         var done = function (url, b) { meta.url = url; if (b) cachePut(k, b, meta); res(meta); };
@@ -1211,7 +1230,7 @@ var Engine = (function () {
           var hex = '#' + [med(R), med(G2), med(B2)].map(function (v) { return ('0' + (v | 0).toString(16)).slice(-2); }).join('');
           // a square tile on the original background for the wardrobe grid
           var t = document.createElement('canvas'), S = 480; t.width = S; t.height = S; var tx = t.getContext('2d');
-          tx.fillStyle = 'rgb(' + br + ',' + bgc + ',' + bb + ')'; tx.fillRect(0, 0, S, S);
+          tx.fillStyle = corner < 40 ? '#ECE7DE' : 'rgb(' + br + ',' + bgc + ',' + bb + ')'; tx.fillRect(0, 0, S, S);   // a lifted-out PNG has no background: use the plinth, not black
           var ts = Math.min(S * 0.82 / o.width, S * 0.82 / o.height); tx.drawImage(o, (S - o.width * ts) / 2, (S - o.height * ts) / 2, o.width * ts, o.height * ts);
           res({ cut: o.toDataURL('image/webp', 0.86), tile: t.toDataURL('image/jpeg', 0.84), hex: hex });
         };
@@ -1380,7 +1399,8 @@ var Engine = (function () {
   }, true);
   function WIDE() { return window.innerWidth >= 900; }
   function DECKH() { return WIDE() ? 400 : 226; }
-  function tileOf(it) { var s = it.tileSrc || it.src || it.img || it.tile; return /^up:/.test(s || '') ? noPhoto(it) : s; }
+  function tileOf(it) { var s = it.src || it.img || it.tileSrc || it.tile;   // the cut-out on the plinth, so every piece looks the same whatever was behind it in the photo
+    return /^up:/.test(s || '') ? noPhoto(it) : s; }
   function noPhoto(it) { return 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#E4DDD1"/><circle cx="100" cy="88" r="46" fill="' + (it.hex || '#999') + '"/><text x="100" y="168" font-family="-apple-system,Helvetica,sans-serif" font-size="19" font-weight="600" fill="#5B5852" text-anchor="middle">No photo</text></svg>'); }
   function noPhotoIds() { return ITEMS.filter(function (i) { return /^up:/.test(i.img || '') && !i.src && !i.maybe; }).map(function (i) { return i.id; }); }   // the cut-out, shown whole on a plinth, never a cropped tile
 
@@ -1681,7 +1701,7 @@ var Engine = (function () {
         return '<button class="tile' + (on ? ' sel' : '') + (it.wash || it.dirty ? ' dirty' : '') + '" data-act="' + (selMode ? 'pick' : 'item') + '" data-id="' + it.id + '"><img loading="lazy" src="' + esc(tileOf(it)) + '" alt="">' + (it.wash || it.dirty ? '<span class="wbadge">' + ic('wash', 14) + 'In the wash</span>' : '') + (selMode ? '<span class="tick">' + (on ? ic('check', 16) : '') + '</span>' : '') + '<b>' + esc(it.name) + '</b><span>' + esc(it.colour) + (it.brand ? ' · ' + esc(it.brand) : '') + '</span></button>';
       }).join('') + '</div>' +
       '</section>' +
-      (selMode ? '<div class="selbar"><span style="white-space:nowrap">' + sel.length + ' picked</span><span style="display:flex;gap:8px"><button class="btn sec" style="height:44px;color:var(--cream)" data-act="selcancel">Cancel</button><button class="btn lite" style="height:44px" data-act="selgo"' + (sel.length ? '' : ' disabled') + '>' + ic('dress', 18) + (logMode ? 'Log these' : 'Make an outfit') + '</button></span></div>' : '');
+      (selMode ? '<div class="selbar"><span style="white-space:nowrap">' + sel.length + ' picked</span><span style="display:flex;gap:8px"><button class="iconbtn" style="width:44px;height:44px;background:rgba(255,255,255,.12);color:var(--cream)" data-act="selcancel" aria-label="Cancel">' + ic('close', 18) + '</button>' + (logMode ? '' : '<button class="btn sec" style="height:44px;color:var(--cream);padding:0 14px" data-act="seldel"' + (sel.length ? '' : ' disabled') + '>Delete</button>') + '<button class="btn lite" style="height:44px" data-act="selgo"' + (sel.length ? '' : ' disabled') + '>' + ic('dress', 18) + (logMode ? 'Log these' : 'Outfit') + '</button></span></div>' : '');
   }
 
   function photoGuide() {
@@ -2267,7 +2287,7 @@ var Engine = (function () {
     if (S.settings.fit2) return false;
     S.settings.fit2 = true; if (+S.settings.trousers === 104) S.settings.trousers = 98; return true;
   }
-  var SCRIPT_WANT = '1.9.3';
+  var SCRIPT_WANT = '1.9.8';
   function scriptCheck() {
     var el = $('#scriptv'); if (!el) return;
     api('ping').then(function (r) {
@@ -2278,8 +2298,10 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.6';
+  var VERSION = '1.9.9';
   var WHATS_NEW = [
+    ['Clearer layers', 'When a look has two layers on top, like a cardigan and a jacket, the jacket is laid alongside the outfit instead of over everything, so every piece is easy to see.'],
+    ['Delete pieces', 'Edit a piece and tap Delete twice, or pick several in Wardrobe with the tick button and delete them together.'],
     ['Play with an outfit', 'Open any outfit and change it piece by piece: a row for the layer, top, trousers and shoes. Switch the layer off and on, pinch or double-tap to zoom, and swipe the top or trousers to try the next one.'],
     ['Adding in three steps', 'Photo, what is it, when would you wear it. Turnout guesses the type and colour from the photo, so it’s usually just Next, Next, Add. Name, brand and length fold away.'],
     ['A Shop tab', 'Your best buy first, drawn in its colour with the looks it makes. Tap a look to try it on with your other pieces. Maybes and your wish list sit alongside.'],
@@ -2436,8 +2458,17 @@ var Engine = (function () {
   /* ---- add or edit a piece ---- */
   var F = null;
   var NAMES = { jumper: 'Crew-neck jumper', sweatshirt: 'Sweatshirt', hoodie: 'Hoodie', quarterzip: 'Quarter zip', tee: 'T-shirt', football: 'Football shirt', polo: 'Polo shirt', shirt: 'Shirt', overshirt: 'Overshirt', shacket: 'Shacket', jacket: 'Jacket', coat: 'Coat', trousers: 'Trousers', chinos: 'Chinos', jeans: 'Jeans', joggers: 'Joggers', shorts: 'Shorts', henley: 'Henley', cardigan: 'Cardigan', shoes: 'Shoes', trainers: 'Trainers', boots: 'Boots' };
-  var COLOURS = [['Navy', '#1E2638'], ['Black', '#18181A'], ['Charcoal', '#2E3033'], ['Grey', '#8A8B8C'], ['Light grey', '#C4C5C6'], ['White', '#F2F1EC'], ['Cream', '#E8E0CF'], ['Oatmeal', '#D6CBB6'], ['Stone', '#CFC6B8'], ['Camel', '#B88A5A'], ['Tan', '#A47450'], ['Brown', '#6B5546'], ['Dark brown', '#3A2E27'], ['Olive', '#4E5438'], ['Sage', '#8E9C80'], ['Forest green', '#24392C'], ['Oxblood', '#5A1A22'], ['Burgundy', '#6E1E2B'], ['Rust', '#9A4B2C'], ['Mustard', '#C79A3A'], ['Denim blue', '#4A6288'], ['Light wash', '#9DB2C9'], ['Indigo', '#25314A'], ['Sky blue', '#9CB8D9'], ['Pink', '#D9A6A6']];
-  function nearestColour(hex) { var a = Brain.rgb(hex), best = null, bd = 1e9; COLOURS.forEach(function (c) { var b = Brain.rgb(c[1]), d = Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2); if (d < bd) { bd = d; best = c[0]; } }); return best; }
+  var COLOURS = [['Navy', '#1E2638'], ['Black', '#18181A'], ['Charcoal', '#2E3033'], ['Grey', '#8A8B8C'], ['Light grey', '#C4C5C6'], ['White', '#F2F1EC'], ['Cream', '#E8E0CF'], ['Oatmeal', '#D6CBB6'], ['Stone', '#CFC6B8'], ['Camel', '#B88A5A'], ['Tan', '#A47450'], ['Brown', '#6B5546'], ['Dark brown', '#3A2E27'], ['Olive', '#4E5438'], ['Sage', '#8E9C80'], ['Forest green', '#24392C'], ['Oxblood', '#5A1A22'], ['Burgundy', '#6E1E2B'], ['Rust', '#9A4B2C'], ['Mustard', '#C79A3A'], ['Denim blue', '#4A6288'], ['Light wash', '#9DB2C9'], ['Indigo', '#25314A'], ['Sky blue', '#9CB8D9'], ['Pink', '#D9A6A6'], ['Lilac', '#C7B6D6'], ['Khaki', '#8F8A62'], ['Bottle green', '#1F4A3A'], ['Red', '#B8322F'], ['Orange', '#D8742E'], ['Yellow', '#E3C64E'], ['Royal blue', '#2F4FA0'], ['Light blue', '#BFD0E6']];
+  function hsv3(c) { var r = c[0] / 255, g = c[1] / 255, b = c[2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0; if (d) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return [h, mx ? d / mx : 0, mx]; }
+  function nearestColour(hex) {   // by hue first for coloured pieces, by lightness for greys, so a dark navy or oxblood isn't called black
+    var a = hsv3(Brain.rgb(hex)), best = null, bd = 1e9;
+    COLOURS.forEach(function (c) {
+      var b = hsv3(Brain.rgb(c[1])), dh = Math.min(Math.abs(a[0] - b[0]), 360 - Math.abs(a[0] - b[0])) / 180;
+      var d = dh * dh * 8 * Math.min(a[1], b[1]) * (a[2] > 0.08 ? 1 : 0) + Math.pow(a[2] - b[2], 2) * 2.5 + Math.pow(a[1] - b[1], 2) * 2;
+      if (d < bd) { bd = d; best = c[0]; }
+    });
+    return best;
+  }
   function addSheet(id, pre) {
     var it = id ? W[id] : null;
     F = it ? Object.assign({}, it) : Object.assign({ kind: 'knit', sub: 'jumper', name: '', colour: '', brand: '', hex: '#8A8B8C', pattern: 'plain', texture: '', smart: 3, warmth: 4, neck: 'crew', length: S.settings.knit, maybe: false, link: '', price: '' }, pre || {});
@@ -2511,6 +2542,10 @@ var Engine = (function () {
     if (F.isNew && F.maybe) { tab = 'shop'; sSeg = 'maybes'; closeSheet(); route(); toast('Weighing it up…'); setTimeout(function () { maybeSheet(id); }, 120); return; }
     if (BULK && !F.isNew) { toast('Saved'); route(); bulkReview(); return; }
     closeSheet(); toast(F.isNew ? 'Added to your wardrobe' : 'Saved'); route();
+  }
+  function removePieces(ids) {
+    ids.forEach(function (id) { if (S.deleted.indexOf(id) < 0) S.deleted.push(id); delete S.custom[id]; delete MEMIMG[id]; });
+    save(); send('remove', { ids: ids }); buildItems(); Engine.forget(); SHOP = null;
   }
   function formSaveCore() {
     var id = F.id || ('up:' + Date.now().toString(36) + (UPN++).toString(36));
@@ -2866,7 +2901,8 @@ var Engine = (function () {
       '<button type="button" class="plink" data-act="pickphoto">' + ic('camera', 16) + 'Change photo</button>' +
       '<h2 class="mono hq">' + esc(F.name || NAMES[F.sub] || 'Piece') + '</h2>' + typeBody() + '<div style="height:8px"></div>' + wearBody() +
       '<div class="acts sticky"><button class="btn pri wide" data-act="fsave">' + ic('worn', 18) + 'Save</button></div>' +
-      '<div class="acts"><button class="btn sec wide" data-act="farchive">' + (F.archived ? 'Bring back' : 'Put away (archive)') + '</button></div>';
+      '<div class="acts"><button class="btn sec" data-act="farchive">' + (F.archived ? 'Bring back' : 'Put away') + '</button><button class="btn sec danger" data-act="fdelete">' + ic('close', 16) + 'Delete</button></div>' +
+      '<p class="note">Put away keeps it out of looks but you can bring it back. Delete removes it and its photos for good.</p>';
     openSheet('<div class="form step">' + html + '</div>');
     var onPhoto = function (ph) {
       var f = ph.files && ph.files[0]; if (!f) return;
@@ -3081,7 +3117,7 @@ var Engine = (function () {
       case 'add': addSheet(null, t.dataset.maybe ? { maybe: true } : null); break;
       case 'pickphoto': keepForm(); $('#photo').click(); break;
       case 'clearfailed': S.failed = []; save(); settings(); break;
-      case 'nophotogo': if (t.dataset.sure) { var npi = noPhotoIds(); npi.forEach(function (id) { var c = S.custom[id]; if (!c) return; c.archived = true; send('item', { item: c }); }); save(); buildItems(); Engine.forget(); SHOP = null; route(); toast(npi.length + ' removed. Add them again with Add lots at once.'); } else { t.dataset.sure = 1; t.textContent = 'Tap again to remove ' + noPhotoIds().length; setTimeout(function () { delete t.dataset.sure; }, 3500); } break;
+      case 'nophotogo': if (t.dataset.sure) { var npi = noPhotoIds(); removePieces(npi); route(); toast(npi.length + ' removed. Add them again with Add lots at once.'); } else { t.dataset.sure = 1; t.textContent = 'Tap again to remove ' + noPhotoIds().length; setTimeout(function () { delete t.dataset.sure; }, 3500); } break;
       case 'pickmany': $('#photomany').click(); break;
       case 'bulkdone': BULK = null; closeSheet(); route(); break;
       case 'pickcam': keepForm(); $('#photocam').click(); break;
@@ -3099,6 +3135,8 @@ var Engine = (function () {
         if (ff === 'kind') setKind(fv); else if (ff === 'sub') setKind(F.kind, fv); else if (ff === 'maybe') F.maybe = fv === '1'; else F[ff] = isNaN(+fv) ? fv : +fv;
         formDraw(); break; }
       case 'fsave': formSave(); break;
+      case 'fdelete': if (t.dataset.sure) { var did = F.id; removePieces([did]); closeSheet(); route(); toast('Deleted'); if (BULK) { BULK.ids = BULK.ids.filter(function (x) { return x !== did; }); setTimeout(bulkReview, 200); } } else { t.dataset.sure = 1; t.classList.add('sure'); t.lastChild.textContent = 'Tap again to delete'; setTimeout(function () { if (!t.isConnected) return; delete t.dataset.sure; t.classList.remove('sure'); t.lastChild.textContent = 'Delete'; }, 3000); } break;
+      case 'seldel': if (!sel.length) break; if (t.dataset.sure) { var n0 = sel.length; removePieces(sel.slice()); sel = []; selMode = false; route(); toast(n0 + ' deleted'); } else { t.dataset.sure = 1; t.classList.add('sure'); t.textContent = 'Delete ' + sel.length + '?'; setTimeout(function () { if (!t.isConnected) return; delete t.dataset.sure; t.classList.remove('sure'); t.textContent = 'Delete'; }, 3000); } break;
       case 'farchive': keepForm(); F.archived = !F.archived; formSave(); break;
       case 'look': { var l = S.looks.filter(function (x) { return x.id === t.dataset.id; })[0]; if (l) dress({ first: outfitOf(l.outfit) }); break; }
       case 'crowd': { var e2 = S.events.filter(function (x) { return x.id === t.dataset.ev; })[0]; var curC = evInfo(e2).crowd; var nxC = CROWDS[(CROWDS.indexOf(curC) + 1) % CROWDS.length]; S.evOver[e2.id] = Object.assign({}, S.evOver[e2.id], { crowd: nxC }); save(); send('event', { id: e2.id, crowd: nxC }); route(); break; }
