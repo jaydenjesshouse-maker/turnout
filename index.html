@@ -542,6 +542,8 @@ details.more>*:last-child{margin-bottom:14px}
 .btn.danger{color:#A8322D;box-shadow:inset 0 0 0 1.5px #A8322D}.btn.danger.sure{background:#A8322D;color:#fff}
 @media (prefers-color-scheme:dark){.btn.danger{color:#E2827C;box-shadow:inset 0 0 0 1.5px #E2827C}}
 
+.seg.sub{margin-top:8px}.seg.sub button{height:34px;padding:0 13px;font-size:14px;background:var(--paper);border:0}.seg.sub button.on{background:var(--ink);color:var(--cream)}
+
 </style>
 </head>
 <body>
@@ -1580,7 +1582,13 @@ var Engine = (function () {
   }
 
   /* ============ screens ============ */
-  var tab = 'today', selMode = false, logMode = false, sel = [], wFilter = 'all';
+  var tab = 'today', selMode = false, logMode = false, sel = [], wFilter = 'all', wSub = 'all', WLIST = [];
+  var SUBPL = { jumper: 'Jumpers', sweatshirt: 'Sweatshirts', hoodie: 'Hoodies', quarterzip: 'Quarter zips', cardigan: 'Cardigans', tee: 'T-shirts', polo: 'Polos', henley: 'Henleys', football: 'Football shirts', shirt: 'Shirts', overshirt: 'Overshirts', shacket: 'Shackets', jacket: 'Jackets', coat: 'Coats', chinos: 'Chinos', trousers: 'Trousers', jeans: 'Jeans', joggers: 'Joggers', shorts: 'Shorts', trainers: 'Trainers', shoes: 'Shoes', boots: 'Boots' };
+  function subOf(i) {   // pieces from before types existed: read the type from the name
+    if (i.sub) return i.sub;
+    var n = (i.name || '').toLowerCase(), g = [[/quarter|1\/4|half.?zip/, 'quarterzip'], [/hood/, 'hoodie'], [/sweat/, 'sweatshirt'], [/cardi/, 'cardigan'], [/polo/, 'polo'], [/henley/, 'henley'], [/football|shirt.*(home|away)/, 'football'], [/t-?shirt|\btee\b/, 'tee'], [/shacket/, 'shacket'], [/overshirt/, 'overshirt'], [/jacket/, 'jacket'], [/coat|parka|mac\b/, 'coat'], [/chino/, 'chinos'], [/jean|denim/, 'jeans'], [/jogger/, 'joggers'], [/short/, 'shorts'], [/trainer|sneaker/, 'trainers'], [/boot/, 'boots'], [/shirt/, 'shirt']].filter(function (x) { return x[0].test(n); })[0];
+    return g ? g[1] : (i.kind === 'knit' ? 'jumper' : (SUBS[i.kind] || [[i.kind]])[0][0]);
+  }
   function route() {
     var v = $('#view');
     if (!EXEC) return setup(v);
@@ -1709,12 +1717,17 @@ var Engine = (function () {
       '<h2 class="mono" style="margin-top:14px">' + (wSeg === 'shop' ? 'Shop smart' : wSeg === 'balance' ? 'Balance' : 'Wardrobe') + '</h2>' + seg;
     if (wSeg === 'shop') return shopView(v, head);
     if (wSeg === 'balance') return balanceView(v, head);
-    var list = mine.filter(function (i) { return wFilter === 'all' || i.kind === wFilter; });
+    var onPhone = mine.filter(function (i) { return /^up:/.test(i.id); }); if (wFilter === 'phone' && !onPhone.length) wFilter = 'all';
+    var inKind = wFilter === 'phone' ? onPhone : mine.filter(function (i) { return wFilter === 'all' || i.kind === wFilter; });
+    var subs = {}; inKind.forEach(function (i) { var s = subOf(i); subs[s] = (subs[s] || 0) + 1; });
+    var subKeys = Object.keys(subs); if (wSub !== 'all' && !subs[wSub]) wSub = 'all';
+    var list = inKind.filter(function (i) { return wSub === 'all' || subOf(i) === wSub; }); WLIST = list.map(function (i) { return i.id; });
+    var subRow = wFilter !== 'all' && wFilter !== 'phone' && subKeys.length > 1 ? '<div class="seg sub"><button data-act="wsub" data-k="all" class="' + (wSub === 'all' ? 'on' : '') + '">All ' + inKind.length + '</button>' + subKeys.sort(function (a, b) { return subs[b] - subs[a]; }).map(function (s) { return '<button data-act="wsub" data-k="' + s + '" class="' + (wSub === s ? 'on' : '') + '">' + esc(SUBPL[s] || typeName(s)) + ' ' + subs[s] + '</button>'; }).join('') + '</div>' : '';
     var dirty = mine.filter(function (i) { return i.wash || i.dirty; });
     v.innerHTML = head +
       (noPhotoIds().length ? '<div class="card nophoto"><b>' + noPhotoIds().length + ' piece' + (noPhotoIds().length > 1 ? 's are' : ' is') + ' missing a photo</b><p>The photo didn’t save on this phone or reach your Google Drive. Tap one and Change photo, or remove them all and add them again.</p><div class="acts"><button class="btn sec" data-act="nophotogo">Remove them</button><button class="btn sec" data-act="add">Add again</button></div></div>' : '') +
       (dirty.length ? '<div class="washbar">' + ic('wash', 20) + '<span><b>' + dirty.length + ' in the wash</b><br>Worn this week, or marked. Back on ' + LONGDAYS[washDay()] + '.</span><button data-act="allclean">All clean</button></div>' : '') +
-      (!mine.length ? '' : '<div class="seg">' + KINDS.filter(function (k) { return k[0] === 'all' || count(k[0]) > 0; }).map(function (k) { return '<button data-act="filter" data-k="' + k[0] + '" class="' + (wFilter === k[0] ? 'on' : '') + '">' + k[1] + ' ' + count(k[0]) + '</button>'; }).join('') + '</div>') +
+      (!mine.length ? '' : '<div class="seg">' + KINDS.filter(function (k) { return k[0] === 'all' || count(k[0]) > 0; }).map(function (k) { return '<button data-act="filter" data-k="' + k[0] + '" class="' + (wFilter === k[0] ? 'on' : '') + '">' + k[1] + ' ' + count(k[0]) + '</button>'; }).join('') + (onPhone.length ? '<button data-act="filter" data-k="phone" class="' + (wFilter === 'phone' ? 'on' : '') + '">Added on phone ' + onPhone.length + '</button>' : '') + '</div>' + subRow) +
       (selMode ? '<p class="note">' + (logMode ? 'Pick what you wore, then log it.' : 'Pick a handful of pieces, and Turnout makes the best outfit from them.') + '</p>' : '') +
       (!mine.length ? photoGuide() : '') +
       '<div class="grid">' + list.map(function (it) {
@@ -1722,7 +1735,7 @@ var Engine = (function () {
         return '<button class="tile' + (on ? ' sel' : '') + (it.wash || it.dirty ? ' dirty' : '') + '" data-act="' + (selMode ? 'pick' : 'item') + '" data-id="' + it.id + '"><img loading="lazy" src="' + esc(tileOf(it)) + '" alt="">' + (it.wash || it.dirty ? '<span class="wbadge">' + ic('wash', 14) + 'In the wash</span>' : '') + (selMode ? '<span class="tick">' + (on ? ic('check', 16) : '') + '</span>' : '') + '<b>' + esc(it.name) + '</b><span>' + esc(it.colour) + (it.brand ? ' · ' + esc(it.brand) : '') + '</span></button>';
       }).join('') + '</div>' +
       '</section>' +
-      (selMode ? '<div class="selbar"><span style="white-space:nowrap">' + sel.length + ' picked</span><span style="display:flex;gap:8px"><button class="iconbtn" style="width:44px;height:44px;background:rgba(255,255,255,.12);color:var(--cream)" data-act="selcancel" aria-label="Cancel">' + ic('close', 18) + '</button>' + (logMode ? '' : '<button class="btn sec" style="height:44px;color:var(--cream);padding:0 14px" data-act="seldel"' + (sel.length ? '' : ' disabled') + '>Delete</button>') + '<button class="btn lite" style="height:44px" data-act="selgo"' + (sel.length ? '' : ' disabled') + '>' + ic('dress', 18) + (logMode ? 'Log these' : 'Outfit') + '</button></span></div>' : '');
+      (selMode ? '<div class="selbar"><span style="white-space:nowrap">' + sel.length + (logMode ? ' picked' : ' · <button class="ul" style="color:var(--cream)" data-act="selall">' + (sel.length >= WLIST.length && WLIST.length ? 'None' : 'All') + '</button>') + '</span><span style="display:flex;gap:8px"><button class="iconbtn" style="width:44px;height:44px;background:rgba(255,255,255,.12);color:var(--cream)" data-act="selcancel" aria-label="Cancel">' + ic('close', 18) + '</button>' + (logMode ? '' : '<button class="btn sec" style="height:44px;color:var(--cream);padding:0 14px" data-act="seldel"' + (sel.length ? '' : ' disabled') + '>Delete</button>') + '<button class="btn lite" style="height:44px" data-act="selgo"' + (sel.length ? '' : ' disabled') + '>' + ic('dress', 18) + (logMode ? 'Log these' : 'Outfit') + '</button></span></div>' : '');
   }
 
   function photoGuide() {
@@ -2319,8 +2332,10 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.11';
+  var VERSION = '1.9.13';
   var WHATS_NEW = [
+    ['Your full wardrobe', '84 pieces sorted and cut out in one go: jackets, overshirts, quarter zips, hoodies, tees, football shirts, shirts, shorts, joggers and trainers.'],
+    ['Added on phone', 'A new Wardrobe filter shows only the pieces you added on this phone, so you can clear out the old copies with All and Delete.'],
     ['Clearer layers', 'When a look has two layers on top, like a cardigan and a jacket, the jacket is laid alongside the outfit instead of over everything, so every piece is easy to see.'],
     ['Delete pieces', 'Edit a piece and tap Delete twice, or pick several in Wardrobe with the tick button and delete them together.'],
     ['Play with an outfit', 'Open any outfit and change it piece by piece: a row for the layer, top, trousers and shoes. Switch the layer off and on, pinch or double-tap to zoom, and swipe the top or trousers to try the next one.'],
@@ -3106,7 +3121,9 @@ var Engine = (function () {
       case 'dwear': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } } wearIt(D.date, D.list[D.idx].outfit, D.occasion, D.ev, D.kind || ''); closeSheet(); toast(D.log ? 'Logged' : 'Logged. Enjoy it.'); if (D.log) tab = 'log'; logMode = false; route(); break;
       case 'dplan': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } var back = D.back; planIt(D.ev ? 'ev:' + D.ev.id : D.date, D.list[D.idx].outfit); toast(D.ev ? 'Planned for ' + D.ev.title : 'Planned for ' + fmt(D.date)); if (back === 'plan') planSheet(); else { closeSheet(); route(); } break; }
       case 'dsave': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } var lk = { id: 'l' + Date.now().toString(36), outfit: outfitOf(D.list[D.idx].outfit), name: title(D.list[D.idx].outfit), at: new Date().toISOString() }; S.looks.push(lk); save(); send('look', lk); toast('Saved to Looks'); break; }
-      case 'filter': wFilter = t.dataset.k; route(); break;
+      case 'filter': wFilter = t.dataset.k; wSub = 'all'; route(); break;
+      case 'wsub': wSub = t.dataset.k; route(); break;
+      case 'selall': sel = sel.length >= WLIST.length ? [] : WLIST.slice(); route(); break;
       case 'wseg': if (t.dataset.k === 'shop') { tab = 'shop'; sSeg = 'buys'; route(); break; } wSeg = t.dataset.k; selMode = false; sel = []; route(); window.scrollTo(0, 0); break;
       case 'buy': buySheet(+t.dataset.i); break;
       case 'maybe': maybeSheet(t.dataset.id); break;
