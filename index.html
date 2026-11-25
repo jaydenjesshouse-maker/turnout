@@ -799,7 +799,7 @@ var Engine = (function () {
     if (imgMem[src]) return imgMem[src];
     imgMem[src] = new Promise(function (res, rej) {
       var im = new Image(); im.decoding = 'async';
-      im.onload = function () { res(im); }; im.onerror = function () { delete imgMem[src]; rej(new Error('image ' + src)); };
+      im.onload = function () { res(im); }; im.onerror = function () { if (/^img\//.test(src) && !im.dataset.again) { im.dataset.again = 1; im.src = src.slice(4); return; } delete imgMem[src]; rej(new Error('image ' + src)); };   // photos uploaded next to index.html instead of into img/ still load
       im.src = src;
     });
     return imgMem[src];
@@ -831,6 +831,7 @@ var Engine = (function () {
     var k = item.img + '|' + item.kind;
     if (geomMem[k]) return geomMem[k];
     geomMem[k] = loadImg(item.src || item.img).then(function (im) { return { im: im, g: measure(im, item.kind) }; });
+    geomMem[k].catch(function () { delete geomMem[k]; });
     return geomMem[k];
   }
 
@@ -865,7 +866,15 @@ var Engine = (function () {
     var parts = { top: W[outfit.top], shirt: W[outfit.shirt], over: W[outfit.over], bottom: W[outfit.bottom], coat: W[outfit.coat], shoes: W[outfit.shoes] };
     var dotted = opts.dotted || [];
     var keys = Object.keys(parts).filter(function (s) { return parts[s]; });
-    return Promise.all(keys.map(function (s) { var it = parts[s]; return geom((s === 'over' || s === 'coat') && it.openImg ? { id: it.id + ':open', kind: it.kind + '-open', img: it.openImg } : it); })).then(function (gs) {
+    // a photo that won't load never blanks the whole look: an open shot falls back to the closed one, and a missing piece is left out
+    return Promise.all(keys.map(function (s) {
+      var it = parts[s], closed = function () { return geom(it).catch(function () { return null; }); };
+      if ((s === 'over' || s === 'coat') && it.openImg) return geom({ id: it.id + ':open', kind: it.kind + '-open', img: it.openImg }).catch(function () { parts[s] = Object.assign({}, it, { openImg: null }); return closed(); });
+      return closed();
+    })).then(function (gs) {
+      keys = keys.filter(function (s, i) { if (!gs[i]) { delete parts[s]; return false; } return true; });
+      gs = gs.filter(Boolean);
+      if (!parts.bottom || !(parts.top || parts.shirt)) throw new Error('missing photos');
       var G = {}; keys.forEach(function (s, i) { G[s] = gs[i]; });
       var upper = parts.top || parts.shirt, upperG = G.top || G.shirt, upperKind = parts.top ? 'knit' : 'shirt';
       var lenOf = function (it) { return +it.length || REAL[it.kind] || 74; };
@@ -1187,6 +1196,12 @@ var Engine = (function () {
     return Promise.all(jobs);
   }
   function flatSig() { return [S.settings.knit, S.settings.trousers, S.settings.overlap].join(',') + '|' + ITEMS.map(function (i) { return i.id + ':' + (i.img || '') + ':' + (i.length || '') + ':' + (i.src ? i.src.length : '') + ':' + (i.openImg ? String(i.openImg).length : ''); }).join(','); }
+  document.addEventListener('error', function (e) {    // a tile photo that won't load: try next to index.html, then hide it rather than show a broken icon
+    var t = e.target; if (!t || t.tagName !== 'IMG') return;
+    var s = t.getAttribute('src') || '';
+    if (/^img\//.test(s) && !t.dataset.again) { t.dataset.again = 1; t.src = s.slice(4); return; }
+    t.style.visibility = 'hidden';
+  }, true);
   function tileOf(it) { return it.tileSrc || it.tile || it.src || it.img; }
 
   /* ---------- talking to the script ---------- */
@@ -2055,7 +2070,7 @@ var Engine = (function () {
     if (S.settings.fit2) return false;
     S.settings.fit2 = true; if (+S.settings.trousers === 104) S.settings.trousers = 98; return true;
   }
-  var VERSION = '1.8.0';
+  var VERSION = '1.8.1';
   var WHATS_NEW = [
     ['Open layers, from a photo', 'Overshirts, cardigans, jackets and coats can have a second Gemini shot of them hanging open. Turnout uses it when they’re worn over something, so the drape, buttons and collar look real. Edit a piece and add it under Worn open.'],
     ['Better proportions', 'Tops and layers are a touch bigger next to trousers, and a layer grows evenly to hang over the waistband.'],
