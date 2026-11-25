@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Turnout</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Turnout">
+<meta name="application-name" content="Turnout">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1E2638">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Turnout · colour styles
+   Ink #17181C · Cream #F5F1EA · Paper #EFEAE1 · Linen #E4DDD1 · Stone line #D8D0C3 · Ash #5B5852
+   The outfit colours (--c1 over --c2) come from what you're wearing. */
+:root{
+  --ink:#17181C; --cream:#F5F1EA; --paper:#EFEAE1; --linen:#E4DDD1; --line:#D8D0C3; --ash:#5B5852;
+  --c1:#1E2638; --c2:#CFC6B8; --t1:#F5F1EA; --t2:#17181C; --split:420px;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--cream);color:var(--ink);font-family:var(--ui);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+body{font-size:16px;line-height:1.35}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+img{display:block;max-width:100%}
+.ic{display:block;flex:none}
+#view{min-height:100%;padding-bottom:calc(96px + var(--sb))}
+.scr{min-height:100vh;padding:calc(var(--st) + 10px) 20px 24px;position:relative}
+.scr.field{background:linear-gradient(var(--c1) 0 var(--split), var(--c2) var(--split));transition:background .5s}
+.scr.field.light-top::before{content:"";position:fixed;left:0;right:0;top:0;height:calc(var(--st) + 8px);background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,0));z-index:30;pointer-events:none}
+.on1{color:var(--t1)} .on2{color:var(--t2)}
+
+/* brand + top bar */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
+.word{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-weight:500;font-size:16px;letter-spacing:-.02em}
+.word svg{width:22px;height:22px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;padding:6px 10px;border-radius:15px;background:rgba(23,24,28,.07);white-space:nowrap}
+.on1 .chip,.dk .chip{background:rgba(245,241,234,.15)}
+.iconbtn{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;background:rgba(23,24,28,.06)}
+.on1 .iconbtn{background:rgba(245,241,234,.14)}
+.kick{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-top:12px;opacity:.82}
+.mono{font-family:var(--mono);font-weight:500;letter-spacing:-.045em;line-height:1;margin:6px 0 0}
+h1.mono{font-size:clamp(34px,11vw,46px);text-transform:uppercase}
+h2.mono{font-size:clamp(28px,8.5vw,38px)}
+.lab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+
+/* the outfit card */
+.plinth{position:relative;margin-top:18px;border-radius:28px;background:#F3EFE7;box-shadow:0 20px 40px rgba(10,14,24,.22);padding:14px 14px 34px;display:flex;justify-content:center;min-height:200px}
+.plinth .flat{height:min(62vh,320px);width:auto;opacity:0;transition:opacity .35s}
+.plinth .flat.in{opacity:1}
+.plinth .cap{position:absolute;left:18px;right:18px;bottom:12px;display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--ash)}
+.plinth .cap span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rate{position:absolute;top:10px;display:flex;flex-direction:column;gap:8px;right:10px}
+.rate button{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:rgba(23,24,28,.06);color:var(--ink)}
+.rate button.on{background:var(--ink);color:var(--cream)}
+.why{margin:14px 2px 0;font-size:15px;line-height:1.4}
+.acts{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn{height:50px;border-radius:25px;display:inline-flex;align-items:center;gap:8px;padding:0 20px 0 16px;font-weight:600;font-size:16px;white-space:nowrap}
+.btn.pri{background:var(--ink);color:var(--cream)}
+.btn.sec{box-shadow:inset 0 0 0 1.5px currentColor}
+.btn.lite{background:var(--cream);color:var(--ink)}
+.field .on2 .btn.pri,.field-sheet .on2 .btn.pri{background:var(--t2);color:var(--c2)}
+.field .on1 .btn.pri{background:var(--t1);color:var(--c1)}
+.btn.done{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
+.btn.wide{width:100%;justify-content:center}
+.btn:active,.iconbtn:active,.tile:active,.mini:active{transform:scale(.97)}
+
+/* cards and rows */
+.card{margin-top:18px;border-radius:22px;background:var(--paper);padding:16px;color:var(--ink)}
+.card.dk{background:var(--ink);color:var(--cream)}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 8px}
+.sec-h a,.sec-h button{font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.minis{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -20px;padding:0 20px 4px;scrollbar-width:none}
+.minis::-webkit-scrollbar{display:none}
+.mini{flex:none;width:84px;scroll-snap-align:start;font-size:12px;line-height:15px;position:relative;text-align:left}
+.mini .pl{width:84px;height:84px;border-radius:14px;background:var(--linen);display:flex;justify-content:center;overflow:hidden}
+.mini .pl img{height:80px;margin-top:2px;width:auto}
+.bar2{display:flex;height:4px;margin-top:5px;border-radius:2px;overflow:hidden}.bar2 i{flex:1}
+.mini b{display:block;padding-top:4px;font-weight:600}.mini span{opacity:.75}
+.mini .badge{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:11px;background:var(--cream);color:var(--ink);display:grid;place-items:center}
+
+.row{display:grid;grid-template-columns:46px 66px 1fr 8px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.row.now{background:var(--paper);margin:0 -12px;padding:8px 12px;border-radius:16px;border-color:transparent;width:calc(100% + 24px)}
+.row .d b{display:block;font-family:var(--mono);font-weight:500;font-size:15px}.row .d span{font-size:12px;color:var(--ash)}
+.row .pl{width:66px;height:66px;border-radius:12px;background:var(--linen);overflow:hidden;display:flex;justify-content:center}
+.row .pl img{height:62px;width:auto;margin-top:2px}
+.row .t{font-size:14px;line-height:18px;min-width:0}.row .t b{display:block;font-weight:600}
+.occ{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ash)}
+.vbar{width:8px;height:46px;border-radius:4px;overflow:hidden;display:flex;flex-direction:column}.vbar i{flex:1}
+.crowd{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:10px;background:var(--linen);font-size:11px;font-weight:600;color:var(--ink)}
+.strip{display:flex;gap:4px;align-items:center;margin-top:14px}.strip i{width:40px;height:40px;border-radius:8px;flex:none}
+.strip span{margin-left:8px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ash)}
+
+/* wardrobe */
+.seg{display:flex;gap:8px;overflow-x:auto;margin:14px -20px 0;padding:0 20px 2px;scrollbar-width:none}.seg::-webkit-scrollbar{display:none}
+.seg button{flex:none;padding:9px 14px;border-radius:19px;font-size:14px;font-weight:600;box-shadow:inset 0 0 0 1px #CFC7B9}
+.seg button.on{background:var(--ink);color:var(--cream);box-shadow:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;margin-top:16px}
+.tile{text-align:left;position:relative}
+.tile img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;background:var(--paper)}
+.tile b{display:block;font-weight:600;font-size:14px;padding-top:6px}.tile span{color:var(--ash);font-size:13px}
+.tile .tick{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:14px;background:rgba(245,241,234,.9);display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.tile.sel .tick{background:var(--ink);color:var(--cream)}
+.tile.sel img{outline:3px solid var(--ink);outline-offset:-3px}
+.selbar{position:fixed;left:16px;right:16px;bottom:calc(92px + var(--sb));z-index:40;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 8px 8px 18px;border-radius:30px;background:var(--ink);color:var(--cream);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.gap{display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:center}
+.gap .sw{width:56px;height:56px;border-radius:12px}
+.empty{padding:22px;border-radius:20px;background:var(--paper);font-size:15px;line-height:1.45;margin-top:16px}
+
+/* tab bar */
+.tabbar{position:fixed;left:16px;right:16px;bottom:calc(10px + var(--sb));height:64px;border-radius:32px;display:flex;justify-content:space-around;align-items:center;z-index:50;
+  background:rgba(245,241,234,.72);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2);
+  box-shadow:inset 0 .5px 0 rgba(255,255,255,.9),inset 0 0 0 .5px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.12);color:#6A665F}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;width:72px;padding:6px 0}
+.tab.on{color:var(--ink)}
+
+/* sheets */
+.sheet{position:fixed;inset:0;z-index:80;display:none}
+.sheet.open{display:block}
+.sheet .scrim{position:absolute;inset:0;background:rgba(14,14,18,.4);opacity:0;transition:opacity .25s}
+.sheet.open .scrim{opacity:1}
+.sheet .panel{position:absolute;left:0;right:0;bottom:0;max-height:calc(100% - var(--st) - 8px);overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:28px 28px 0 0;background:var(--cream);
+  padding:10px 20px calc(24px + var(--sb));transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.sheet.open .panel{transform:none}
+.sheet.full .panel{top:0;max-height:none;border-radius:0;padding-top:calc(var(--st) + 6px)}
+.grab{width:38px;height:5px;border-radius:3px;background:#CFC7B9;margin:0 auto 8px}
+.sh-h{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
+.field-sheet{background:linear-gradient(var(--c1) 0 var(--split), var(--c2) var(--split)) !important;transition:background .45s}
+
+/* dress me */
+.occs{display:flex;gap:8px;overflow-x:auto;margin:10px -20px 0;padding:0 20px 2px;scrollbar-width:none}.occs::-webkit-scrollbar{display:none}
+.occs button{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 11px;border-radius:18px;font-size:14px;font-weight:600;box-shadow:inset 0 0 0 1px currentColor;opacity:.9}
+.occs button.on{background:var(--ink);color:var(--cream);box-shadow:none;opacity:1}
+.on1 .occs button.on{background:var(--cream);color:var(--ink)}
+.carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:16px -20px 0;padding:0 20px;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.carousel .plinth{flex:none;width:calc(100vw - 40px);max-width:460px;scroll-snap-align:center;margin-top:0}
+.dots{display:flex;gap:5px;justify-content:center;margin-top:10px}
+.dots i{width:6px;height:6px;border-radius:3px;background:currentColor;opacity:.35}.dots i.on{width:18px;opacity:1}
+.pieces{display:grid;grid-template-columns:1fr;gap:8px;margin-top:14px}
+.pc{display:grid;grid-template-columns:44px 1fr auto auto;gap:8px;align-items:center;padding:6px;border-radius:16px;background:rgba(245,241,234,.14);font-size:13px;font-weight:600;min-width:0}
+.on2 .pc{background:rgba(23,24,28,.07)}
+.pc img{width:44px;height:44px;border-radius:10px;object-fit:cover}
+.pc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc button{width:32px;height:32px;border-radius:16px;display:grid;place-items:center}
+.pc button.on{background:currentColor}.pc button.on svg{color:var(--c2)}
+
+/* forms */
+.form label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ash);margin:16px 0 6px}
+.form input[type=text],.form input[type=number],.form input[type=url],.form input[type=password],.form select,.form textarea{width:100%;height:48px;border-radius:14px;border:0;background:var(--paper);padding:0 14px;font-size:16px}
+.form textarea{height:90px;padding:12px 14px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills button{padding:9px 13px;border-radius:17px;font-size:14px;font-weight:600;box-shadow:inset 0 0 0 1px #CFC7B9}
+.pills button.on{background:var(--ink);color:var(--cream);box-shadow:none}
+.preview{border-radius:22px;background:#F3EFE7;display:grid;place-items:center;padding:16px;min-height:220px}
+.preview img{max-height:260px;width:auto}
+.swatchrow{display:flex;gap:10px;align-items:center}
+.swatchrow input[type=color]{width:48px;height:48px;border:0;border-radius:14px;padding:0;background:none}
+.note{font-size:14px;line-height:1.45;color:var(--ash);margin:10px 0 0}
+.hr{height:1px;background:var(--line);margin:18px 0}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.kv span:last-child{color:var(--ash);text-align:right}
+.pair{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.pair button{text-align:left;font-size:12px}
+.pair img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
+.toggle{display:inline-flex;border-radius:16px;background:var(--paper);padding:3px}
+.toggle button{padding:6px 12px;border-radius:13px;font-size:13px;font-weight:600}
+.toggle button.on{background:var(--ink);color:var(--cream)}
+
+#toast{position:fixed;left:50%;bottom:calc(92px + var(--sb));transform:translate(-50%,20px);opacity:0;z-index:120;background:var(--ink);color:var(--cream);padding:12px 18px;border-radius:22px;font-size:15px;font-weight:600;transition:all .25s;pointer-events:none;max-width:calc(100% - 40px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.boot{min-height:100vh;display:grid;place-items:center;text-align:center;padding:40px}
+.boot svg{width:72px;height:72px;margin:0 auto 14px}
+.skel{background:linear-gradient(90deg,rgba(23,24,28,.05),rgba(23,24,28,.1),rgba(23,24,28,.05));background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (min-width:700px){.scr,.panel>*{max-width:620px;margin-left:auto;margin-right:auto}.grid{grid-template-columns:repeat(3,1fr)}.carousel .plinth{width:460px}}
+
+/* ---- v1.2: Wardrobe · Shop · Balance ---- */
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;padding:3px;border-radius:22px;background:var(--linen)}
+.seg3 button{height:38px;border-radius:19px;font-size:14px;font-weight:600;color:var(--ash)}
+.seg3 button.on{background:var(--ink);color:var(--cream)}
+.washbar{display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 12px 12px 14px;border-radius:18px;background:#DCE3EA;font-size:14px;line-height:1.35}
+.washbar span{flex:1}.washbar button{height:40px;padding:0 14px;border-radius:20px;background:var(--ink);color:var(--cream);font-weight:600;font-size:14px}
+.tile.dirty img{opacity:.45}
+.wbadge{position:absolute;left:8px;top:8px;display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:11px;background:var(--ink);color:var(--cream) !important;font-size:11px !important;font-weight:600}
+.swt{flex:none;display:grid;place-items:center;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(23,24,28,.08)}
+.n{flex:none;text-align:right;line-height:1}.n b{display:block;font-family:var(--mono);font-weight:500;font-size:24px;letter-spacing:-.04em}.n span{font-size:11px;color:var(--ash)}
+.br,.mb{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 0;border-top:1px solid var(--line)}
+.br-t{flex:1;min-width:0}.br-t b,.mb b{display:block;font-size:16px;font-weight:600}.br-t>span,.mb span>span:not(.vd){display:block;font-size:13px;color:var(--ash);line-height:1.35;margin-top:2px}
+.br.open{border-top:0;margin-top:4px;padding:14px;border-radius:20px 20px 0 0;background:var(--paper)}
+.br-x{padding:0 14px 14px;border-radius:0 0 20px 20px;background:var(--paper);margin-bottom:6px}
+.mb img{width:56px;height:56px;object-fit:contain;border-radius:14px;background:#F3EFE7;flex:none;outline:1.5px dashed #9E968A;outline-offset:-5px}
+.mb>span:nth-child(2){flex:1;min-width:0}
+.vd{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:7px;margin-bottom:4px}
+.vd.yes{background:#2F4A35;color:#F5F1EA}.vd.ok{background:#E7D9B8;color:#17181C}.vd.close,.vd.no{background:#E9D3CC;color:#6A2A1E}
+.oc{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;line-height:1.3}
+.oc+.oc{border-top:1px solid rgba(23,24,28,.08)}
+.oc-b{flex:none;width:34px;height:44px;border-radius:9px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:inset 0 0 0 1px rgba(23,24,28,.08)}
+.oc-b i{flex:1}.oc-b i:first-child{flex:1.15}.oc-b i.col{position:absolute;left:11px;top:0;width:12px;height:7px;border-radius:0 0 6px 6px}
+.oc span b{font-weight:700}
+/* Balance */
+.bal{width:100%;margin-top:16px;border-collapse:separate;border-spacing:4px;table-layout:fixed}
+.bal th{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:500;color:var(--ash);text-align:left;padding:2px}
+.bal tr th:first-child{width:72px;font-size:10px}
+.bal td{height:52px;border-radius:12px;background:var(--paper);padding:6px;vertical-align:top}
+.bal td i{display:inline-block;width:12px;height:12px;border-radius:50%;margin:0 3px 3px 0;box-shadow:inset 0 0 0 1px rgba(23,24,28,.15)}
+.bal td.gapc{background:transparent;outline:1.5px dashed #9E968A;outline-offset:-2px}
+.bal td.na{background:repeating-linear-gradient(135deg,var(--linen) 0 6px,var(--paper) 6px 12px)}
+.bal-k{display:flex;gap:16px;font-size:12px;color:var(--ash);margin-top:8px}.bal-k span{display:inline-flex;align-items:center;gap:6px}
+.bal-k i{width:14px;height:14px;border-radius:4px}.bal-k i.g{outline:1.5px dashed #9E968A;outline-offset:-2px}.bal-k i.n{background:repeating-linear-gradient(135deg,var(--linen) 0 3px,var(--paper) 3px 6px)}
+.hbar{display:flex;height:34px;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(23,24,28,.08)}.hbar i{flex:1}
+.pick{display:flex;align-items:center;gap:12px;width:100%;margin-top:20px;padding:14px;border-radius:22px;background:var(--ink);color:var(--cream);text-align:left}
+.pick>span{flex:1}.pick b{display:block;font-size:17px;margin:3px 0 2px}.pick span span{font-size:13px;opacity:.82}
+/* one buy / one maybe */
+.bigN{display:flex;align-items:baseline;gap:10px;margin-top:14px}.bigN b{font-family:var(--mono);font-weight:500;font-size:64px;letter-spacing:-.05em;line-height:.9}.bigN span{font-size:15px;max-width:16ch;line-height:1.3}
+.bigN.dark b{font-size:52px}
+.occn{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
+.occn span{padding:10px 8px;border-radius:14px;background:var(--paper);font-size:12px;color:var(--ash)}.occn b{display:block;font-family:var(--mono);font-weight:500;font-size:22px;color:var(--ink);letter-spacing:-.03em}
+a.btn{text-decoration:none;color:inherit}
+.s4-res{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-top:8px}.s4-res .bigN{margin:0}.s4-res p{margin:4px 0 0;font-size:14px;line-height:1.4}
+.mlay{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.mlay>div{border-radius:18px;background:#F3EFE7;padding:12px 6px 8px;display:flex;flex-direction:column;align-items:center}
+.mlay span{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);margin-top:6px}
+/* wish list */
+.hubline{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:#E7D9B8;font-size:14px;line-height:1.4;margin:12px 0 6px}
+.wl{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.wl img{width:56px;height:56px;object-fit:contain;border-radius:14px;background:#F3EFE7}
+.wl>span{flex:1;min-width:0}.wl b{display:block}.wl span span{display:block;font-size:13px;color:var(--ash);margin-top:2px}.wl em{display:block;font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.04em;margin-top:4px}
+/* prompts */
+.pr{margin-top:12px;border-radius:18px;background:var(--paper);padding:14px}
+.pr.dk{background:var(--ink);color:var(--cream)}.pr.dk .btn.lite{background:var(--cream);color:var(--ink)}
+.pr-h{display:flex;justify-content:space-between;align-items:center;gap:10px}.pr-h b{font-size:16px}
+.pr p{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.plink{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.toggle.wide2{display:grid;grid-template-columns:1fr 1fr;width:100%;margin-top:4px}.toggle.wide2 button{height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.sizes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+/* in the wash */
+.washt{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:12px 14px;border-radius:18px;background:var(--paper);text-align:left}
+.washt>span{flex:1}.washt b{display:block;font-size:15px}.washt span span{font-size:13px;color:var(--ash)}
+.washt i{width:46px;height:28px;border-radius:14px;background:#CFC7B9;position:relative;flex:none;transition:background .2s}
+.washt i::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s}
+.washt.on{background:#DCE3EA}.washt.on i{background:var(--ink)}.washt.on i::after{transform:translateX(18px)}
+/* mirror photo on a log entry */
+.lgp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mirror{border-radius:22px;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;color:var(--ash);min-height:220px;cursor:pointer;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden}
+.mirror.has{box-shadow:none}.mirror img{width:100%;height:100%;object-fit:cover}
+/* monthly round-up */
+.card.rc{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#1E2638;color:var(--cream)}
+.rc-n{font-family:var(--mono);font-size:34px;font-weight:500;letter-spacing:-.04em;line-height:1}
+.round{background:#1E2638 !important;color:var(--cream)}
+.round .lab{color:#B9C0CF}
+.r-h{font-size:clamp(46px,15vw,64px) !important;margin-top:6px}
+.r-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.r-stats div{padding:12px 10px;border-radius:16px;background:rgba(245,241,234,.08)}.r-stats b{display:block;font-family:var(--mono);font-weight:500;font-size:32px;letter-spacing:-.04em}.r-stats span{font-size:12px;opacity:.8;line-height:1.3;display:block}
+.r-card{margin-top:10px;padding:14px;border-radius:20px;background:rgba(245,241,234,.08)}
+.r-card.tip{background:#E7D9B8;color:var(--ink)}.r-card.tip .lab{color:#5B5852}.r-card p{margin:6px 0 0;font-size:15px;line-height:1.45}
+.r-mw,.r-lk{display:flex;gap:14px;align-items:center;margin-top:8px}
+.r-mw img{width:64px;height:64px;object-fit:contain;border-radius:14px;background:#F3EFE7}
+.r-lk>div:first-child,.r-lk .flat{flex:none}
+.r-mw b,.r-lk b{display:block;font-size:16px}.r-mw span span,.r-lk span span{font-size:13px;opacity:.8}
+
+.pick>span.swt,.wl>span.swt{flex:none}
+.pick .swt{box-shadow:inset 0 0 0 1px rgba(245,241,234,.3)}
+.bal th{letter-spacing:0}
+
+</style>
+</head>
+<body>
+<main id="view"><section class="boot"><div><svg viewBox="0 0 64 64" width="72" height="72"><path d="M6 32V16a10 10 0 0 1 10-10h7.5a8.5 8.5 0 0 0 17 0H48a10 10 0 0 1 10 10v16z" fill="#1E2638"/><path d="M6 32v16a10 10 0 0 0 10 10h32a10 10 0 0 0 10-10V32z" fill="#CFC6B8"/></svg></div></section></main>
+<nav class="tabbar" id="tabs">
+ <button class="tab on" data-tab="today"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12V7a3 3 0 0 1 3-3h2.6a2.4 2.4 0 0 0 4.8 0H17a3 3 0 0 1 3 3v5z" fill="currentColor" stroke="none"/><path d="M4 12v5a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-5z"/></svg>Today</button>
+ <button class="tab" data-tab="log"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="3.5" y="10.5" width="5" height="5" rx="1.5"/><rect x="3.5" y="17" width="5" height="3.5" rx="1.2"/><path d="M11.5 6.5h9M11.5 13h9M11.5 18.8h6"/></svg>Log</button>
+ <button class="tab" data-tab="wardrobe"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2" fill="currentColor"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>Wardrobe</button>
+ <button class="tab" data-tab="looks"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3.5" width="13.5" height="13.5" rx="2.6"/><path d="M7 10.2V6.1a2.6 2.6 0 0 1 2.6-2.6h8.3a2.6 2.6 0 0 1 2.6 2.6v4.1z" fill="currentColor" stroke="none"/><path d="M4 8v9.4A3.1 3.1 0 0 0 7.1 20.5H16"/></svg>Looks</button>
+</nav>
+<div class="sheet" id="sheet"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* ===== PASTE YOUR APPS SCRIPT /exec LINK BETWEEN THE QUOTES ===== */
+window.TURNOUT = { exec: "PASTE_YOUR_APPS_SCRIPT_LINK_HERE" };
+</script>
+<script>
+/* ============================================================
+   Turnout · the fashion brain
+   Scores every possible outfit from your wardrobe and picks the
+   best for the occasion, the weather and what you've worn lately.
+   Pure functions: no screen, no network. Runs in the app and in tests.
+   ============================================================ */
+var Brain = (function () {
+  'use strict';
+
+  /* ---------- colour ---------- */
+  function rgb(hex) {
+    hex = String(hex || '#888888').replace('#', '');
+    if (hex.length === 3) hex = hex.replace(/./g, '$&$&');
+    var n = parseInt(hex, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function hsl(hex) {
+    var c = rgb(hex).map(function (v) { return v / 255; });
+    var max = Math.max.apply(null, c), min = Math.min.apply(null, c), l = (max + min) / 2, h = 0, s = 0;
+    if (max !== min) {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === c[0]) h = (c[1] - c[2]) / d + (c[1] < c[2] ? 6 : 0);
+      else if (max === c[1]) h = (c[2] - c[0]) / d + 2;
+      else h = (c[0] - c[1]) / d + 4;
+      h *= 60;
+    }
+    return { h: h, s: s, l: l };
+  }
+  function neutral(c) { return c.s < 0.2 || c.l < 0.2 || (c.l > 0.75 && c.s < 0.35); }
+  function patterned(x) { return !!x && !!x.pattern && x.pattern !== 'plain'; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  /* How well two pieces sit together, 0 to 1 */
+  function harmony(a, b) {
+    if (!a || !b) return 0.75;
+    var A = hsl(a.hex), B = hsl(b.hex), h;
+    var nA = neutral(A), nB = neutral(B);
+    if (nA && nB) h = 0.8;
+    else if (nA || nB) h = 0.86;
+    else {
+      var d = Math.abs(A.h - B.h); d = Math.min(d, 360 - d);
+      h = d < 25 ? 0.45 : d < 60 ? 0.66 : d < 150 ? 0.8 : 0.74;
+    }
+    var c = Math.abs(A.l - B.l);
+    if (c < 0.08) h -= 0.35; else if (c < 0.15) h -= 0.15; else if (c <= 0.6) h += 0.05;
+    if (a.texture === 'denim' && b.texture === 'denim') h -= 0.3;
+    if (patterned(a) && patterned(b)) h -= 0.3;
+    return clamp(h, 0, 1);
+  }
+  function contrast(a, b) { return Math.abs(hsl(a.hex).l - hsl(b.hex).l); }
+
+  /* ---------- occasions ---------- */
+  var OCC = {
+    work:    { label: 'Work',      smart: 3,   icon: 'work' },
+    out:     { label: 'Going out', smart: 3.5, icon: 'out' },
+    party:   { label: 'Party',     smart: 4,   icon: 'party' },
+    trip:    { label: 'Trip',      smart: 3,   icon: 'trip' },
+    weekend: { label: 'Weekend',   smart: 2,   icon: 'weekend' }
+  };
+  function warmthNeed(t) { return t == null ? 3 : t < 5 ? 4 : t < 10 ? 3 : t < 16 ? 2 : 1; }
+
+  /* ---------- the wardrobe, by slot ---------- */
+  // knit = jumpers, sweatshirts, hoodies, quarter zips · tee = T-shirts, football shirts, polos
+  // overshirt = overshirts, shackets (worn open over a top) · coat = jackets, coats
+  var SLOT = { knit: 'top', tee: 'top', shirt: 'shirt', overshirt: 'over', coat: 'coat', trousers: 'bottom', shoes: 'shoes' };
+  var SLOTS = ['top', 'shirt', 'over', 'bottom', 'coat', 'shoes'];
+  function usable(it) { return !it.archived && !it.maybe && !it.wash; }
+  function bySlot(items) {
+    var o = { top: [], shirt: [], over: [], coat: [], bottom: [], shoes: [] };
+    items.forEach(function (it) { if (!it.archived && SLOT[it.kind]) o[SLOT[it.kind]].push(it); });
+    return o;
+  }
+  function key(o) { return [o.top, o.shirt || '', o.over || '', o.bottom, o.coat || '', o.shoes || ''].join('|'); }
+  function core(o) { return (o.top || o.shirt) + '+' + o.bottom; }
+
+  /* ---------- memory: what's been worn ---------- */
+  function daysBetween(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5); }
+  function history(ctx) {
+    // wear log plus anything already planned before this day (for week planning)
+    return (ctx.wear || []).concat(ctx.planned || []);
+  }
+
+  /* ---------- the score ---------- */
+  function score(o, ctx, W) {
+    var top = W[o.top] || W[o.shirt], bot = W[o.bottom];
+    if (!top || !bot) return { score: -999, reasons: [] };
+    var occ = OCC[ctx.occasion] || OCC.work;
+    var parts = [top, bot], shirt = o.shirt && o.top ? W[o.shirt] : null, coat = o.coat ? W[o.coat] : null, shoes = o.shoes ? W[o.shoes] : null, over = o.over ? W[o.over] : null;
+    if (shirt) parts.push(shirt); if (over) parts.push(over); if (coat) parts.push(coat); if (shoes) parts.push(shoes);
+    var R = [], s = 30;
+
+    // colour
+    var h = harmony(top, bot); s += 50 * h;
+    var noteBonus = 0, nb = (ctx.notes && ctx.notes.pairs) || [];
+    nb.forEach(function (p) { if ((p[0] === top.id && p[1] === bot.id) || (p[1] === top.id && p[0] === bot.id)) { noteBonus += +p[2] || 0; if (p[3]) R.push({ w: 9, t: p[3] }); } });
+    ((ctx.notes && ctx.notes.avoid) || []).forEach(function (p) { if ((p[0] === top.id && p[1] === bot.id) || (p[1] === top.id && p[0] === bot.id)) noteBonus -= 40; });
+    s += noteBonus;
+    if (h >= 0.85) R.push({ w: 6, t: neutral(hsl(top.hex)) && neutral(hsl(bot.hex)) ? 'Clean contrast, easy to wear.' : 'The colours lift each other.' });
+    if (shirt) { var hs = harmony(shirt, top); s += 10 * (hs - 0.7); if (hs > 0.8) R.push({ w: 4, t: 'The collar lifts the knit.' }); }
+    if (coat) s += 8 * (harmony(coat, top) - 0.7);
+    if (over) { var ho = harmony(over, top); s += 14 * (ho - 0.72) + 2; if (ho > 0.82) R.push({ w: 5, t: 'The ' + String(over.sub || over.name).toLowerCase() + ' frames it nicely.' }); if (over.pattern !== 'plain' && top.pattern !== 'plain') s -= 15; }
+    if (top.kind === 'tee' && top.sub === 'football' && ctx.occasion !== 'weekend') s -= 25;
+    if (shoes) s += 8 * (harmony(shoes, bot) - 0.7);
+
+    // smartness for the occasion
+    var sm = parts.filter(function (p) { return p.kind !== 'coat'; }).reduce(function (a, p) { return a + (+p.smart || 3); }, 0) / (parts.length - (coat ? 1 : 0));
+    if (shirt && occ.smart >= 3.5) sm += 0.5;
+    s -= 10 * Math.abs(sm - occ.smart);
+    if ((+bot.smart || 3) <= 1 && occ.smart >= 3) s -= 30;
+    if (shoes && Math.abs((+shoes.smart || 3) - occ.smart) > 1.5) s -= 8;
+
+    // nights out and parties: richer, darker colours; save light denim for the daytime
+    if (ctx.occasion === 'party' || ctx.occasion === 'out') {
+      var tl = hsl(top.hex), bl = hsl(bot.hex);
+      if (tl.l < 0.32 || (tl.s > 0.25 && tl.l < 0.45) || top.pattern === 'ombre') s += ctx.occasion === 'party' ? 7 : 4;
+      if (bot.texture === 'denim' && bl.l > 0.5) s -= ctx.occasion === 'party' ? 12 : 4;
+      if (bl.l < 0.3) s += 3;
+    }
+
+    // weather
+    var need = warmthNeed(ctx.temp), warm = (+top.warmth || 3) + (shirt ? 0.5 : 0) + (over ? 1.5 : 0) + (coat ? 2 : 0);
+    if (warm < need) s -= 6 * (need - warm);
+    if (warm > need + 2.5) s -= 4 * (warm - need - 2.5);
+    if (ctx.temp != null && warm >= need && ctx.temp < 8) R.push({ w: 3, t: 'Warm enough for ' + Math.round(ctx.temp) + '°.' });
+
+    // what's been worn lately
+    var hist = history(ctx), date = ctx.date, lastTop = 999, lastBot = 999, lastCombo = 999, topCount = 0;
+    hist.forEach(function (w) {
+      var d = daysBetween(w.date, date); if (d <= 0 || d > 60) return;
+      if (w.top === top.id || w.shirt === top.id) { lastTop = Math.min(lastTop, d); if (d <= 7) topCount++; }
+      if (w.bottom === bot.id) lastBot = Math.min(lastBot, d);
+      if ((w.top || w.shirt) === top.id && w.bottom === bot.id) lastCombo = Math.min(lastCombo, d);
+    });
+    if (lastTop <= 2) s -= 25; else if (lastTop <= 7) s -= 8 * topCount;
+    if (lastBot <= 1) s -= 10; else if (lastBot <= 3) s -= 4;
+    if (lastCombo <= 14) s -= 20;
+    else if (lastCombo <= 35 && (ctx.occasion === 'party' || ctx.occasion === 'out' || ctx.occasion === 'trip')) s -= 18;   // nights out: keep them different
+    if (lastTop <= 35 && lastTop > 7 && (ctx.occasion === 'party' || ctx.occasion === 'out')) s -= 6;
+    if (lastTop >= 9 && lastTop < 999) R.push({ w: 5, t: top.name.split(' ')[0] === 'Ribbed' ? 'The ' + top.colour.toLowerCase() + " crew hasn't been out for " + lastTop + ' days.' : 'Not worn for ' + lastTop + ' days.' });
+    if (lastTop === 999) R.push({ w: 2, t: 'First outing in a while.' });
+
+    // the same crowd shouldn't see the same look twice
+    if (ctx.crowd) {
+      hist.forEach(function (w) {
+        if (w.crowd !== ctx.crowd || w.date === date) return;
+        if ((w.top || w.shirt) === top.id && w.bottom === bot.id) s -= 40;
+        else if ((w.top || w.shirt) === top.id) s -= 15;
+      });
+      R.push({ w: 7, t: 'Not a look the ' + crowdName(ctx.crowd) + ' have seen.' });
+    }
+
+    // your taste
+    var r = ctx.ratings || {};
+    if (r[core(o)] === 'love') { s += 15; R.push({ w: 8, t: 'One you loved.' }); }
+    if (r[core(o)] === 'nope') s -= 60;
+    var itemLove = function (id) { var n = 0; Object.keys(r).forEach(function (k) { if (r[k] === 'love' && k.split('+').indexOf(id) >= 0) n++; }); return n; };
+    s += 2 * Math.min(3, itemLove(top.id)) + 2 * Math.min(3, itemLove(bot.id));
+    if (ctx.notes && ctx.notes.items && ctx.notes.items[top.id] && h >= 0.8) R.push({ w: 1, t: ctx.notes.items[top.id] });
+
+    R.sort(function (a, b) { return b.w - a.w; });
+    return { score: Math.round(s * 10) / 10, reasons: R.map(function (x) { return x.t; }) };
+  }
+  function crowdName(c) { return ({ work: 'work lot', lads: 'lads', family: 'family', jess: 'Jess', friends: 'friends' })[c] || c; }
+
+  /* ---------- making outfits ----------
+     opts.pin:  ids that must be in it (build around this)
+     opts.pool: ids to choose from (pick a handful); slots with nothing picked use the whole wardrobe
+     opts.lock: {slot: id} kept as is (lock and swap) */
+  function generate(items, ctx, opts) {
+    opts = opts || {};
+    var keepIds = (opts.pin || []).concat(opts.pool || []).concat(Object.keys(opts.lock || {}).map(function (k) { return opts.lock[k]; }));
+    items = items.filter(function (i) { return usable(i) || keepIds.indexOf(i.id) >= 0 || opts.include === i.id; });
+    var W = {}; items.forEach(function (i) { W[i.id] = i; });
+    var S = bySlot(items), pin = opts.pin || [], pool = opts.pool || [], lock = opts.lock || {};
+    function choose(slot) {
+      if (lock[slot]) return [W[lock[slot]]].filter(Boolean);
+      var pinned = S[slot].filter(function (i) { return pin.indexOf(i.id) >= 0; });
+      if (pinned.length) return pinned;
+      var picked = S[slot].filter(function (i) { return pool.indexOf(i.id) >= 0; });
+      return picked.length ? picked : S[slot];
+    }
+    var tops = choose('top'), shirts = choose('shirt'), bots = choose('bottom'), coats = choose('coat'), shoes = choose('shoes'), overs = choose('over');
+    var pinOver = pin.some(function (id) { return W[id] && W[id].kind === 'overshirt'; }) || lock.over || pool.some(function (id) { return W[id] && W[id].kind === 'overshirt'; });
+    var pinShirt = pin.some(function (id) { return W[id] && W[id].kind === 'shirt'; }) || lock.shirt || pool.some(function (id) { return W[id] && W[id].kind === 'shirt'; });
+    var pinTop = pin.some(function (id) { return W[id] && (W[id].kind === 'knit' || W[id].kind === 'tee'); }) || lock.top;
+    var combos = [];
+    // knit, optionally over a shirt
+    if (!(pinShirt && !tops.length)) tops.forEach(function (t) {
+      bots.forEach(function (b) {
+        combos.push({ top: t.id, bottom: b.id });
+        if (t.kind === 'knit' && t.neck !== 'collar' && t.sub !== 'hoodie' && t.sub !== 'quarterzip') shirts.forEach(function (sh) { combos.push({ top: t.id, shirt: sh.id, bottom: b.id }); });
+      });
+    });
+    // a shirt on its own
+    if (!pinTop) shirts.forEach(function (sh) { bots.forEach(function (b) { combos.push({ shirt: sh.id, bottom: b.id }); }); });
+    if (pinShirt) combos = combos.filter(function (c) { return !!c.shirt; });
+    // an overshirt or shacket worn open over the top
+    if (overs.length) {
+      var withOver = [];
+      combos.forEach(function (c) { if (c.shirt && !c.top) return; overs.forEach(function (ov) { if (W[ov.id] && W[ov.id] !== W[c.top]) withOver.push(Object.assign({}, c, { over: ov.id })); }); });
+      combos = pinOver ? withOver : combos.concat(withOver);
+    }
+
+    var out = combos.map(function (c) {
+      var top = W[c.top] || W[c.shirt], bot = W[c.bottom];
+      // best coat when it's cold (or if one's pinned/locked)
+      var coatPinned = coats.some(function (x) { return pin.indexOf(x.id) >= 0 || lock.coat === x.id; });
+      if (coats.length && (coatPinned || (ctx.temp != null && ctx.temp < 10 && !ctx.indoors))) {
+        c.coat = coats.slice().sort(function (a, b) { return harmony(b, top) - harmony(a, top); })[0].id;
+      }
+      // shoes that suit the trousers and the occasion
+      if (shoes.length) {
+        var occ = OCC[ctx.occasion] || OCC.work;
+        c.shoes = shoes.slice().sort(function (a, b) {
+          return (harmony(b, bot) * 10 - Math.abs((+b.smart || 3) - occ.smart) * 3) - (harmony(a, bot) * 10 - Math.abs((+a.smart || 3) - occ.smart) * 3);
+        })[0].id;
+      }
+      var r = score(c, ctx, W);
+      return { outfit: c, score: r.score, reasons: r.reasons };
+    });
+    out.sort(function (a, b) { return b.score - a.score; });
+    // keep it varied: no two options with the same knit in the top three
+    var res = [], seenTop = {};
+    out.forEach(function (o) { var t = o.outfit.top || o.outfit.shirt; if (!seenTop[t] || pin.indexOf(t) >= 0 || lock.top) { res.push(o); seenTop[t] = 1; } });
+    out.forEach(function (o) { if (res.indexOf(o) < 0) res.push(o); });
+    return res;
+  }
+
+  /* The next choice for one slot, with everything else kept */
+  function swap(items, ctx, outfit, slot) {
+    var lock = {};
+    SLOTS.forEach(function (s) { if (s !== slot && outfit[s]) lock[s] = outfit[s]; });
+    var list = generate(items, ctx, { lock: lock }).filter(function (o) { return o.outfit[slot] && o.outfit[slot] !== outfit[slot]; });
+    return list;
+  }
+
+  /* ---------- the week ---------- */
+  function planDays(items, days, base) {
+    // days: [{date, occasion, temp, crowd, event, plan}] ; base: {wear, ratings, notes}
+    var planned = [], out = [];
+    days.forEach(function (d) {
+      var ctx = { date: d.date, occasion: d.occasion, temp: d.temp, crowd: d.crowd, wear: base.wear, ratings: base.ratings, notes: base.notes, planned: planned };
+      var pick = null, ids = {}; items.forEach(function (i) { ids[i.id] = 1; });
+      if (d.worn) pick = { outfit: d.worn, score: 0, reasons: [], worn: true };
+      else if (d.plan && ids[d.plan.bottom] && (ids[d.plan.top] || ids[d.plan.shirt])) {
+        var W = {}; items.forEach(function (i) { W[i.id] = i; });
+        var r = score(d.plan, ctx, W); pick = { outfit: d.plan, score: r.score, reasons: (d.plan.note ? [d.plan.note] : []).concat(r.reasons), fromClaude: true };
+      } else {
+        var g = generate(items, ctx); pick = g[0] || null;
+      }
+      if (pick) planned.push({ date: d.date, top: pick.outfit.top, shirt: pick.outfit.shirt, over: pick.outfit.over, bottom: pick.outfit.bottom, crowd: d.crowd });
+      out.push(Object.assign({}, d, { pick: pick }));
+    });
+    return out;
+  }
+
+  /* ---------- what to buy next ---------- */
+  function C(id, kind, sub, name, colour, hex, smart, warmth, extra) { return Object.assign({ id: id, kind: kind, sub: sub, name: name, colour: colour, hex: hex, pattern: 'plain', texture: '', smart: smart, warmth: warmth, neck: '' }, extra || {}); }
+  var CATALOGUE = [
+    C('g-oxford', 'shirt', 'shirt', 'White oxford shirt', 'White', '#F2F1EC', 4, 1, { texture: 'oxford', neck: 'collar' }),
+    C('g-blueox', 'shirt', 'shirt', 'Pale blue oxford shirt', 'Pale blue', '#BFD0E3', 4, 1, { texture: 'oxford', neck: 'collar' }),
+    C('g-denimshirt', 'shirt', 'shirt', 'Mid-blue denim shirt', 'Denim', '#5A7398', 3, 2, { texture: 'denim', neck: 'collar' }),
+    C('g-whitetee', 'tee', 'tee', 'White heavyweight T-shirt', 'White', '#F4F3EF', 2, 1),
+    C('g-navytee', 'tee', 'tee', 'Navy T-shirt', 'Navy', '#22293A', 2, 1),
+    C('g-olivers', 'overshirt', 'overshirt', 'Olive overshirt', 'Olive', '#55583F', 3, 3, { texture: 'twill' }),
+    C('g-navyovers', 'overshirt', 'overshirt', 'Navy overshirt', 'Navy', '#232B3D', 3, 3, { texture: 'twill' }),
+    C('g-shacket', 'overshirt', 'shacket', 'Brown check shacket', 'Brown check', '#6E5544', 2, 4, { pattern: 'check' }),
+    C('g-greycrew', 'knit', 'jumper', 'Grey marl crew', 'Grey marl', '#9A9A98', 3, 4, { texture: 'rib', neck: 'crew' }),
+    C('g-creamcable', 'knit', 'jumper', 'Cream cable knit', 'Cream', '#EAE3D2', 3, 5, { texture: 'cable', neck: 'crew' }),
+    C('g-rollneck', 'knit', 'jumper', 'Black merino roll neck', 'Black', '#1A1A1C', 4, 3, { texture: 'fine', neck: 'roll' }),
+    C('g-camelcrew', 'knit', 'jumper', 'Camel lambswool crew', 'Camel', '#B88A5A', 4, 4, { texture: 'fine', neck: 'crew' }),
+    C('g-navyqz', 'knit', 'quarterzip', 'Navy quarter zip', 'Navy', '#1F2638', 3, 3, { neck: 'zip' }),
+    C('g-greyhood', 'knit', 'hoodie', 'Grey marl hoodie', 'Grey marl', '#A3A3A1', 1, 3),
+    C('g-charcoaltr', 'trousers', 'trousers', 'Charcoal wool trousers', 'Charcoal', '#3C3D40', 4, 3, { texture: 'wool' }),
+    C('g-olivechino', 'trousers', 'chinos', 'Olive chinos', 'Olive', '#5E6248', 3, 2, { texture: 'twill' }),
+    C('g-indigo', 'trousers', 'jeans', 'Dark indigo jeans', 'Indigo', '#25314A', 3, 2, { texture: 'denim' }),
+    C('g-blackjeans', 'trousers', 'jeans', 'Black slim jeans', 'Black', '#1C1C1E', 3, 2, { texture: 'denim' }),
+    C('g-cords', 'trousers', 'trousers', 'Cream cords', 'Cream', '#E3DBC9', 3, 3, { texture: 'cord' }),
+    C('g-overcoat', 'coat', 'coat', 'Navy wool overcoat', 'Navy', '#1F2638', 4, 5),
+    C('g-chore', 'coat', 'jacket', 'Stone chore jacket', 'Stone', '#C9BFAE', 3, 3),
+    C('g-trainers', 'shoes', 'trainers', 'White leather trainers', 'White', '#F1F0EC', 3, 2),
+    C('g-chelsea', 'shoes', 'boots', 'Brown suede Chelsea boots', 'Brown suede', '#6E4B33', 4, 3),
+    C('g-derby', 'shoes', 'shoes', 'Black leather derby shoes', 'Black', '#1B1B1C', 5, 2)
+  ];
+  var GOODAT = 72, OCCS = ['work', 'out', 'party', 'weekend'];
+  function goodSet(list, base) {
+    var s = {};
+    OCCS.forEach(function (oc) { generate(list, { date: '2099-01-01', occasion: oc, temp: 8, wear: [], ratings: base.ratings || {}, notes: base.notes || {} }).forEach(function (o) { if (o.score >= GOODAT) s[oc + ':' + core(o.outfit) + ':' + (o.outfit.shirt && o.outfit.top ? o.outfit.shirt : '') + ':' + (o.outfit.over || '')] = 1; }); });
+    return s;
+  }
+  function count(s) { return Object.keys(s).length; }
+  /* What one piece (owned or not) adds: new good outfits, by occasion, with examples */
+  function adds(items, cand, base, before) {
+    var owned = items.filter(usable), now = before || goodSet(owned, base);
+    var c2 = Object.assign({}, cand, { maybe: false, wash: false }), after = goodSet(owned.concat([c2]), base);
+    var neu = Object.keys(after).filter(function (k) { return !now[k]; }), by = {};
+    neu.forEach(function (k) { var oc = k.split(':')[0]; by[oc] = (by[oc] || 0) + 1; });
+    var ex = [], seen = {};
+    ['out', 'work', 'party', 'weekend'].forEach(function (oc) {
+      generate(owned.concat([c2]), { date: '2099-01-01', occasion: oc, temp: 8, wear: [], ratings: base.ratings || {}, notes: base.notes || {} }, { pin: [c2.id] }).slice(0, 3).forEach(function (o) {
+        var k = key(o.outfit); if (!seen[k] && o.score >= GOODAT - 6 && ex.length < 6) { seen[k] = 1; ex.push({ outfit: o.outfit, occasion: oc }); }
+      });
+    });
+    var goes = owned.filter(function (o) { return o.id !== c2.id && SLOT[o.kind] !== SLOT[c2.kind] && harmony(o, c2) >= 0.78; }).length;
+    return { adds: neu.length, by: by, examples: ex, goes: goes, now: count(now), total: count(now) + neu.length };
+  }
+  /* Why it's worth buying, in plain words */
+  function reason(items, cand) {
+    var own = items.filter(function (i) { return !i.archived && !i.maybe; }), of = function (k) { return own.filter(function (i) { return i.kind === k; }); };
+    var L = hsl(cand.hex).l;
+    if (cand.kind === 'shirt' && !of('shirt').length) { var n = of('knit').filter(function (k) { return k.neck !== 'collar' && k.sub !== 'hoodie' && k.sub !== 'quarterzip'; }).length; return 'No shirts yet: it goes under ' + n + ' of your knits.'; }
+    if (cand.kind === 'overshirt' && !of('overshirt').length) return 'Nothing to throw over a tee or a knit yet.';
+    if (cand.kind === 'tee' && !of('tee').length) return 'No T-shirts in here yet for easy weekends.';
+    if (cand.kind === 'trousers') {
+      if (cand.smart >= 4 && !of('trousers').some(function (t) { return t.smart >= 4; })) return 'Nothing smart enough for a do.';
+      if (cand.texture === 'denim' && L < 0.3 && of('trousers').filter(function (t) { return t.texture === 'denim'; }).every(function (t) { return hsl(t.hex).l > 0.45; })) return 'Your denim is all light wash.';
+      if (L < 0.3 && of('trousers').filter(function (t) { return hsl(t.hex).l < 0.3; }).length <= 1) return 'You’re short on dark trousers.';
+    }
+    if (cand.kind === 'coat' && !of('coat').length) return 'No coat in here yet for the cold days.';
+    if (cand.kind === 'shoes' && !of('shoes').some(function (s) { return Math.abs(s.smart - cand.smart) <= 1; })) return cand.smart >= 4 ? 'No smart shoes for dos yet.' : 'No everyday shoes in here yet.';
+    var fam = function (h) { var c = hsl(h); return c.s < 0.18 ? (c.l < 0.25 ? 'dark' : c.l > 0.75 ? 'light' : 'grey') : Math.round(c.h / 40); };
+    if (!own.some(function (i) { return SLOT[i.kind] === SLOT[cand.kind] && fam(i.hex) === fam(cand.hex); })) return 'A colour you don’t have in that slot yet.';
+    var tops = SLOT[cand.kind] !== 'bottom', pool = tops ? of('trousers') : own.filter(function (i) { return SLOT[i.kind] === 'top' || SLOT[i.kind] === 'shirt'; });
+    var good = pool.filter(function (p) { return harmony(cand, p) >= 0.75; }).length;
+    return tops ? 'Works with ' + good + ' of your ' + pool.length + ' trousers.' : 'Goes with ' + good + ' of your ' + pool.length + ' tops.';
+  }
+  function near(a, b) {
+    if (SLOT[a.kind] !== SLOT[b.kind] || (a.pattern || 'plain') !== (b.pattern || 'plain')) return false;
+    var p = hsl(a.hex), q = hsl(b.hex), dh = Math.abs(p.h - q.h); dh = Math.min(dh, 360 - dh);
+    return Math.abs(p.l - q.l) < 0.1 && (dh < 25 || (p.s < 0.15 && q.s < 0.15));
+  }
+  /* The best buys. Kinds you haven't added yet are skipped (you may own them) unless you've said you have none. */
+  function gaps(items, base, opts) {
+    opts = opts || {};
+    var owned = items.filter(usable), kinds = {}; items.forEach(function (i) { if (!i.maybe) kinds[i.kind] = 1; });
+    var none = opts.none || [], now = goodSet(owned, base);
+    var maybes = items.filter(function (i) { return i.maybe && !i.archived; }), names = {}; items.forEach(function (i) { names[String(i.name).toLowerCase() + '|' + String(i.colour).toLowerCase()] = 1; });
+    return CATALOGUE.filter(function (c) { return !names[c.name.toLowerCase() + '|' + c.colour.toLowerCase()] && !maybes.some(function (m) { return near(m, c); }) && (kinds[c.kind] || none.indexOf(c.kind) >= 0); })
+      .map(function (c) { var a = adds(items, c, base, now); return { item: c, adds: a.adds, by: a.by, examples: a.examples, goes: a.goes, now: a.now, why: reason(items, c) }; })
+      .filter(function (x) { return x.adds > 0; })
+      .sort(function (a, b) { return b.adds - a.adds; });
+  }
+  function together(items, list, base) { var owned = items.filter(usable); return count(goodSet(owned.concat(list.map(function (c) { return Object.assign({}, c, { maybe: false }); })), base)); }
+
+  /* ---------- naming a look ---------- */
+  function shortColour(it) {
+    if (!it) return '';
+    if (it.pattern === 'ombre') return 'Ombré';
+    if (it.pattern === 'stripe') return 'Stripes';
+    var c = String(it.colour || '').split(/\s+(?:and|to)\s+/)[0];
+    return c.replace(/\s*marl$/i, '').replace(/^light wash$/i, 'Light denim');
+  }
+  function title(o, W) {
+    var top = W[o.top] || W[o.shirt], bot = W[o.bottom];
+    if (!top || !bot) return '';
+    var a = shortColour(top), b = shortColour(bot);
+    return a.toLowerCase() === b.toLowerCase() ? a + ', head to toe' : a + ' on ' + b;
+  }
+
+  return { hsl: hsl, rgb: rgb, harmony: harmony, contrast: contrast, score: score, generate: generate, swap: swap,
+           planDays: planDays, gaps: gaps, title: title, shortColour: shortColour, OCC: OCC, key: key, core: core,
+           bySlot: bySlot, SLOT: SLOT, SLOTS: SLOTS, adds: adds, reason: reason, together: together, goodSet: goodSet, usable: usable, near: near, neutral: neutral, warmthNeed: warmthNeed, CATALOGUE: CATALOGUE, daysBetween: daysBetween };
+})();
+if (typeof module !== 'undefined') module.exports = Brain;
+
+</script>
+<script>
+/* ============================================================
+   Turnout · the flat-lay engine
+   Draws an outfit the way you'd lay it on the bed: one real-world
+   scale for every piece, the knit hem always 9 cm over the waistband,
+   shirts peeking at the collar and hem, coats open behind, shoes at
+   the hems. Also cuts new photos out of their background.
+   ============================================================ */
+var Engine = (function () {
+  'use strict';
+  var REAL = { knit: 74, tee: 72, shirt: 80, overshirt: 78, coat: 92, trousers: 104, shoes: 12 };   // cm, defaults
+  var OVERLAP = 9;                                                            // knit hem over the waistband
+  var geomMem = {}, imgMem = {}, outMem = {};
+
+  function loadImg(src) {
+    if (imgMem[src]) return imgMem[src];
+    imgMem[src] = new Promise(function (res, rej) {
+      var im = new Image(); im.decoding = 'async';
+      im.onload = function () { res(im); }; im.onerror = function () { delete imgMem[src]; rej(new Error('image ' + src)); };
+      im.src = src;
+    });
+    return imgMem[src];
+  }
+
+  /* Where a piece's useful lines are: shoulders, hem, waistband, centre */
+  function measure(im, kind) {
+    var w = im.naturalWidth, h = im.naturalHeight, c = document.createElement('canvas');
+    var sc = Math.min(1, 400 / Math.max(w, h)); c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+    var x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, c.width, c.height);
+    var d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height;
+    var A = function (px, py) { return d[(py * W + px) * 4 + 3] > 128; };
+    var minx = W, maxx = 0, miny = H, maxy = 0;
+    for (var y = 0; y < H; y++) for (var xx = 0; xx < W; xx++) if (A(xx, y)) { if (xx < minx) minx = xx; if (xx > maxx) maxx = xx; if (y < miny) miny = y; if (y > maxy) maxy = y; }
+    var c0 = Math.floor(minx + (maxx - minx) * 0.42), c1 = Math.ceil(minx + (maxx - minx) * 0.58), lo = H, hi = 0;
+    for (y = miny; y <= maxy; y++) for (xx = c0; xx <= c1; xx++) if (A(xx, y)) { if (y < lo) lo = y; if (y > hi) hi = y; break; }
+    function run(yy) {
+      var cx = Math.round((minx + maxx) / 2);
+      if (!A(cx, yy)) { var best = -1; for (var k = minx; k <= maxx; k++) if (A(k, yy) && (best < 0 || Math.abs(k - cx) < Math.abs(best - cx))) best = k; if (best < 0) return [cx, cx]; cx = best; }
+      var l = cx, r = cx; while (l > 0 && A(l - 1, yy)) l--; while (r < W - 1 && A(r + 1, yy)) r++; return [l, r];
+    }
+    var g = { bx: minx / sc, by: miny / sc, bw: (maxx - minx) / sc, bh: (maxy - miny) / sc };
+    if (kind === 'trousers') { var t = run(Math.round(miny + (maxy - miny) * 0.03)); g.cx = (t[0] + t[1]) / 2 / sc; g.len = g.bh; g.top = g.by; }
+    else if (kind === 'shoes') { g.cx = (minx + maxx) / 2 / sc; g.len = g.bh; g.top = g.by; }
+    else { var hem = (kind === 'coat' || kind === 'overshirt' ? maxy : hi); var r2 = run(Math.round(hem - (maxy - miny) * 0.04)); g.cx = (r2[0] + r2[1]) / 2 / sc; g.top = g.by; g.len = (hem - miny) / sc; }
+    return g;
+  }
+  function geom(item) {
+    var k = item.img + '|' + item.kind;
+    if (geomMem[k]) return geomMem[k];
+    geomMem[k] = loadImg(item.src || item.img).then(function (im) { return { im: im, g: measure(im, item.kind) }; });
+    return geomMem[k];
+  }
+
+  /* A dotted line around a piece you don't own yet */
+  function outline(ctx, im, dx, dy, dw, dh, DPR) {
+    var pad = 8 * DPR, W = Math.ceil(dw + pad * 2), H = Math.ceil(dh + pad * 2);
+    var a = document.createElement('canvas'); a.width = W; a.height = H; var ax = a.getContext('2d');
+    var r = 3.5 * DPR;
+    for (var t = 0; t < 16; t++) { var ang = t / 16 * Math.PI * 2; ax.drawImage(im, pad + Math.cos(ang) * r, pad + Math.sin(ang) * r, dw, dh); }
+    ax.globalCompositeOperation = 'source-in'; ax.fillStyle = '#17181C'; ax.fillRect(0, 0, W, H);
+    ax.globalCompositeOperation = 'destination-out';
+    var r2 = 1.6 * DPR; for (t = 0; t < 12; t++) { var a2 = t / 12 * Math.PI * 2; ax.drawImage(im, pad + Math.cos(a2) * r2, pad + Math.sin(a2) * r2, dw, dh); }
+    ax.drawImage(im, pad, pad, dw, dh);
+    // turn the ring into dots
+    var dots = document.createElement('canvas'), g = Math.round(5 * DPR); dots.width = g; dots.height = g;
+    var dx2 = dots.getContext('2d'); dx2.fillStyle = '#000'; dx2.beginPath(); dx2.arc(g / 2, g / 2, g * 0.26, 0, Math.PI * 2); dx2.fill();
+    ax.globalCompositeOperation = 'destination-in'; ax.fillStyle = ax.createPattern(dots, 'repeat'); ax.fillRect(0, 0, W, H);
+    ctx.save(); ctx.globalAlpha = 0.8; ctx.drawImage(a, dx - pad, dy - pad); ctx.restore();
+  }
+
+  /* Draw a whole outfit. h is the CSS height it'll be shown at. */
+  function render(outfit, W, h, opts) {
+    opts = opts || {};
+    var ids = ['coat', 'over', 'bottom', 'shoes', 'shirt', 'top'].map(function (s) { return outfit[s]; });
+    var k = ids.join('|') + '@' + h + (opts.overlap || '') + '~' + (opts.dotted || []).join(',');
+    if (outMem[k]) return outMem[k];
+    var parts = { top: W[outfit.top], shirt: W[outfit.shirt], over: W[outfit.over], bottom: W[outfit.bottom], coat: W[outfit.coat], shoes: W[outfit.shoes] };
+    var dotted = opts.dotted || [];
+    var keys = Object.keys(parts).filter(function (s) { return parts[s]; });
+    outMem[k] = Promise.all(keys.map(function (s) { return geom(parts[s]); })).then(function (gs) {
+      var G = {}; keys.forEach(function (s, i) { G[s] = gs[i]; });
+      var upper = parts.top || parts.shirt, upperG = G.top || G.shirt, upperKind = parts.top ? 'knit' : 'shirt';
+      var lenOf = function (it) { return +it.length || REAL[it.kind] || 74; };
+      var topLen = lenOf(upper), botLen = lenOf(parts.bottom), ov = opts.overlap || OVERLAP;
+      var shoeCm = parts.shoes ? 10 : 0;
+      var coatLen = Math.max(parts.coat ? lenOf(parts.coat) : 0, parts.over ? lenOf(parts.over) : 0);
+      var totalCm = Math.max(topLen + botLen - ov + shoeCm, coatLen) + 6;
+      var DPR = 2, PX = (h * DPR) / totalCm;            // pixels per cm
+      var scaleOf = function (s) { return (s === 'shoes' ? (lenOf(parts.shoes) * PX) : (lenOf(parts[s]) * PX)) / G[s].g.len; };
+      var widest = 0; keys.forEach(function (s) { widest = Math.max(widest, G[s].g.bw * scaleOf(s)); });
+      var cw = Math.ceil(widest + 24 * DPR), ch = Math.ceil(h * DPR);
+      var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+      var x = cv.getContext('2d'); x.imageSmoothingQuality = 'high';
+      var cx = cw / 2, top0 = 3 * PX;                      // shoulders sit 3 cm from the top
+      var hemY = top0 + topLen * PX, waistY = hemY - ov * PX, botEnd = waistY + botLen * PX;
+      function draw(s, yTop, shadow) {
+        var gg = G[s].g, sc = scaleOf(s), im = G[s].im, dx = cx - gg.cx * sc, dy = yTop - gg.top * sc, dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
+        x.save();
+        if (shadow) { x.shadowColor = 'rgba(40,32,24,.26)'; x.shadowBlur = 16 * DPR; x.shadowOffsetY = 6 * DPR; }
+        x.drawImage(im, dx, dy, dw, dh);
+        x.restore();
+        if (dotted.indexOf(parts[s].id) >= 0) outline(x, im, dx, dy, dw, dh, DPR);
+      }
+      if (parts.coat) draw('coat', top0 - 1 * PX, true);            // open, behind, shoulders matched
+      if (parts.over) draw('over', top0 - 0.5 * PX, true);          // overshirt or shacket, open, behind the top
+      draw('bottom', waistY, true);
+      if (parts.shoes) {                                            // toes out, just under the hems
+        var sg = G.shoes.g, ssc = scaleOf('shoes');
+        x.save(); x.shadowColor = 'rgba(40,32,24,.22)'; x.shadowBlur = 10 * DPR; x.shadowOffsetY = 4 * DPR;
+        x.drawImage(G.shoes.im, cx - sg.cx * ssc, botEnd - 2 * PX - sg.top * ssc, G.shoes.im.naturalWidth * ssc, G.shoes.im.naturalHeight * ssc); x.restore();
+      }
+      if (parts.shirt && parts.top) draw('shirt', top0 - 2 * PX, true);   // collar 2 cm above the knit, hem shows below
+      draw(parts.top ? 'top' : 'shirt', top0, true);
+      return new Promise(function (res) {
+        var done = function (url) { res({ url: url, w: cw / DPR, h: h, hem: hemY / ch, waist: waistY / ch }); };
+        try { if (cv.toBlob) cv.toBlob(function (b) { done(b ? URL.createObjectURL(b) : cv.toDataURL()); }, 'image/webp', 0.86); else done(cv.toDataURL()); }
+        catch (e) { done(cv.toDataURL()); }
+      });
+    });
+    outMem[k].catch(function () { delete outMem[k]; });
+    return outMem[k];
+  }
+
+  /* ---------- cutting a new photo out of its background ----------
+     Gemini's studio shots sit on an even, light background. Everything
+     joined to the edges that's close to that colour goes. */
+  function cutout(file, maxSide) {
+    maxSide = maxSide || 900;
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var im = new Image();
+        im.onload = function () {
+          var sc = Math.min(1, maxSide / Math.max(im.naturalWidth, im.naturalHeight));
+          var W = Math.round(im.naturalWidth * sc), H = Math.round(im.naturalHeight * sc);
+          var c = document.createElement('canvas'); c.width = W; c.height = H;
+          var x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, W, H);
+          var id = x.getImageData(0, 0, W, H), d = id.data;
+          // background colour from the border
+          var rs = [], gs = [], bs = [];
+          for (var i = 0; i < W; i += 4) { [0, H - 1].forEach(function (y) { var p = (y * W + i) * 4; rs.push(d[p]); gs.push(d[p + 1]); bs.push(d[p + 2]); }); }
+          for (var j = 0; j < H; j += 4) { [0, W - 1].forEach(function (xx) { var p = (j * W + xx) * 4; rs.push(d[p]); gs.push(d[p + 1]); bs.push(d[p + 2]); }); }
+          var med = function (a) { a.sort(function (p, q) { return p - q; }); return a[a.length >> 1]; };
+          var br = med(rs), bgc = med(gs), bb = med(bs);
+          var dist = function (p) { var dr = d[p] - br, dg = d[p + 1] - bgc, db = d[p + 2] - bb; return Math.sqrt(dr * dr + dg * dg + db * db); };
+          // already cut out (iPhone's lift-subject PNG)? keep it as it is
+          var corner = d[3] + d[(W - 1) * 4 + 3] + d[((H - 1) * W) * 4 + 3] + d[(H * W - 1) * 4 + 3];
+          // flood from the edges; soft shadows (a bit darker, same hue) go too. Stops at edges in the picture.
+          var seen = new Uint8Array(W * H), q = [], T = 16;
+          var grad = function (k) { var p = k * 4, xx = k % W, y = (k / W) | 0; if (xx < 1 || y < 1 || xx >= W - 1 || y >= H - 1) return 0; var a1 = d[p - 4] + d[p - 3] + d[p - 2], a2 = d[p + 4] + d[p + 5] + d[p + 6], b1 = d[p - W * 4] + d[p - W * 4 + 1] + d[p - W * 4 + 2], b2 = d[p + W * 4] + d[p + W * 4 + 1] + d[p + W * 4 + 2]; return Math.abs(a1 - a2) + Math.abs(b1 - b2); };
+          var shadowish = function (p) { var lum = (d[p] + d[p + 1] + d[p + 2]) / 3, blum = (br + bgc + bb) / 3; var hueish = Math.abs((d[p] - d[p + 2]) - (br - bb)) < 10; return lum > blum * 0.8 && lum <= blum + 4 && hueish; };
+          // grow the background from the edges a step at a time: each new pixel must be close to the one it came
+          // from (so soft vignettes and shadows go) and not too far from the background overall (so the piece stays)
+          var step = function (p, o) { var dr = d[p] - d[o], dg = d[p + 1] - d[o + 1], db = d[p + 2] - d[o + 2]; return Math.sqrt(dr * dr + dg * dg + db * db); };
+          function push(xx, y, from) { var k = y * W + xx; if (seen[k]) return; var p = k * 4; if (corner < 40) { if (d[p + 3] < 20) { seen[k] = 1; q.push(k); } return; }
+            var ok = from < 0 ? dist(p) < 70 : (step(p, from * 4) < 7 && dist(p) < 90); if (ok) { seen[k] = 1; q.push(k); } }
+          for (i = 0; i < W; i++) { push(i, 0, -1); push(i, H - 1, -1); }
+          for (j = 0; j < H; j++) { push(0, j, -1); push(W - 1, j, -1); }
+          while (q.length) { var k = q.pop(), xx = k % W, y = (k / W) | 0; if (xx > 0) push(xx - 1, y, k); if (xx < W - 1) push(xx + 1, y, k); if (y > 0) push(xx, y - 1, k); if (y < H - 1) push(xx, y + 1, k); }
+          // if holes appear in the middle of the piece, it's too close to the background colour to cut safely
+          var hx0 = Math.round(W * 0.35), hx1 = Math.round(W * 0.65), hy0 = Math.round(H * 0.35), hy1 = Math.round(H * 0.65), holes = 0, tot = 0;
+          for (var yh = hy0; yh < hy1; yh += 2) for (var xh = hx0; xh < hx1; xh += 2) { tot++; if (seen[yh * W + xh]) holes++; }
+          if (corner >= 40 && holes / tot > 0.04) return rej(new Error('That one’s too close to its background to cut out here. On your iPhone, hold the piece in Photos, tap Share and Save Image, then choose that.'));
+          for (i = 0; i < W * H; i++) if (seen[i]) d[i * 4 + 3] = 0;
+          // soften the edge by one pixel
+          for (i = 0; i < W * H; i++) { if (seen[i]) continue; var xx2 = i % W, y2 = (i / W) | 0; var n = 0; if (xx2 > 0 && seen[i - 1]) n++; if (xx2 < W - 1 && seen[i + 1]) n++; if (y2 > 0 && seen[i - W]) n++; if (y2 < H - 1 && seen[i + W]) n++; if (n) d[i * 4 + 3] = 255 - n * 50; }
+          x.putImageData(id, 0, 0);
+          // crop to the piece
+          var minx = W, maxx = 0, miny = H, maxy = 0;
+          for (var yy = 0; yy < H; yy++) for (var x3 = 0; x3 < W; x3++) if (d[(yy * W + x3) * 4 + 3] > 140) { if (x3 < minx) minx = x3; if (x3 > maxx) maxx = x3; if (yy < miny) miny = yy; if (yy > maxy) maxy = yy; }
+          if (maxx <= minx) return rej(new Error('Couldn’t find the piece in that photo.'));
+          var o = document.createElement('canvas'); o.width = maxx - minx + 1; o.height = maxy - miny + 1;
+          o.getContext('2d').drawImage(c, minx, miny, o.width, o.height, 0, 0, o.width, o.height);
+          // the main colour: the middle of the piece, not the edges
+          var od = o.getContext('2d').getImageData(Math.round(o.width * 0.3), Math.round(o.height * 0.2), Math.max(1, Math.round(o.width * 0.4)), Math.max(1, Math.round(o.height * 0.5))).data, R = [], G2 = [], B2 = [];
+          for (i = 0; i < od.length; i += 16) if (od[i + 3] > 200) { R.push(od[i]); G2.push(od[i + 1]); B2.push(od[i + 2]); }
+          var hex = '#' + [med(R), med(G2), med(B2)].map(function (v) { return ('0' + (v | 0).toString(16)).slice(-2); }).join('');
+          // a square tile on the original background for the wardrobe grid
+          var t = document.createElement('canvas'), S = 480; t.width = S; t.height = S; var tx = t.getContext('2d');
+          tx.fillStyle = 'rgb(' + br + ',' + bgc + ',' + bb + ')'; tx.fillRect(0, 0, S, S);
+          var ts = Math.min(S * 0.82 / o.width, S * 0.82 / o.height); tx.drawImage(o, (S - o.width * ts) / 2, (S - o.height * ts) / 2, o.width * ts, o.height * ts);
+          res({ cut: o.toDataURL('image/webp', 0.86), tile: t.toDataURL('image/jpeg', 0.84), hex: hex });
+        };
+        im.onerror = function () { rej(new Error('That file isn’t a picture I can read.')); };
+        im.src = fr.result;
+      };
+      fr.onerror = rej; fr.readAsDataURL(file);
+    });
+  }
+
+  function forget() { outMem = {}; }
+  return { render: render, cutout: cutout, geom: geom, forget: forget, REAL: REAL, OVERLAP: OVERLAP };
+})();
+
+</script>
+<script>
+/* ============================================================
+   Turnout · the app
+   ============================================================ */
+(function () {
+  'use strict';
+  var CFG = window.TURNOUT || {};
+  var EXEC = /^https:\/\/script\.google\.com\//.test(CFG.exec || '') ? CFG.exec : '';
+  var LAT = 52.49, LON = -0.69;   // Corby
+
+  /* ---------- small helpers ---------- */
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function todayIso() { return iso(new Date()); }
+  function addDays(s, n) { var d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var LONGDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function dObj(s) { return new Date(s + 'T12:00:00'); }
+  function fmt(s) { var d = dObj(s); return DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+  function dayName(s) { return DAYS[dObj(s).getDay()]; }
+  function dayNum(s) { var d = dObj(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+  function toast(t) { var el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('on'); }, 2200); }
+  function buzz() { try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {} }
+  function lum(hex) { return Brain.rgb(hex).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }).reduce(function (a, v, i) { return a + v * [0.2126, 0.7152, 0.0722][i]; }, 0); }
+  function light(hex) { var L = lum(hex); return (L + 0.05) / (lum('#17181C') + 0.05) > (lum('#F5F1EA') + 0.05) / (L + 0.05); }   // ink reads better than cream
+
+  /* ---------- icons: colour-block shapes ---------- */
+  var I = {
+    today: '<path d="M4 12V7a3 3 0 0 1 3-3h2.6a2.4 2.4 0 0 0 4.8 0H17a3 3 0 0 1 3 3v5z" fill="currentColor" stroke="none"/><path d="M4 12v5a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-5z"/>',
+    week: '<rect x="3" y="4" width="4.6" height="16" rx="1.6"/><rect x="9.7" y="4" width="4.6" height="16" rx="1.6"/><rect x="16.4" y="4" width="4.6" height="16" rx="1.6"/><path d="M3 12V5.6A1.6 1.6 0 0 1 4.6 4H6a1.6 1.6 0 0 1 1.6 1.6V12zM9.7 12V5.6A1.6 1.6 0 0 1 11.3 4h1.4a1.6 1.6 0 0 1 1.6 1.6V12zM16.4 12V5.6A1.6 1.6 0 0 1 18 4h1.4A1.6 1.6 0 0 1 21 5.6V12z" fill="currentColor" stroke="none"/>',
+    wardrobe: '<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2" fill="currentColor"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/>',
+    log: '<rect x="3.5" y="4" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="3.5" y="10.5" width="5" height="5" rx="1.5"/><rect x="3.5" y="17" width="5" height="3.5" rx="1.2"/><path d="M11.5 6.5h9M11.5 13h9M11.5 18.8h6"/>',
+    looks: '<rect x="7" y="3.5" width="13.5" height="13.5" rx="2.6"/><path d="M7 10.2V6.1a2.6 2.6 0 0 1 2.6-2.6h8.3a2.6 2.6 0 0 1 2.6 2.6v4.1z" fill="currentColor" stroke="none"/><path d="M4 8v9.4A3.1 3.1 0 0 0 7.1 20.5H16"/>',
+    dress: '<path d="M3.5 12.5V8a2.6 2.6 0 0 1 2.6-2.6h1.8a2 2 0 0 0 4 0h1.8A2.6 2.6 0 0 1 16.3 8v4.5z" fill="currentColor" stroke="none"/><path d="M3.5 12.5v4.4a2.6 2.6 0 0 0 2.6 2.6h7.6a2.6 2.6 0 0 0 2.6-2.6v-4.4"/><path d="M19.5 2.5v4M17.5 4.5h4"/>',
+    swap: '<rect x="4" y="3.5" width="9" height="6.5" rx="2" fill="currentColor" stroke="none"/><rect x="11" y="14" width="9" height="6.5" rx="2"/><path d="M17 4.5h1.5A1.5 1.5 0 0 1 20 6v4.5M18 8.5l2 2 2-2M7 19.5H5.5A1.5 1.5 0 0 1 4 18v-4.5M6 15.5l-2-2-2 2"/>',
+    worn: '<path d="M4 12V7a3 3 0 0 1 3-3h2.6a2.4 2.4 0 0 0 4.8 0H17a3 3 0 0 1 3 3v5z" fill="currentColor" stroke="none"/><path d="M4 12v5a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-5"/><path d="M9 15.6l2 2 4-4"/>',
+    rain: '<rect x="3.5" y="4" width="17" height="8.5" rx="4.25" fill="currentColor" stroke="none"/><path d="M8 15.5l-1 3M12.5 15.5l-1 3M17 15.5l-1 3"/>',
+    dry: '<circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7"/>',
+    work: '<path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M3.5 13V9.5A2.5 2.5 0 0 1 6 7h12a2.5 2.5 0 0 1 2.5 2.5V13z" fill="currentColor" stroke="none"/><path d="M3.5 13v4.5A2.5 2.5 0 0 0 6 20h12a2.5 2.5 0 0 0 2.5-2.5V13"/>',
+    party: '<path d="M12 2.8l9.2 9.2-9.2 9.2L2.8 12z"/><path d="M2.8 12L12 2.8l9.2 9.2z" fill="currentColor" stroke="none"/>',
+    trip: '<path d="M9.5 6.5V4.8A1.3 1.3 0 0 1 10.8 3.5h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7"/><path d="M5.5 13V9a2.5 2.5 0 0 1 2.5-2.5h8A2.5 2.5 0 0 1 18.5 9v4z" fill="currentColor" stroke="none"/><path d="M5.5 13v5a2.5 2.5 0 0 0 2.5 2.5h8a2.5 2.5 0 0 0 2.5-2.5v-5M9 20.5v1M15 20.5v1"/>',
+    weekend: '<circle cx="12" cy="12" r="8"/><path d="M4 12a8 8 0 0 1 16 0z" fill="currentColor" stroke="none"/>',
+    out: '<path d="M12 3l7.5 4.3v9.4L12 21l-7.5-4.3V7.3z"/><path d="M4.5 7.3L12 3l7.5 4.3V12h-15z" fill="currentColor" stroke="none"/>',
+    add: '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M12 8v8M8 12h8"/>',
+    lock: '<rect x="5" y="11" width="14" height="9.5" rx="2.5" fill="currentColor" stroke="none"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    unlock: '<rect x="5" y="11" width="14" height="9.5" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.7-1.5"/>',
+    love: '<path d="M12 20.5l-7.3-7.4a4.6 4.6 0 0 1 6.5-6.5l.8.8.8-.8a4.6 4.6 0 0 1 6.5 6.5z"/><path d="M4.7 13.1A4.6 4.6 0 0 1 11.2 6.6l.8.8.8-.8a4.6 4.6 0 0 1 6.5 6.5z" fill="currentColor" stroke="none"/>',
+    nope: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    gear: '<rect x="3.5" y="5" width="17" height="4" rx="2" fill="currentColor" stroke="none"/><rect x="3.5" y="10" width="17" height="4" rx="2"/><rect x="3.5" y="15" width="17" height="4" rx="2"/>',
+    select: '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M8 12.5l2.7 2.7L16.5 9"/>',
+    check: '<path d="M5.5 12.5l4 4L18.5 7.5" stroke-width="2.2"/>',
+    bag: '<path d="M6 8h12l1.2 12.5H4.8z" fill="currentColor" stroke="none"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+    gift: '<rect x="3.5" y="8" width="17" height="5" rx="1.5" fill="currentColor" stroke="none"/><path d="M5 13v7h14v-7M12 8v12M12 8c-1.5-3-5-3.5-5-1s3 1 5 1c2 0 5 1.5 5-1s-3.5-2-5 1"/>',
+    wash: '<rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M4 8h16"/><circle cx="12" cy="14" r="4" fill="currentColor" stroke="none"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    copy: '<rect x="8" y="8" width="12.5" height="12.5" rx="2.5"/><path d="M8 13.5H6a2.5 2.5 0 0 1-2.5-2.5V6A2.5 2.5 0 0 1 6 3.5h5A2.5 2.5 0 0 1 13.5 6v2" /><path d="M8 13h12.5V10.5A2.5 2.5 0 0 0 18 8h-7.5A2.5 2.5 0 0 0 8 10.5z" fill="currentColor" stroke="none"/>',
+    arrow: '<path d="M9.5 5l7 7-7 7"/>',
+    back: '<path d="M14.5 5L7.5 12l7 7"/>',
+    camera: '<path d="M3.5 9.5A2.5 2.5 0 0 1 6 7h2l1.5-2.5h5L16 7h2a2.5 2.5 0 0 1 2.5 2.5V12h-17z" fill="currentColor" stroke="none"/><path d="M3.5 12v5.5A2.5 2.5 0 0 0 6 20h12a2.5 2.5 0 0 0 2.5-2.5V12"/><circle cx="12" cy="13.5" r="3.2"/>'
+  };
+  function ic(n, s) { return '<svg class="ic" viewBox="0 0 24 24" width="' + (s || 22) + '" height="' + (s || 22) + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[n] || '') + '</svg>'; }
+  function mark(c1, c2) { return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 32V16a10 10 0 0 1 10-10h7.5a8.5 8.5 0 0 0 17 0H48a10 10 0 0 1 10 10v16z" fill="' + (c1 || '#1E2638') + '"/><path d="M6 32v16a10 10 0 0 0 10 10h32a10 10 0 0 0 10-10V32z" fill="' + (c2 || '#CFC6B8') + '"/></svg>'; }
+  function word(onDark) { return '<span class="word">' + (onDark ? mark('#F5F1EA', 'rgba(245,241,234,.55)') : mark()) + '<b>turnout</b></span>'; }
+
+  /* ---------- state ---------- */
+  var LS = 'turnout-v1', KEY = 'turnout-key';
+  var DEF = { custom: {}, deleted: [], wear: [], ratings: {}, looks: [], plan: {}, myplan: {}, notes: { pairs: [], avoid: [], items: {} }, events: [], evOver: {}, wish: [], photos: {}, roundSeen: {},
+    settings: { workdays: [1, 2, 3, 4, 5], knit: 74, trousers: 104, overlap: 9, none: [], sizes: { tops: '', trousers: '', shoes: '' }, calendars: 'Jayden, Together', message: '' }, queue: [], synced: 0, wx: null };
+  var S;
+  try { S = Object.assign({}, DEF, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { S = Object.assign({}, DEF); }
+  S.settings = Object.assign({}, DEF.settings, S.settings || {});
+  function save() { NP = null; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
+  var key = ''; try { key = localStorage.getItem(KEY) || ''; } catch (e) {}
+  var SEED = [], W = {}, ITEMS = [];
+
+  /* images for pieces you add, kept on this phone */
+  var idb = null;
+  function db() {
+    if (idb) return idb;
+    idb = new Promise(function (res) {
+      try { var r = indexedDB.open('turnout', 1); r.onupgradeneeded = function () { r.result.createObjectStore('img'); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { res(null); }; } catch (e) { res(null); }
+    });
+    return idb;
+  }
+  function imgPut(k, v) { return db().then(function (d) { if (!d) return; return new Promise(function (res) { var t = d.transaction('img', 'readwrite'); t.objectStore('img').put(v, k); t.oncomplete = res; t.onerror = res; }); }); }
+  function imgGet(k) { return db().then(function (d) { if (!d) return null; return new Promise(function (res) { var q = d.transaction('img').objectStore('img').get(k); q.onsuccess = function () { res(q.result || null); }; q.onerror = function () { res(null); }; }); }); }
+
+  function buildItems() {
+    var out = [], seen = {};
+    SEED.forEach(function (it) { if (S.deleted.indexOf(it.id) >= 0) return; out.push(Object.assign({}, it, S.custom[it.id] || {})); seen[it.id] = 1; });
+    Object.keys(S.custom).forEach(function (id) { if (!seen[id] && S.deleted.indexOf(id) < 0 && S.custom[id].kind) out.push(Object.assign({}, S.custom[id])); });
+    out.forEach(function (it) {
+      if (!it.length) it.length = it.kind === 'knit' ? S.settings.knit : it.kind === 'trousers' ? S.settings.trousers : Engine.REAL[it.kind];
+      if (it.kind === 'knit' && +it.length === 74 && S.settings.knit !== 74) it.length = S.settings.knit;
+      if (it.kind === 'trousers' && +it.length === 104 && S.settings.trousers !== 104) it.length = S.settings.trousers;
+    });
+    ITEMS = out.filter(function (i) { return !i.archived; }); W = {}; out.forEach(function (i) { W[i.id] = i; });
+  }
+  function resolveImages() {
+    var jobs = Object.keys(W).filter(function (id) { return /^up:/.test(W[id].img || ''); }).map(function (id) {
+      var it = W[id];
+      if (it.src) return Promise.resolve();
+      return imgGet(id).then(function (v) {
+        if (v) return v;
+        if (!EXEC || !key) return null;
+        return api('img', { id: id }).then(function (r) { if (r && r.ok && r.cut) { var v2 = { cut: r.cut, tile: r.tile || r.cut }; imgPut(id, v2); return v2; } return null; });
+      }).then(function (v) { if (v) { it.src = v.cut; it.tileSrc = v.tile; if (S.custom[id]) { S.custom[id].src = undefined; } } });
+    });
+    return Promise.all(jobs);
+  }
+  function tileOf(it) { return it.tileSrc || it.tile || it.src || it.img; }
+
+  /* ---------- talking to the script ---------- */
+  function api(a, d) {
+    if (!EXEC || !key) return Promise.resolve(null);
+    return fetch(EXEC, { method: 'POST', body: JSON.stringify({ k: key, a: a, d: d || {} }), redirect: 'follow' })
+      .then(function (r) { return r.json(); }).catch(function () { return null; });
+  }
+  function send(a, d) {        // saved now, sent when there's signal
+    S.queue.push({ a: a, d: d, at: Date.now() }); save(); flush();
+  }
+  var flushing = false;
+  function flush() {
+    if (flushing || !EXEC || !key || !S.queue.length) return;
+    flushing = true;
+    var job = S.queue[0];
+    api(job.a, job.d).then(function (r) {
+      flushing = false;
+      if (r && r.ok) { S.queue.shift(); save(); flush(); }
+    });
+  }
+  function sync(force) {
+    if (!EXEC || !key) return Promise.resolve();
+    flush();
+    return api('state', { since: force ? 0 : S.synced }).then(function (r) {
+      if (!r) return;
+      if (r.ok === false && r.why === 'key') { try { localStorage.removeItem(KEY); } catch (e) {} key = ''; route(); return; }
+      if (!r.ok) return;
+      ['wear', 'looks', 'events', 'wish'].forEach(function (k) { if (Array.isArray(r[k])) S[k] = r[k]; });
+      if (r.photos && typeof r.photos === 'object') S.photos = r.photos;
+      ['ratings', 'plan', 'myplan', 'evOver'].forEach(function (k) { if (r[k] && typeof r[k] === 'object') S[k] = r[k]; });
+      if (r.notes) S.notes = Object.assign({ pairs: [], avoid: [], items: {} }, r.notes);
+      if (r.items) { Object.keys(r.items).forEach(function (id) { var keepSrc = S.custom[id] && S.custom[id].src; S.custom[id] = r.items[id]; if (keepSrc) S.custom[id].src = keepSrc; }); }
+      if (Array.isArray(r.deleted)) S.deleted = r.deleted;
+      if (r.settings) S.settings = Object.assign({}, S.settings, r.settings);
+      if (r.seen) Object.assign(S.roundSeen, r.seen);
+      if (!Array.isArray(S.settings.none)) S.settings.none = [];
+      if (!S.settings.sizes) S.settings.sizes = { tops: '', trousers: '', shoes: '' };
+      S.synced = Date.now(); save(); buildItems(); return resolveImages().then(function () { Engine.forget(); route(); });
+    });
+  }
+
+  /* ---------- weather (Open-Meteo, free, no key) ---------- */
+  function getWeather() {
+    if (S.wx && Date.now() - S.wx.at < 3600e3) return Promise.resolve(S.wx);
+    var u = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&hourly=temperature_2m,precipitation_probability&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FLondon&forecast_days=14';
+    return fetch(u).then(function (r) { return r.json(); }).then(function (j) {
+      var days = {};
+      (j.daily.time || []).forEach(function (t, i) { days[t] = { max: j.daily.temperature_2m_max[i], min: j.daily.temperature_2m_min[i], hours: [] }; });
+      (j.hourly.time || []).forEach(function (t, i) { var d = t.slice(0, 10); if (days[d]) days[d].hours.push({ h: +t.slice(11, 13), t: j.hourly.temperature_2m[i], p: j.hourly.precipitation_probability[i] }); });
+      S.wx = { at: Date.now(), days: days }; save(); return S.wx;
+    }).catch(function () { return S.wx; });
+  }
+  function tempFor(date, evening) {
+    var d = S.wx && S.wx.days[date]; if (!d) return null;
+    var hrs = d.hours.filter(function (h) { return evening ? h.h >= 18 && h.h <= 23 : h.h >= 8 && h.h <= 18; });
+    if (!hrs.length) return (d.max + d.min) / 2;
+    return hrs.reduce(function (a, h) { return a + h.t; }, 0) / hrs.length;
+  }
+  function wxText(date, evening) {
+    var d = S.wx && S.wx.days[date]; if (!d) return null;
+    var t = tempFor(date, evening), from = evening ? 18 : 7, to = evening ? 23 : 21;
+    var wet = d.hours.filter(function (h) { return h.h >= from && h.h <= to && h.p >= 50; }).map(function (h) { return h.h; });
+    var hh = function (n) { return n === 12 ? '12' : n > 12 ? (n - 12) + 'pm' : n + 'am'; };
+    var r = !wet.length ? 'dry' : wet.length >= (to - from) - 1 ? 'rain all day' : wet[0] <= from + 1 ? 'rain till ' + hh(wet[wet.length - 1] + 1) : 'rain from ' + hh(wet[0]);
+    if (evening && wet.length) r = 'rain tonight';
+    if (evening && !wet.length) r = 'dry tonight';
+    return { icon: wet.length ? 'rain' : 'dry', text: Math.round(t) + '° · ' + r };
+  }
+
+  /* ---------- days, events and occasions ---------- */
+  function evInfo(e) { var o = S.evOver[e.id] || {}; return Object.assign({}, e, { kind: o.kind || e.kind, crowd: o.crowd || e.crowd }); }
+  function eventsOn(date) { return S.events.filter(function (e) { return e.date === date; }).map(evInfo); }
+  function dayInfo(date) {
+    var dow = dObj(date).getDay();
+    var worn = S.wear.filter(function (w) { return w.date === date && !w.event; })[0];
+    return { date: date, occasion: S.settings.workdays.indexOf(dow) >= 0 ? 'work' : 'weekend', temp: tempFor(date), crowd: null, event: null, worn: worn ? outfitOf(worn) : null,
+      plan: S.myplan[date] || S.plan[date] || null };
+  }
+  function nights(fromDate, days) {
+    var end = addDays(fromDate, days);
+    return S.events.map(evInfo).filter(function (e) { return e.date >= fromDate && e.date <= end && (e.kind === 'party' || e.kind === 'out' || (e.kind === 'trip')); })
+      .sort(function (a, b) { return (a.date + (a.start || '')).localeCompare(b.date + (b.start || '')); });
+  }
+  function outfitOf(o) { var r = {}; ['top', 'shirt', 'over', 'bottom', 'coat', 'shoes'].forEach(function (k) { if (o && o[k] && W[o[k]]) r[k] = o[k]; }); return r; }
+  function base() { return { wear: S.wear, ratings: S.ratings, notes: S.notes }; }
+  function ctxFor(date, occasion, crowd, evening) { return { date: date, occasion: occasion, temp: tempFor(date, evening), crowd: crowd, wear: S.wear, ratings: S.ratings, notes: S.notes }; }
+  function weekPlan(from, n) { var days = []; for (var i = 0; i < n; i++) days.push(dayInfo(addDays(from, i))); return Brain.planDays(ITEMS, days, base()); }
+  var NP = null;
+  function nightPlans() {           // every night planned in date order, so looks don't repeat
+    if (NP && NP.at === S.synced + ':' + S.wear.length + ':' + Object.keys(S.myplan).length + ':' + Object.keys(S.ratings).length + ':' + JSON.stringify(S.evOver).length) return NP.map;
+    var map = {}, planned = [], td = todayIso(), tw = S.wear.filter(function (w) { return w.date === td && !w.event; })[0];
+    var tp = tw ? outfitOf(tw) : (ITEMS.length ? (suggestions(td, dayInfo(td).occasion, true)[0] || {}).outfit : null);
+    if (tp) planned.push(Object.assign({ date: addDays(td, -1), crowd: '' }, tp));   // counts as 'just worn'
+    S.events.map(evInfo).filter(function (e) { return e.kind === 'party' || e.kind === 'out' || e.kind === 'trip'; })
+      .sort(function (a, b) { return (a.date + (a.start || '')).localeCompare(b.date + (b.start || '')); })
+      .forEach(function (e) { var L = lookFor1(e, planned); map[e.id] = L; if (L) planned.push(Object.assign({ date: e.date, crowd: e.crowd || '' }, L.outfit)); });
+    NP = { at: S.synced + ':' + S.wear.length + ':' + Object.keys(S.myplan).length + ':' + Object.keys(S.ratings).length + ':' + JSON.stringify(S.evOver).length, map: map };
+    return map;
+  }
+  function lookFor(ev) { var m = nightPlans(); return ev.id in m ? m[ev.id] : lookFor1(ev, []); }
+  function lookFor1(ev, planned) {
+    var p = S.myplan['ev:' + ev.id] || S.plan['ev:' + ev.id];
+    var worn = S.wear.filter(function (w) { return w.event === ev.id; })[0];
+    if (worn) return { outfit: outfitOf(worn), worn: true, reasons: [] };
+    var occ = ev.kind === 'trip' ? 'trip' : ev.kind === 'party' ? 'party' : 'out';
+    var c = ctxFor(ev.date, occ, ev.crowd, true); c.planned = planned || [];
+    if (p && W[p.bottom] && (W[p.top] || W[p.shirt])) { var r = Brain.score(p, c, W); return { outfit: outfitOf(p), reasons: (p.note ? [p.note] : []).concat(r.reasons), fromClaude: !S.myplan['ev:' + ev.id] }; }
+    return Brain.generate(ITEMS, c)[0] || null;
+  }
+  var CROWDS = ['work', 'lads', 'family', 'jess', 'friends'], CROWDNAME = { work: 'Work', lads: 'The lads', family: 'Family', jess: 'Jess', friends: 'Friends' };
+
+  /* ---------- drawing outfits ---------- */
+  function flat(outfit, h, cls) {
+    var id = 'f' + Math.random().toString(36).slice(2, 9);
+    setTimeout(function () {
+      Engine.render(outfit, W, h, { overlap: S.settings.overlap, dotted: Object.keys(outfit).map(function (k) { return outfit[k]; }).filter(function (id) { return W[id] && W[id].maybe; }) }).then(function (r) {
+        var el = document.getElementById(id); if (!el) return;
+        el.src = r.url; el.style.width = r.w + 'px'; el.dataset.hem = r.hem; el.classList.add('in');
+        el.dispatchEvent(new CustomEvent('drawn', { bubbles: true, detail: r }));
+      }).catch(function () {});
+    }, 0);
+    return '<img id="' + id + '" class="' + (cls || 'flat') + '" alt="" style="height:' + h + 'px">';
+  }
+  function names(o) { var t = W[o.top] || W[o.shirt], b = W[o.bottom]; return [t, b].filter(Boolean).map(function (x) { return x.name + (x.brand ? ' · ' + x.brand : ''); }); }
+  function cols(o) { var t = W[o.coat] || W[o.over] || W[o.top] || W[o.shirt], b = W[o.bottom]; return [t ? t.hex : '#1E2638', b ? b.hex : '#CFC6B8']; }
+  function paint(el, o) {
+    var c = cols(o); el.style.setProperty('--c1', c[0]); el.style.setProperty('--c2', c[1]);
+    el.style.setProperty('--t1', light(c[0]) ? '#17181C' : '#F5F1EA'); el.style.setProperty('--t2', light(c[1]) ? '#17181C' : '#F5F1EA');
+    el.classList.toggle('light-top', light(c[0]));
+    $$('.on1', el).forEach(function (x) { x.classList.toggle('dk', !light(c[0])); });
+  }
+  function alignSplit(scr, img) {
+    if (!img || !img.dataset.hem) return;
+    var a = scr.getBoundingClientRect(), b = img.getBoundingClientRect();
+    scr.style.setProperty('--split', Math.round(b.top - a.top + b.height * (+img.dataset.hem)) + 'px');
+  }
+  function title(o) { return Brain.title(o, W); }
+  function miniHtml(label, sub, o, act, badge) {
+    var c = cols(o);
+    return '<button class="mini" ' + act + '>' + (badge ? '<span class="badge">' + ic(badge, 14) + '</span>' : '') + '<div class="pl">' + flat(o, 80, 'mf') + '</div><div class="bar2"><i style="background:' + c[0] + '"></i><i style="background:' + c[1] + '"></i></div><b>' + esc(label) + '</b><span>' + esc(sub) + '</span></button>';
+  }
+
+  /* ============ screens ============ */
+  var tab = 'today', selMode = false, logMode = false, sel = [], wFilter = 'all';
+  function route() {
+    var v = $('#view');
+    if (!EXEC) return setup(v);
+    if (!key) return askKey(v);
+    $$('.tab').forEach(function (t) { t.classList.toggle('on', t.dataset.tab === tab); });
+    $('#tabs').style.display = '';
+    ({ today: today, log: logTab, wardrobe: wardrobe, looks: looks })[tab](v);
+    window.scrollTo(0, 0);
+  }
+
+  /* ---- Today: one suggestion, ready to wear ---- */
+  var T = { occ: null, idx: 0, date: null };
+  function planFor(date) { var p = S.myplan[date] || S.plan[date]; return p && W[p.bottom] && (W[p.top] || W[p.shirt]) ? p : null; }
+  function suggestions(date, occ, usePlan) {
+    var c = ctxFor(date, occ, null), list = Brain.generate(ITEMS, c), p = usePlan ? planFor(date) : null;
+    if (p) {
+      var r = Brain.score(p, c, W), k = Brain.key(outfitOf(p));
+      list = [{ outfit: outfitOf(p), score: r.score, reasons: (p.note ? [p.note] : []).concat(r.reasons), fromClaude: !S.myplan[date], planned: true }]
+        .concat(list.filter(function (x) { return Brain.key(x.outfit) !== k; }));
+    }
+    return list.slice(0, 8);
+  }
+  function today(v) {
+    var date = todayIso();
+    if (T.date !== date) { T = { occ: null, idx: 0, date: date }; }
+    var worn = S.wear.filter(function (w) { return w.date === date && !w.event; })[0];
+    var dflt = dayInfo(date).occasion, occ = T.occ || dflt, list = worn ? [] : suggestions(date, occ, !T.occ);
+    if (!worn && T.occ && T.occ !== dflt) { var k0 = Brain.key(suggestions(date, dflt, true)[0].outfit); list = list.filter(function (x) { return Brain.key(x.outfit) !== k0; }); }
+    var pick = worn ? { outfit: outfitOf(worn), reasons: [] } : list[T.idx % Math.max(1, list.length)];
+    if (!pick) { v.innerHTML = '<section class="scr"><div class="bar">' + word() + '</div><div class="empty">Add a knit and a pair of trousers to get your first outfit.</div></section>'; return; }
+    var o = pick.outfit, wx = wxText(date), rated = S.ratings[Brain.core(o)];
+    var tonight = eventsOn(date).filter(function (e) { return e.kind === 'party' || e.kind === 'out'; })[0];
+    var tLook = tonight ? lookFor(tonight) : null;
+    var occs = ['work', 'out', 'party', 'weekend'].map(function (k) { var x = Brain.OCC[k]; return '<button data-act="tocc" data-k="' + k + '" class="' + (occ === k ? 'on' : '') + '"' + (worn ? ' disabled' : '') + '>' + ic(x.icon, 16) + x.label + '</button>'; }).join('');
+    var recent = S.wear.slice().sort(function (a, b) { return b.date.localeCompare(a.date); }).filter(function (w) { return w.date !== date || w.event; }).slice(0, 6);
+    var ahead = []; for (var i = 1; i <= 7; i++) { var dd = addDays(date, i); if (planFor(dd)) ahead.push(dd); }
+    var next = nights(addDays(date, tonight ? 1 : 0), 45)[0];
+    var reason = worn ? 'Logged for today.' : (pick.reasons[0] || '');
+    v.innerHTML =
+      '<section class="scr field" id="todayScr">' +
+      '<div class="on1"><div class="bar">' + word(true) + (wx ? '<span class="chip">' + ic(wx.icon, 16) + esc(wx.text) + '</span>' : '<button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 20) + '</button>') + '</div>' +
+      '<div class="occs">' + occs + '</div>' +
+      '<div class="kick">' + esc(fmt(date)) + (worn ? ' · worn' : pick.planned ? (pick.fromClaude ? ' · Claude’s pick' : ' · your plan') : '') + '</div>' +
+      '<h1 class="mono">' + esc(title(o)).replace(' on ', '<br>on ') + '</h1></div>' +
+      '<div class="plinth">' + flat(o, Math.min(320, Math.round(window.innerHeight * 0.4))) +
+      '<div class="rate"><button data-act="rate" data-v="love" class="' + (rated === 'love' ? 'on' : '') + '" aria-label="Love this">' + ic('love', 20) + '</button><button data-act="rate" data-v="nope" class="' + (rated === 'nope' ? 'on' : '') + '" aria-label="Not me">' + ic('nope', 20) + '</button></div>' +
+      '<div class="cap"><span>' + esc(names(o)[0] || '') + '</span><span>' + esc(names(o)[1] || '') + '</span></div></div>' +
+      '<div class="on2"><p class="why">' + esc(reason) + '</p>' +
+      '<div class="acts">' + (worn ? '<span class="btn done">' + ic('worn', 18) + 'Worn today</span><button class="btn sec" data-act="dress" data-log="1">' + ic('swap', 18) + 'Change it</button>'
+        : '<button class="btn pri" data-act="wear">' + ic('worn', 18) + 'Wore this</button><button class="btn sec" data-act="another">' + ic('dress', 18) + 'Another</button><button class="btn sec" data-act="dress">' + ic('swap', 18) + 'Swap a piece</button>') + '</div>' +
+      (tLook ? '<button class="card dk" data-act="night" data-ev="' + esc(tonight.id) + '" style="display:grid;grid-template-columns:70px 1fr;gap:12px;align-items:center;width:100%;text-align:left"><div style="height:84px;display:flex;justify-content:center">' + flat(tLook.outfit, 84, 'mf') + '</div><div><span class="lab" style="opacity:.7">Tonight' + (tonight.start ? ' · ' + esc(tonight.start) : '') + '</span><b style="display:block;font-size:17px;margin-top:3px">' + esc(tonight.title) + '</b><span style="font-size:14px;opacity:.8">' + esc(title(tLook.outfit)) + '</span></div></button>' : '') +
+      roundCard(date) +
+      '<button class="card" data-act="plan" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">' + ic('week', 24) + '<span style="flex:1"><b style="display:block;font-size:16px">Plan my week</b><span style="font-size:14px;color:var(--ash)">' + (ahead.length ? ahead.length + ' day' + (ahead.length > 1 ? 's' : '') + ' planned' : 'Optional. Lay out the days ahead, or ask Claude') + '</span></span>' + ic('back', 18).replace('<svg', '<svg style="transform:rotate(180deg)"') + '</button>' +
+      (next ? '<button class="card" data-act="night" data-ev="' + esc(next.id) + '" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">' + ic(next.kind === 'trip' ? 'trip' : 'party', 22) + '<span><span class="lab">Coming up</span><b style="display:block;font-size:16px;margin-top:2px">' + esc(next.title) + ' · ' + daysTo(next.date) + '</b></span></button>' : '') +
+      (recent.length ? '<div class="sec-h"><span class="lab">Lately</span><button data-go="log">Your log</button></div><div class="minis">' + recent.map(function (w, i) { return miniHtml(dayName(w.date) + ' ' + dObj(w.date).getDate(), title(outfitOf(w)), outfitOf(w), 'data-act="logrow" data-k="' + esc(w.date + '|' + (w.event || '')) + '"'); }).join('') + '</div>' : '') +
+      '</div></section>';
+    var scr = $('#todayScr'); paint(scr, o);
+    scr.addEventListener('drawn', function (e) { if (e.target.classList.contains('flat')) alignSplit(scr, e.target); });
+    today.focus = { date: date, outfit: o, occasion: occ, list: list };
+  }
+  function roundCard(date) {
+    var lm = lastMonth(); if (+date.slice(8) > 7 || S.roundSeen[lm]) return '';
+    var n = S.wear.filter(function (w) { return w.date.slice(0, 7) === lm; }).length; if (!n) return '';
+    return '<button class="card rc" data-act="round" data-m="' + lm + '"><span class="rc-n">' + n + '</span><span style="flex:1"><span class="lab" style="color:#B9C0CF">Your ' + MONTHS[+lm.slice(5) - 1] + '</span><b style="display:block;font-size:16px;margin-top:2px">The monthly round-up is in</b></span>' + ic('arrow', 18) + '</button>';
+  }
+  function daysTo(date) { var n = Brain.daysBetween(todayIso(), date); return n <= 0 ? 'today' : n === 1 ? 'tomorrow' : 'in ' + n + ' days'; }
+
+  /* ---- Log: what you actually wore ---- */
+  function logTab(v) {
+    var list = S.wear.slice().sort(function (a, b) { return b.date === a.date ? (b.event ? 1 : -1) : b.date.localeCompare(a.date); });
+    var month = todayIso().slice(0, 7), thisMonth = list.filter(function (w) { return w.date.slice(0, 7) === month; }).length;
+    var count = {}; list.filter(function (w) { return Brain.daysBetween(w.date, todayIso()) <= 60; }).forEach(function (w) { ['top', 'shirt', 'bottom'].forEach(function (k) { if (w[k] && W[w[k]]) count[w[k]] = (count[w[k]] || 0) + 1; }); });
+    var fav = Object.keys(count).sort(function (a, b) { return count[b] - count[a]; })[0];
+    var last = {}; S.wear.forEach(function (w) { ['top', 'shirt', 'over', 'bottom', 'coat', 'shoes'].forEach(function (k) { if (w[k] && (!last[w[k]] || last[w[k]] < w.date)) last[w[k]] = w.date; }); });
+    var forgotten = ITEMS.filter(function (it) { return !it.maybe && (it.kind === 'knit' || it.kind === 'tee' || it.kind === 'trousers' || it.kind === 'shirt' || it.kind === 'overshirt') && (!last[it.id] || Brain.daysBetween(last[it.id], todayIso()) > 30); });
+    var groups = {}, order = [];
+    list.forEach(function (w) { var m = w.date.slice(0, 7); if (!groups[m]) { groups[m] = []; order.push(m); } groups[m].push(w); });
+    var MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var evTitle = function (id) { var e = S.events.filter(function (x) { return x.id === id; })[0]; return e ? e.title : 'Night out'; };
+    v.innerHTML = '<section class="scr"><div class="bar">' + word() + '<button class="iconbtn" data-act="logadd" aria-label="Log an outfit">' + ic('add', 22) + '</button></div>' +
+      '<h2 class="mono" style="margin-top:14px">Your log</h2>' +
+      '<div class="pair" style="margin-top:14px"><div class="card" style="margin:0;padding:14px"><span class="lab">This month</span><b style="display:block;font-family:var(--mono);font-weight:500;font-size:30px;letter-spacing:-.04em;margin-top:4px">' + thisMonth + '</b><span style="font-size:12px;color:var(--ash)">outfits logged</span></div>' +
+      '<div class="card" style="margin:0;padding:14px"><span class="lab">Most worn</span>' + (fav ? '<b style="display:block;font-size:14px;margin-top:6px;line-height:1.25">' + esc(W[fav].colour + ' ' + W[fav].name.toLowerCase()) + '</b><span style="font-size:12px;color:var(--ash)">' + count[fav] + ' times in 60 days</span>' : '<span style="display:block;font-size:13px;margin-top:6px;color:var(--ash)">Nothing yet</span>') + '</div>' +
+      '<button class="card" data-act="forgotten" style="margin:0;padding:14px;text-align:left"><span class="lab">Forgotten</span><b style="display:block;font-family:var(--mono);font-weight:500;font-size:30px;letter-spacing:-.04em;margin-top:4px">' + forgotten.length + '</b><span style="font-size:12px;color:var(--ash)">not worn in 30 days</span></button></div>' +
+      (order.length ? order.map(function (m) {
+        return '<div class="sec-h"><span class="lab">' + MON[+m.slice(5) - 1] + ' ' + m.slice(0, 4) + ' · ' + groups[m].length + '</span>' + (m < month ? '<button data-act="round" data-m="' + m + '">Round-up</button>' : '') + '</div>' + groups[m].map(function (w) {
+          var o = outfitOf(w); if (!W[o.bottom]) return ''; var c = cols(o), oc = Brain.OCC[w.occasion] || Brain.OCC.work;
+          return '<button class="row" data-act="logrow" data-k="' + esc(w.date + '|' + (w.event || '')) + '"><div class="d"><b>' + dayName(w.date) + '</b><span>' + dObj(w.date).getDate() + '</span></div><div class="pl">' + flat(o, 62, 'mf') + '</div><div class="t"><span class="occ">' + ic(w.event ? 'party' : oc.icon, 14) + esc(w.event ? evTitle(w.event) : oc.label) + (S.ratings[Brain.core(o)] === 'love' ? ' · loved' : '') + (S.photos[w.date + '|' + (w.event || '')] ? ' · ' + ic('camera', 13) : '') + '</span><b>' + esc(title(o)) + '</b></div><div class="vbar"><i style="background:' + c[0] + '"></i><i style="background:' + c[1] + '"></i></div></button>';
+        }).join('');
+      }).join('') : '<div class="empty">Tap <b>Wore this</b> on Today, or <b>+</b> here to log anything you put together yourself. Your log teaches Turnout what you actually wear.</div>') +
+      '</section>';
+    logTab.forgotten = forgotten;
+  }
+  function logSheet(k) {
+    var p = k.split('|'), w = S.wear.filter(function (x) { return x.date === p[0] && (x.event || '') === p[1]; })[0]; if (!w) return;
+    var o = outfitOf(w);
+    openSheet('<div class="sh-h"><span class="lab">' + esc(fmt(w.date)) + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<div class="lgp"><div class="preview" style="background:#F3EFE7;margin:0">' + flat(o, 240) + '</div><div class="mirror" id="mirror" data-act="logphoto" data-k="' + esc(k) + '">' + ic('camera', 28) + '<span>Add a mirror photo</span></div></div><input type="file" accept="image/*" id="mph" hidden>' +
+      '<h2 class="mono" style="margin-top:14px">' + esc(title(o)) + '</h2>' +
+      '<p style="margin:6px 0 0;color:var(--ash)">' + names(o).map(esc).join(' · ') + '</p>' +
+      '<div class="acts"><button class="btn pri" data-act="wearagain" data-k="' + esc(k) + '">' + ic('worn', 18) + 'Wear it again today</button><button class="btn sec" data-act="savelog" data-k="' + esc(k) + '">' + ic('looks', 18) + 'Save look</button></div>' +
+      '<div class="acts"><button class="btn sec" data-act="unwear" data-k="' + esc(k) + '">Remove from log</button></div>');
+    showPhoto(k);
+    var inp = $('#mph'); inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0]; if (!f) return;
+      shrink(f, 1000).then(function (data) { PH[k] = data; imgPut('ph:' + k, data); S.photos[k] = 1; save(); send('photo', { k: k, data: data }); showPhoto(k); toast('Photo added'); })
+        .catch(function () { toast('Couldn’t read that photo'); });
+    });
+  }
+  var PH = {};
+  function showPhoto(k) {
+    var el = $('#mirror'); if (!el) return;
+    var draw = function (data) { if (!data || !$('#mirror')) return; el.innerHTML = '<img src="' + data + '" alt="Mirror photo">'; el.classList.add('has'); };
+    if (PH[k]) return draw(PH[k]);
+    if (!S.photos[k]) return;
+    imgGet('ph:' + k).then(function (v) {
+      if (v) { PH[k] = v; return draw(v); }
+      if (!EXEC || !key) return;
+      api('photoget', { k: k }).then(function (r) { if (r && r.ok && r.data) { PH[k] = r.data; imgPut('ph:' + k, r.data); draw(r.data); } });
+    });
+  }
+  function shrink(file, max) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () { var s = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.8)); };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(); };
+      im.src = url;
+    });
+  }
+
+  /* ---- Plan my week: optional ---- */
+  function planSheet() {
+    var from = new Date().getHours() >= 18 ? addDays(todayIso(), 1) : todayIso();
+    var plan = weekPlan(from, 7);
+    var strip = plan.map(function (d) { var c = cols(d.pick ? d.pick.outfit : {}); return '<i style="background:linear-gradient(' + c[0] + ' 0 55%,' + c[1] + ' 55%)"></i>'; }).join('');
+    var tops = {}; plan.forEach(function (d) { if (d.pick) tops[d.pick.outfit.top || d.pick.outfit.shirt] = 1; });
+    var kept = plan.filter(function (d) { return S.myplan[d.date]; }).length, fromC = plan.filter(function (d) { return !S.myplan[d.date] && S.plan[d.date]; }).length;
+    var rows = plan.map(function (d) {
+      if (!d.pick) return '';
+      var o = d.pick.outfit, c = cols(o), occ = Brain.OCC[d.occasion];
+      var tag = d.worn ? 'Worn' : S.myplan[d.date] ? 'Planned' : S.plan[d.date] ? 'Claude' : 'Suggested';
+      return '<button class="row" data-act="planday" data-date="' + d.date + '"><div class="d"><b>' + dayName(d.date) + '</b><span>' + dObj(d.date).getDate() + '</span></div><div class="pl">' + flat(o, 62, 'mf') + '</div>' +
+        '<div class="t"><span class="occ">' + ic(occ.icon, 14) + occ.label + ' · ' + tag + '</span><b>' + esc(title(o)) + '</b></div><div class="vbar"><i style="background:' + c[0] + '"></i><i style="background:' + c[1] + '"></i></div></button>';
+    }).join('');
+    var ns = nights(from, 7).map(function (e) { var L = lookFor(e); if (!L) return ''; return '<button class="row" data-act="night" data-ev="' + esc(e.id) + '"><div class="d"><b>' + dayName(e.date) + '</b><span>' + dObj(e.date).getDate() + '</span></div><div class="pl">' + flat(L.outfit, 62, 'mf') + '</div><div class="t"><span class="occ">' + ic('party', 14) + esc(e.title) + '</span><b>' + esc(title(L.outfit)) + '</b></div><span></span></button>'; }).join('');
+    openSheet('<div class="sh-h"><span class="lab">Plan my week</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">' + fmt(from).slice(4) + ' – ' + fmt(addDays(from, 6)).slice(4) + '</h2>' +
+      '<div class="strip">' + strip + '<span>' + (7 - Object.keys(tops).length ? (7 - Object.keys(tops).length) + ' repeat' + (7 - Object.keys(tops).length > 1 ? 's' : '') : 'No repeats') + '</span></div>' +
+      '<p class="note">Tap a day to change it. ' + (kept ? kept + ' kept' + (fromC ? ', ' + fromC + ' from Claude' : '') + '.' : fromC ? fromC + ' from Claude.' : 'Nothing is kept until you say so.') + '</p>' +
+      '<div style="margin-top:6px">' + rows + '</div>' + (ns ? '<div class="sec-h"><span class="lab">Nights out</span></div>' + ns : '') +
+      '<div class="acts"><button class="btn pri wide" data-act="keepweek">' + ic('worn', 18) + 'Keep this week</button></div>' +
+      '<div class="acts"><button class="btn sec" data-act="askclaude">' + ic('dress', 18) + 'Ask Claude to style it</button>' + (kept || fromC ? '<button class="btn sec" data-act="clearweek">Clear</button>' : '') + '</div>' +
+      '<p class="note">Claude replies within about two hours, and its picks show here and on Today.</p>');
+    planSheet.from = from; planSheet.plan = plan;
+  }
+
+  /* ---- Wardrobe: your pieces · Shop · Balance ---- */
+  var KINDS = [['all', 'All'], ['knit', 'Knitwear'], ['tee', 'Tees'], ['shirt', 'Shirts'], ['overshirt', 'Overshirts'], ['coat', 'Jackets & coats'], ['trousers', 'Trousers'], ['shoes', 'Shoes']];
+  var KNAME = { knit: 'knitwear', tee: 'T-shirts', shirt: 'shirts', overshirt: 'overshirts', coat: 'jackets and coats', trousers: 'trousers', shoes: 'shoes' };
+  var SUBS = { knit: [['jumper', 'Jumper'], ['sweatshirt', 'Sweatshirt'], ['hoodie', 'Hoodie'], ['quarterzip', 'Quarter zip']], tee: [['tee', 'T-shirt'], ['football', 'Football shirt'], ['polo', 'Polo']],
+    shirt: [['shirt', 'Shirt']], overshirt: [['overshirt', 'Overshirt'], ['shacket', 'Shacket']], coat: [['jacket', 'Jacket'], ['coat', 'Coat']],
+    trousers: [['trousers', 'Trousers'], ['chinos', 'Chinos'], ['jeans', 'Jeans'], ['joggers', 'Joggers']], shoes: [['shoes', 'Shoes'], ['trainers', 'Trainers'], ['boots', 'Boots']] };
+  var SUBDEF = { jumper: [3, 4], sweatshirt: [2, 3], hoodie: [1, 3], quarterzip: [3, 3], tee: [2, 1], football: [1, 1], polo: [3, 1], shirt: [4, 1], overshirt: [3, 3], shacket: [2, 4], jacket: [3, 3], coat: [4, 5], trousers: [3, 2], chinos: [3, 2], jeans: [2, 2], joggers: [1, 3], shoes: [4, 2], trainers: [2, 2], boots: [3, 3] };
+  var wSeg = 'pieces', SHOP = null;
+  function owned() { return ITEMS.filter(function (i) { return !i.maybe; }); }
+  function wardrobe(v) {
+    var mine = owned(), count = function (k) { return k === 'all' ? mine.length : mine.filter(function (i) { return i.kind === k; }).length; };
+    var seg = '<div class="seg3"><button data-act="wseg" data-k="pieces" class="' + (wSeg === 'pieces' ? 'on' : '') + '">Wardrobe</button><button data-act="wseg" data-k="shop" class="' + (wSeg === 'shop' ? 'on' : '') + '">Shop</button><button data-act="wseg" data-k="balance" class="' + (wSeg === 'balance' ? 'on' : '') + '">Balance</button></div>';
+    var head = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px">' + (wSeg === 'pieces' ? '<button class="iconbtn" data-act="selmode" aria-label="Pick a handful">' + ic('select', 22) + '</button>' : '<button class="chip" data-act="wish" style="height:44px;border-radius:22px;padding:0 14px">' + ic('gift', 16) + 'Wish list' + (S.wish.length ? ' ' + S.wish.length : '') + '</button>') + '<button class="iconbtn" data-act="add" aria-label="Add a piece">' + ic('add', 22) + '</button></span></div>' +
+      '<h2 class="mono" style="margin-top:14px">' + (wSeg === 'shop' ? 'Shop smart' : wSeg === 'balance' ? 'Balance' : 'Wardrobe') + '</h2>' + seg;
+    if (wSeg === 'shop') return shopView(v, head);
+    if (wSeg === 'balance') return balanceView(v, head);
+    var list = mine.filter(function (i) { return wFilter === 'all' || i.kind === wFilter; });
+    var dirty = mine.filter(function (i) { return i.wash; });
+    v.innerHTML = head +
+      (dirty.length ? '<div class="washbar">' + ic('wash', 20) + '<span><b>' + dirty.length + ' in the wash</b><br>Turnout won’t suggest ' + (dirty.length === 1 ? 'it' : 'them') + ' till ' + (dirty.length === 1 ? 'it’s' : 'they’re') + ' back.</span><button data-act="allclean">All clean</button></div>' : '') +
+      '<div class="seg">' + KINDS.filter(function (k) { return k[0] === 'all' || count(k[0]) > 0; }).map(function (k) { return '<button data-act="filter" data-k="' + k[0] + '" class="' + (wFilter === k[0] ? 'on' : '') + '">' + k[1] + ' ' + count(k[0]) + '</button>'; }).join('') + '</div>' +
+      (selMode ? '<p class="note">' + (logMode ? 'Pick what you wore, then log it.' : 'Pick a handful of pieces, and Turnout makes the best outfit from them.') + '</p>' : '') +
+      '<div class="grid">' + list.map(function (it) {
+        var on = sel.indexOf(it.id) >= 0;
+        return '<button class="tile' + (on ? ' sel' : '') + (it.wash ? ' dirty' : '') + '" data-act="' + (selMode ? 'pick' : 'item') + '" data-id="' + it.id + '"><img loading="lazy" src="' + esc(tileOf(it)) + '" alt="">' + (it.wash ? '<span class="wbadge">' + ic('wash', 14) + 'In the wash</span>' : '') + (selMode ? '<span class="tick">' + (on ? ic('check', 16) : '') + '</span>' : '') + '<b>' + esc(it.name) + '</b><span>' + esc(it.colour) + (it.brand ? ' · ' + esc(it.brand) : '') + '</span></button>';
+      }).join('') + '</div>' +
+      '</section>' +
+      (selMode ? '<div class="selbar"><span style="white-space:nowrap">' + sel.length + ' picked</span><span style="display:flex;gap:8px"><button class="btn sec" style="height:44px;color:var(--cream)" data-act="selcancel">Cancel</button><button class="btn lite" style="height:44px" data-act="selgo"' + (sel.length ? '' : ' disabled') + '>' + ic('dress', 18) + (logMode ? 'Log these' : 'Make an outfit') + '</button></span></div>' : '');
+  }
+
+  /* ---- Shop: what to buy, and the Maybes you're weighing up ---- */
+  function shopKey() { return ITEMS.map(function (i) { return i.id + (i.wash ? 'w' : '') + (i.maybe ? 'm' : ''); }).join(',') + '|' + S.settings.none.join(',') + '|' + Object.keys(S.ratings).length; }
+  function shopData() {
+    var k = shopKey(); if (SHOP && SHOP.k === k) return SHOP;
+    var b = base(), owned2 = ITEMS.filter(function (i) { return !i.maybe; }), before = Brain.goodSet(owned2.filter(Brain.usable), b);
+    var buys = Brain.gaps(ITEMS, b, { none: S.settings.none }), best = buys.length ? buys[0].adds : 0;
+    var maybes = ITEMS.filter(function (i) { return i.maybe; }).map(function (m) { var a = Brain.adds(owned2, m, b, before); return Object.assign({ item: m }, a, { why: Brain.reason(owned2, m), verdict: verdict(m, a, owned2, best) }); });
+    var top4 = buys.slice(0, 4).map(function (x) { return x.item; });
+    SHOP = { k: k, maybes: maybes, buys: buys, now: Brain.goodSet(owned2.filter(Brain.usable), b), all: top4.length ? Brain.together(owned2, top4, b) : 0 };
+    SHOP.nowN = Object.keys(SHOP.now).length;
+    return SHOP;
+  }
+  function verdict(m, a, own, best) {
+    var twin = own.filter(function (o) { return !o.archived && o.id !== m.id && Brain.near(o, m); })[0];
+    if (twin) return { k: 'close', t: 'Too close to your ' + twin.colour.toLowerCase() + ' ' + twin.name.toLowerCase() };
+    var bar = Math.max(3, best || 0);
+    if (a.adds >= bar * 0.7) return { k: 'yes', t: 'Worth it' };
+    if (a.adds >= bar * 0.35) return { k: 'ok', t: 'Decent' };
+    return { k: 'no', t: a.adds ? 'Only ' + a.adds + ' new outfit' + (a.adds > 1 ? 's' : '') : 'Adds nothing new' };
+  }
+  function swatch(it, size) {
+    size = size || 56;
+    return '<span class="swt" style="width:' + size + 'px;height:' + size + 'px;background:' + it.hex + '">' + kindIcon(it.kind, Math.round(size * 0.46), light(it.hex) ? '#17181C' : '#F5F1EA') + '</span>';
+  }
+  function kindIcon(kind, s, col) {
+    var p = { knit: I.today, tee: '<path d="M8 4l4 2 4-2 5 3-2 4-2-1v10H7V10l-2 1-2-4z"/>', shirt: '<path d="M8 3l4 4 4-4M8 3L3.5 6v5H7v10h10V11h3.5V6L16 3"/>', overshirt: '<path d="M8 3h8l4 4v14H4V7z"/><path d="M12 7v14"/>', coat: '<path d="M8 3h8l4 4v14h-6l-2-9-2 9H4V7z"/>', trousers: '<rect x="5" y="3" width="14" height="4" rx="1"/><path d="M5.5 7l1 14h4L12 11l1.5 10h4l1-14"/>', shoes: '<path d="M3 16v-5h6l3 2 7 1a2 2 0 0 1 2 2v2H3z"/><path d="M3 19.5h18"/>' }[kind] || I.today;
+    return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="' + col + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">' + p + '</svg>';
+  }
+  function chipOutfit(o, cand) {   // colour-block card for an outfit that includes a piece you don't have a photo of yet
+    var Wc = Object.assign({}, W); if (cand) Wc[cand.id] = cand;
+    var t = Wc[o.over] || Wc[o.top] || Wc[o.shirt], b = Wc[o.bottom], sh = o.shirt && o.top ? Wc[o.shirt] : null;
+    var nm = ['top', 'shirt', 'over', 'bottom'].filter(function (s) { return o[s]; }).map(function (s) { var x = Wc[o[s]]; return x.id === (cand && cand.id) ? '<b>' + esc(x.name) + '</b>' : esc(x.colour + ' ' + (x.sub && x.sub !== x.kind ? x.sub : x.name).toLowerCase()); });
+    return '<div class="oc"><div class="oc-b"><i style="background:' + t.hex + '"></i>' + (sh ? '<i class="col" style="background:' + sh.hex + '"></i>' : '') + '<i style="background:' + b.hex + '"></i></div><span>' + nm.join(' + ') + '</span></div>';
+  }
+  function shopView(v, head) {
+    v.innerHTML = head + '<div class="empty skel" style="height:120px"></div></section>';
+    setTimeout(function () {
+      var D2 = shopData(), mine = owned();
+      var missing = Object.keys(KNAME).filter(function (k) { return !mine.some(function (i) { return i.kind === k; }) && S.settings.none.indexOf(k) < 0; });
+      var mb = D2.maybes.map(function (m) {
+        return '<button class="mb" data-act="maybe" data-id="' + m.item.id + '"><img src="' + esc(tileOf(m.item)) + '" alt=""><span><span class="vd ' + m.verdict.k + '">' + esc(m.verdict.t) + '</span><b>' + esc(m.item.name) + '</b><span>' + esc(m.item.colour) + (m.item.brand ? ' · ' + esc(m.item.brand) : '') + (m.item.price ? ' · £' + esc(m.item.price) : '') + '</span></span><span class="n"><b>+' + m.adds + '</b><span>outfits</span></span></button>';
+      }).join('');
+      var rows = D2.buys.slice(0, 8).map(function (g, i) {
+        var top = i === 0;
+        return '<button class="br' + (top ? ' open' : '') + '" data-act="buy" data-i="' + i + '">' + swatch(g.item) + '<span class="br-t"><b>' + esc(g.item.name) + '</b><span>' + esc(g.why) + '</span></span><span class="n"><b>+' + g.adds + '</b><span>outfits</span></span></button>' +
+          (top ? '<div class="br-x">' + g.examples.slice(0, 3).map(function (e) { return chipOutfit(e.outfit, g.item); }).join('') + '</div>' : '');
+      }).join('');
+      v.innerHTML = head +
+        (missing.length ? '<div class="card" style="margin-top:14px"><span class="lab">Not added yet</span><p style="margin:6px 0 10px;font-size:14px;line-height:1.45">Turnout doesn’t know your ' + missing.map(function (k) { return KNAME[k]; }).join(', ') + ', so it won’t suggest any in case you already own them. Add them, or tell it you have none:</p><div class="pills">' + missing.map(function (k) { return '<button data-act="nonekind" data-k="' + k + '">No ' + KNAME[k] + '</button>'; }).join('') + '</div></div>' : '') +
+        (mb ? '<div class="sec-h"><span class="lab">Your Maybes</span><button data-act="add" data-maybe="1">Add one</button></div>' + mb : '<button class="card" data-act="add" data-maybe="1" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">' + ic('bag', 22) + '<span><b style="display:block">Found something in a shop?</b><span style="font-size:14px;color:var(--ash)">Add it as a Maybe and see what it does for your wardrobe.</span></span></button>') +
+        (rows ? '<div class="sec-h"><span class="lab">Best buys</span></div><p class="note" style="margin-top:0">' + (D2.buys.length >= 2 ? 'The top ' + Math.min(4, D2.buys.length) + ' together would take you from <b>' + D2.nowN + '</b> good outfits to <b>' + D2.all + '</b>.' : 'From ' + D2.nowN + ' good outfits now.') + '</p>' + rows : '<div class="empty">Nothing obvious to buy. Your wardrobe’s working hard.</div>') +
+        '</section>';
+    }, 30);
+  }
+  /* ---- Balance ---- */
+  function balanceView(v, head) {
+    var mine = owned(), groups = [['Tops', ['knit', 'tee']], ['Shirts', ['shirt']], ['Layers', ['overshirt', 'coat']], ['Trousers', ['trousers']], ['Shoes', ['shoes']]];
+    var levels = [['Smart', 4, 5], ['Smart casual', 3, 3], ['Casual', 2, 2], ['Lounge', 1, 1]];
+    var has = function (ks) { return mine.some(function (i) { return ks.indexOf(i.kind) >= 0; }) || ks.some(function (k) { return S.settings.none.indexOf(k) >= 0; }); };
+    var grid = '<table class="bal"><tr><th></th>' + groups.map(function (g) { return '<th>' + g[0] + '</th>'; }).join('') + '</tr>' + levels.map(function (l) {
+      return '<tr><th>' + l[0] + '</th>' + groups.map(function (g) {
+        if (!has(g[1])) return '<td class="na" title="Not added yet"></td>';
+        var xs = mine.filter(function (i) { return g[1].indexOf(i.kind) >= 0 && i.smart >= l[1] && i.smart <= l[2]; });
+        if (!xs.length) return l[1] >= 3 ? '<td class="gapc"></td>' : '<td></td>';
+        return '<td>' + xs.map(function (i) { return '<i style="background:' + i.hex + '"></i>'; }).join('') + '</td>';
+      }).join('') + '</tr>';
+    }).join('') + '</table>';
+    var sorted = mine.slice().sort(function (a, b) { var p = Brain.hsl(a.hex), q = Brain.hsl(b.hex); var fa = p.s < 0.15 ? 400 + p.l * 100 : p.h, fb = q.s < 0.15 ? 400 + q.l * 100 : q.h; return fa - fb; });
+    var fam = {}; mine.forEach(function (i) { var c = Brain.hsl(i.hex); var f = c.s < 0.1 ? (c.l < 0.25 ? 'dark neutrals' : c.l > 0.72 ? 'light neutrals' : 'greys') : c.h < 20 || c.h >= 330 ? 'reds' : c.h < 50 ? 'browns' : c.h < 58 ? 'yellows' : c.h < 170 ? 'greens' : c.h < 260 ? 'blues' : 'purples'; fam[f] = (fam[f] || 0) + 1; });
+    var famTxt = Object.keys(fam).sort(function (a, b) { return fam[b] - fam[a]; }).slice(0, 3).join(', ');
+    var absent = ['browns', 'reds', 'greens', 'blues'].filter(function (f) { return !fam[f]; });
+    v.innerHTML = head + grid +
+      '<div class="bal-k"><span><i class="g"></i>Gap worth filling</span><span><i class="n"></i>Not added yet</span></div>' +
+      '<div class="sec-h"><span class="lab">Your colours</span></div><div class="hbar">' + sorted.map(function (i) { return '<i style="background:' + i.hex + '"></i>'; }).join('') + '</div>' +
+      '<p class="note" style="color:var(--ink)">Mostly ' + esc(famTxt.replace(/, ([^,]*)$/, ' and $1')) + '.' + (absent.length ? ' Nothing in ' + esc(absent.join(' or ')) + ' yet.' : '') + '</p>' +
+      '<div id="balpick"></div></section>';
+    setTimeout(function () { var D2 = shopData(), g = D2.buys[0]; var el = $('#balpick'); if (el && g) el.innerHTML = '<button class="pick" data-act="buy" data-i="0">' + swatch(g.item, 52) + '<span><span class="lab" style="color:#E7D9B8">Fills the biggest gap</span><b>' + esc(g.item.name) + '</b><span>+' + g.adds + ' outfits · ' + esc(g.why) + '</span></span>' + ic('arrow', 18) + '</button>'; }, 30);
+  }
+  /* ---- one buy, up close ---- */
+  function buySheet(i) {
+    var g = shopData().buys[i]; if (!g) return; var it = g.item;
+    var q = encodeURIComponent('mens ' + it.name);
+    var occ = ['work', 'out', 'party', 'weekend'].filter(function (k) { return g.by[k]; }).map(function (k) { return '<span><b>' + g.by[k] + '</b>' + Brain.OCC[k].label + '</span>'; }).join('');
+    var p = openSheet('<div class="sh-h on1"><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button><span class="chip">' + (i + 1) + ' of ' + Math.min(8, shopData().buys.length) + '</span></div>' +
+      '<div class="on1"><span class="kick">' + ic('bag', 14) + 'Your next buy</span><h1 class="mono">' + esc(it.name) + '</h1><div class="bigN"><b>+' + g.adds + '</b><span>new outfits with what you own</span></div></div>' +
+      '<div class="on2"><p class="why" style="margin-top:22px"><b>Why:</b> ' + esc(g.why) + '</p>' +
+      '<div class="occn">' + occ + '</div>' +
+      '<div class="sec-h"><span class="lab">Outfits it makes</span></div>' + g.examples.map(function (e) { return chipOutfit(e.outfit, it); }).join('') +
+      '<div class="acts"><a class="btn pri" href="https://www.marksandspencer.com/search?searchTerm=' + q + '" target="_blank" rel="noopener">' + ic('bag', 18) + 'Search M&amp;S</a><a class="btn sec" href="https://www.next.co.uk/search?w=' + q + '" target="_blank" rel="noopener">Search Next</a></div>' +
+      '<div class="acts"><button class="btn sec" data-act="copyprompt" data-name="' + esc(it.name.toLowerCase()) + '">' + ic('copy', 18) + 'Copy Gemini prompt</button><button class="btn sec" data-act="wishadd" data-i="' + i + '">' + ic('gift', 18) + (S.wish.some(function (w) { return w.ref === it.id; }) ? 'On wish list' : 'Wish list') + '</button></div>' +
+      '<div class="acts"><button class="btn pri wide" data-act="foundone" data-i="' + i + '">' + ic('add', 18) + 'I’ve found one: add it as a Maybe</button></div>' +
+      '<p class="note">Copy the prompt, save the shop’s photo, and run both through Gemini with one of your studio shots as the reference.</p></div>', { full: true, cls: 'field-sheet' });
+    p.style.setProperty('--c1', it.hex); p.style.setProperty('--c2', '#F5F1EA'); p.style.setProperty('--split', '330px');
+    setTimeout(function () { var o = $('.on1:not(.sh-h)', p); if (o && o.offsetHeight) p.style.setProperty('--split', (o.getBoundingClientRect().bottom - p.getBoundingClientRect().top + p.scrollTop + 6) + 'px'); }, 60);
+    p.style.setProperty('--t1', light(it.hex) ? '#17181C' : '#F5F1EA'); p.style.setProperty('--t2', '#17181C');
+  }
+  /* ---- a Maybe, up close ---- */
+  function maybeSheet(id) {
+    var m = shopData().maybes.filter(function (x) { return x.item.id === id; })[0]; if (!m) return; var it = m.item;
+    var others = shopData().maybes.filter(function (x) { return x.item.id !== id && Brain.SLOT[x.item.kind] === Brain.SLOT[it.kind]; });
+    openSheet('<div class="sh-h"><span class="lab">Maybe' + (it.brand ? ' · ' + esc(it.brand) : '') + (it.price ? ' · £' + esc(it.price) : '') + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">' + esc(it.name) + '</h2>' +
+      '<div class="s4-res"><div class="bigN dark"><b>+' + m.adds + '</b><span>new outfits</span></div><div><span class="vd ' + m.verdict.k + '">' + esc(m.verdict.t) + '</span><p>' + esc(m.why) + '</p></div></div>' +
+      '<div class="mlay">' + m.examples.slice(0, 4).map(function (e) { return '<div>' + flat(e.outfit, 210, 'mf') + '<span>' + Brain.OCC[e.occasion].label + '</span></div>'; }).join('') + '</div>' +
+      (others.length ? '<div class="card"><span class="lab">Against your other Maybes</span>' + others.map(function (o) { return '<div class="kv"><span>' + esc(o.item.name) + '</span><span>+' + o.adds + (o.adds < m.adds ? ' · this does more' : o.adds > m.adds ? ' · that does more' : '') + '</span></div>'; }).join('') + '</div>' : '') +
+      '<div class="acts"><button class="btn pri" data-act="bought" data-id="' + id + '">' + ic('worn', 18) + 'I bought it</button><button class="btn sec" data-act="wishmaybe" data-id="' + id + '">' + ic('gift', 18) + 'Wish list</button></div>' +
+      '<div class="acts">' + (it.link ? '<a class="btn sec" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + ic('link', 18) + 'Open in the shop</a>' : '') + '<button class="btn sec" data-act="notforme" data-id="' + id + '">Not for me</button></div>');
+  }
+  /* ---- wish list ---- */
+  function wishSheet() {
+    var sz = S.settings.sizes || {};
+    var sizeFor = function (k) { return k === 'trousers' ? sz.trousers : k === 'shoes' ? sz.shoes : sz.tops; };
+    openSheet('<div class="sh-h"><span class="lab">Wish list</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">For Christmas</h2>' +
+      '<div class="hubline">' + ic('link', 18) + '<span><b>Going to Our Hub</b> on your page, for Jess. She’ll be able to mark things bought without you seeing. That part arrives with the hub’s next update.</span></div>' +
+      (S.wish.length ? S.wish.map(function (w, i) { return '<div class="wl">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : swatch(w, 56)) + '<span><b>' + esc(w.name) + '</b><span>' + esc(w.why || '') + '</span><em>' + (sizeFor(w.kind) ? 'Size ' + esc(sizeFor(w.kind)) : 'Add your size in Settings') + (w.price ? ' · £' + esc(w.price) : '') + '</em></span><button class="iconbtn" data-act="wishdel" data-i="' + i + '" aria-label="Remove">' + ic('close', 16) + '</button></div>'; }).join('') : '<div class="empty">Add buys or Maybes from Shop and they land here.</div>') +
+      '<p class="note">Bought one yourself? Remove it here and it drops off Jess’ view too.</p>');
+  }
+  /* ---- Gemini prompts ---- */
+  var PROMPTS = {"subs": {"jumper": "Turn the jumper in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the jumper's original color, fabric pattern, texture, neckline, knit stitch and texture, ribbed cuffs and hem, and fit from the first image, while laying it neatly flat and centered with sleeves straight down by its sides in the same natural, relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "sweatshirt": "Turn the sweatshirt in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the sweatshirt's original color, fabric pattern, texture, neckline, ribbed cuffs and hem, any print or embroidery, and fit from the first image, while laying it neatly flat and centered with sleeves straight down by its sides in the same natural, relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "hoodie": "Turn the hoodie in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the hoodie's original color, fabric pattern, texture, hood, drawstrings, kangaroo pocket, ribbed cuffs and hem, any print or logo, and fit from the first image, while laying it neatly flat and centered, hood laid flat above the shoulders, drawstrings hanging straight, and sleeves straight down by its sides in the same relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "quarterzip": "Turn the quarter-zip top in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the quarter-zip top's original color, fabric pattern, texture, zip, zip puller, collar, ribbed cuffs and hem, any logo, and fit from the first image, while laying it neatly flat and centered, zipped up with the collar standing neatly, and sleeves straight down by its sides in the same relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "tee": "Turn the T-shirt in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the T-shirt's original color, fabric pattern, texture, neckline, sleeve length, hems, any print or graphic, and fit from the first image, while laying it neatly flat and centered, body smoothed out and short sleeves angled slightly outward in a natural, relaxed shape. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "football": "Turn the football shirt in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the football shirt's original color, fabric pattern, texture, collar, trims, crest, sponsor, any name and number, fabric sheen (every badge, logo and lettering exactly as it is), and fit from the first image, while laying it neatly flat and centered, front facing up with the crest and sponsor fully visible, and sleeves angled slightly outward in a natural shape. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no added text.", "polo": "Turn the polo shirt in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the polo shirt's original color, fabric pattern, texture, collar, buttons, placket, sleeve length, any logo, and fit from the first image, while laying it neatly flat and centered, collar folded flat, short sleeves angled slightly outward in a natural, relaxed shape. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "shirt": "Turn the shirt in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the shirt's original color, fabric pattern, texture, collar, buttons, placket, cuffs, pocket if it has one, and fit from the first image, while laying it neatly flat and centered, buttoned up with the collar folded flat, and sleeves straight down by its sides in the same relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "overshirt": "Turn the overshirt in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the overshirt's original color, fabric pattern, texture, collar, buttons, chest pockets, cuffs, stitching, and fit from the first image, while laying it neatly flat and centered, buttoned up with the collar folded flat, and sleeves straight down by its sides in the same relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "shacket": "Turn the shacket in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the shacket's original color, fabric pattern, texture, check or weave pattern lined up exactly as it is, collar, buttons or snaps, chest pockets, cuffs, and fit from the first image, while laying it neatly flat and centered, fastened with the collar folded flat, and sleeves straight down by its sides in the same relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "jacket": "Turn the jacket in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the jacket's original color, fabric pattern, texture, collar or hood, zip or buttons, pockets, hardware, cuffs, lining edges, and fit from the first image, while laying it neatly flat and centered, closed up, with sleeves straight down by its sides in the same relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "coat": "Turn the coat in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the coat's original color, fabric pattern, texture, lapels or collar, buttons, pockets, belt if it has one, full length, and fit from the first image, while laying it neatly flat and centered, buttoned up, lapels lying flat, and sleeves straight down by its sides, showing the full length. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "trousers": "Turn the trousers in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the trousers' original color, fabric pattern, texture, waistband, pockets, hardware, and fit from the first image, while laying them neatly flat and centered with legs arranged in the same natural, relaxed shape as the reference image. Place them on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "chinos": "Turn the chinos in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the chinos' original color, fabric pattern, texture, waistband, pockets, hardware, and fit from the first image, while laying them neatly flat and centered with legs arranged in the same natural, relaxed shape as the reference image. Place them on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "jeans": "Turn the jeans in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the jeans' original color, fabric pattern, texture, wash and fading, stitching colour, rivets, button, waistband, pockets, hems, and fit from the first image, while laying them neatly flat and centered with legs arranged in the same natural, relaxed shape as the reference image. Place them on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "joggers": "Turn the joggers in the first image into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Keep the joggers' original color, fabric pattern, texture, waistband, drawcord, cuffed ankles, pockets, zips, and fit from the first image, while laying them neatly flat and centered with legs straight and cuffed ankles lying flat, in the same natural, relaxed shape as the reference image. Place them on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text.", "shoes": "Turn the shoes in the first image into a studio product photograph of a single shoe, seen side on with the toe pointing right, matching the lighting and background of the reference image. Keep the original color, material, texture, laces, stitching, sole colour and shape, and any logos exactly as they are. Place it on a seamless warm off-white/cream studio surface with soft, even daylight, a subtle natural shadow underneath, and a gentle vignette/light falloff toward the corners. Crisp detail, e-commerce product photography, no props, no text.", "trainers": "Turn the trainers in the first image into a studio product photograph of a single shoe, seen side on with the toe pointing right, matching the lighting and background of the reference image. Keep the original color, material, texture, laces, stitching, sole colour and shape, and any logos exactly as they are. Place it on a seamless warm off-white/cream studio surface with soft, even daylight, a subtle natural shadow underneath, and a gentle vignette/light falloff toward the corners. Crisp detail, e-commerce product photography, no props, no text.", "boots": "Turn the boots in the first image into a studio product photograph of a single shoe, seen side on with the toe pointing right, matching the lighting and background of the reference image. Keep the original color, material, texture, laces, stitching, sole colour and shape, and any logos exactly as they are. Place it on a seamless warm off-white/cream studio surface with soft, even daylight, a subtle natural shadow underneath, and a gentle vignette/light falloff toward the corners. Crisp detail, e-commerce product photography, no props, no text."}, "shop": "Turn the [item, e.g. white oxford shirt] in the first image (a shop product photo, which may be worn by a model) into a studio flat-lay product photograph matching the exact styling, framing, lighting, and background of the reference image. Remove the model completely. Keep the original color, fabric pattern, texture, collar, buttons, pockets, hardware and fit from the first image, while laying it neatly flat and centered in the same natural, relaxed shape as the reference image. Place it on a seamless warm off-white/cream studio surface with soft, even overhead daylight, subtle natural shadows underneath the garment, and a gentle vignette/light falloff toward the corners. Crisp fabric detail, realistic drape, e-commerce product photography, no props, no text."};
+  function promptFor(sub, name) { return name ? PROMPTS.shop.replace('[item, e.g. white oxford shirt]', name) : PROMPTS.subs[sub] || PROMPTS.subs.jumper; }
+  function promptsSheet() {
+    var order = [['jumper', 'Jumpers'], ['sweatshirt', 'Sweatshirts'], ['hoodie', 'Hoodies'], ['quarterzip', 'Quarter zips'], ['tee', 'T-shirts'], ['football', 'Football shirts'], ['polo', 'Polos'], ['shirt', 'Shirts'], ['overshirt', 'Overshirts'], ['shacket', 'Shackets'], ['jacket', 'Jackets'], ['coat', 'Coats'], ['trousers', 'Trousers'], ['chinos', 'Chinos'], ['jeans', 'Jeans'], ['joggers', 'Joggers'], ['shoes', 'Shoes'], ['trainers', 'Trainers'], ['boots', 'Boots']];
+    openSheet('<div class="sh-h"><span class="lab">Gemini prompts</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">Studio shots</h2><p class="note">Attach your photo first and one of your studio shots second (a knit for tops, trousers for bottoms), then paste. For your first shoes, leave the reference out.</p>' +
+      '<div class="pr dk"><div class="pr-h"><b>Found it in a shop</b><button class="btn lite" style="height:38px" data-act="copyp" data-k="__shop">Copy</button></div><p>' + esc(PROMPTS.shop) + '</p></div>' +
+      order.map(function (o) { return '<div class="pr"><div class="pr-h"><b>' + o[1] + '</b><button class="btn pri" style="height:38px" data-act="copyp" data-k="' + o[0] + '">Copy</button></div><p>' + esc(PROMPTS.subs[o[0]]) + '</p></div>'; }).join(''));
+  }
+  function copyText(t) {
+    var done = function () { toast('Copied'); };
+    try { navigator.clipboard.writeText(t).then(done, function () { fb(); }); } catch (e) { fb(); }
+    function fb() { var a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); done(); } catch (e2) { toast('Couldn’t copy'); } a.remove(); }
+  }
+
+  /* ---- monthly round-up ---- */
+  function roundData(month) {
+    var list = S.wear.filter(function (w) { return w.date.slice(0, 7) === month; }).sort(function (a, b) { return a.date.localeCompare(b.date); });
+    var knits = owned().filter(function (i) { return i.kind === 'knit' || i.kind === 'tee'; }), wornTops = {}, cnt = {}, combos = {}, rep = 0;
+    list.forEach(function (w, i) {
+      var t = w.top || w.shirt; wornTops[t] = 1;
+      ['top', 'shirt', 'over', 'bottom'].forEach(function (k) { if (w[k] && W[w[k]]) cnt[w[k]] = (cnt[w[k]] || 0) + 1; });
+      var ck = (w.top || w.shirt) + '+' + w.bottom; combos[ck] = (combos[ck] || 0) + 1;
+      for (var j = 0; j < i; j++) if ((list[j].top || list[j].shirt) === t && Brain.daysBetween(list[j].date, w.date) < 7 && !w.event) { rep++; break; }
+    });
+    var most = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; })[0];
+    var look = Object.keys(combos).sort(function (a, b) { return (S.ratings[b] === 'love' ? 100 : 0) + combos[b] - ((S.ratings[a] === 'love' ? 100 : 0) + combos[a]); })[0];
+    var least = owned().filter(function (i) { return (i.kind === 'knit' || i.kind === 'trousers' || i.kind === 'tee') && (cnt[i.id] || 0) <= 1; });
+    var tip = '';
+    if (least.length) {
+      var l = least[0], partners = owned().filter(function (o) { return Brain.SLOT[o.kind] !== Brain.SLOT[l.kind] && (Brain.SLOT[o.kind] === 'top' || Brain.SLOT[o.kind] === 'bottom'); }).sort(function (a, b) { return Brain.harmony(l, b) - Brain.harmony(l, a); });
+      if (partners[0]) tip = 'The ' + l.colour.toLowerCase() + ' ' + l.name.toLowerCase() + (cnt[l.id] ? ' only came out once' : ' didn’t come out at all') + '. Try ' + (Brain.SLOT[l.kind] === 'top' ? 'it over' : 'it with') + ' the ' + partners[0].colour.toLowerCase() + ' ' + partners[0].name.toLowerCase() + '.';
+    }
+    var lp = look ? look.split('+') : null, lo = lp ? (W[lp[0]] && W[lp[0]].kind === 'shirt' ? { shirt: lp[0], bottom: lp[1] } : { top: lp[0], bottom: lp[1] }) : null;
+    return { month: month, n: list.length, knitsWorn: knits.filter(function (k) { return wornTops[k.id]; }).length, knits: knits.length, rep: rep, most: most, mostN: cnt[most] || 0, look: lo && W[lo.bottom] ? lo : null, lookN: look ? combos[look] : 0, loved: look && S.ratings[look] === 'love', forgotten: least.length, tip: tip };
+  }
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function lastMonth() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+  function roundSheet(month) {
+    var r = roundData(month); S.roundSeen[month] = 1; save(); send('seen', { month: month });
+    var p = openSheet('<div class="sh-h"><span class="lab" style="color:#B9C0CF">Your month</span><button class="iconbtn" data-act="close" aria-label="Close" style="background:rgba(245,241,234,.15);color:#F5F1EA">' + ic('close', 20) + '</button></div>' +
+      '<h1 class="mono r-h">' + MONTHS[+month.slice(5) - 1] + '</h1>' +
+      '<div class="r-stats"><div><b>' + r.n + '</b><span>outfits logged</span></div><div><b>' + r.knitsWorn + '</b><span>of ' + r.knits + ' tops worn</span></div><div><b>' + r.rep + '</b><span>repeats in a week</span></div></div>' +
+      (r.most ? '<div class="r-card"><span class="lab">Most worn</span><div class="r-mw"><img src="' + esc(tileOf(W[r.most])) + '" alt=""><span><b>' + esc(W[r.most].colour + ' ' + W[r.most].name.toLowerCase()) + '</b><span>' + r.mostN + ' times' + (r.mostN >= 6 ? '. Doing the heavy lifting.' : '.') + '</span></span></div></div>' : '') +
+      (r.look ? '<div class="r-card"><span class="lab">Look of the month</span><div class="r-lk">' + flat(r.look, 150, 'mf') + '<span><b>' + esc(title(r.look)) + '</b><span>' + (r.loved ? 'One you loved' : 'Worn ' + r.lookN + ' times') + '</span></span></div></div>' : '') +
+      (r.tip ? '<div class="r-card tip"><span class="lab">A tip for next month</span><p>' + esc(r.tip) + '</p></div>' : '') +
+      (!r.n ? '<div class="r-card"><p>Nothing logged that month. Tap Wore this on Today and next month’s round-up fills itself.</p></div>' : ''), { full: true, cls: 'round' });
+  }
+
+  /* ---- Looks ---- */
+  function looks(v) {
+    var saved = S.looks.slice().reverse();
+    var loved = Object.keys(S.ratings).filter(function (k) { return S.ratings[k] === 'love'; }).map(function (k) { var p = k.split('+'); var o = W[p[0]] && W[p[0]].kind === 'shirt' ? { shirt: p[0], bottom: p[1] } : { top: p[0], bottom: p[1] }; return o; }).filter(function (o) { return (W[o.top] || W[o.shirt]) && W[o.bottom]; });
+    var recent = S.wear.slice().sort(function (a, b) { return b.date.localeCompare(a.date); }).slice(0, 14);
+    function grid(list, act) { return '<div class="minis" style="flex-wrap:wrap;overflow:visible;margin:0;padding:0">' + list.join('') + '</div>'; }
+    v.innerHTML = '<section class="scr"><div class="bar">' + word() + '<button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 20) + '</button></div>' +
+      '<h2 class="mono" style="margin-top:14px">Looks</h2>' +
+      '<div class="sec-h"><span class="lab">Saved</span></div>' + (saved.length ? grid(saved.map(function (l) { return miniHtml(l.name || title(l.outfit), fmt(l.at.slice(0, 10)), outfitOf(l.outfit), 'data-act="look" data-id="' + l.id + '"'); })) : '<p class="note">Save a look from Dress me and it lives here.</p>') +
+      '<div class="sec-h"><span class="lab">Loved</span></div>' + (loved.length ? grid(loved.map(function (o, i) { return miniHtml(title(o), '', o, 'data-act="loved" data-i="' + i + '"', 'love'); })) : '<p class="note">Tap the heart on any outfit you love. Turnout leans towards them.</p>') +
+      '</section>';
+    looks.loved = loved; looks.recent = recent;
+  }
+
+  /* ============ sheets ============ */
+  function openSheet(html, opts) {
+    opts = opts || {};
+    var sh = $('#sheet'); sh.className = 'sheet' + (opts.full ? ' full' : '');
+    sh.innerHTML = '<div class="scrim" data-act="close"></div><div class="panel' + (opts.cls ? ' ' + opts.cls : '') + '">' + (opts.full ? '' : '<div class="grab"></div>') + html + '</div>';
+    requestAnimationFrame(function () { sh.classList.add('open'); });
+    document.body.style.overflow = 'hidden';
+    return $('.panel', sh);
+  }
+  function closeSheet() { var sh = $('#sheet'); sh.classList.remove('open'); document.body.style.overflow = ''; setTimeout(function () { if (!sh.classList.contains('open')) sh.innerHTML = ''; }, 320); }
+
+  /* ---- Dress me ---- */
+  var D = null;
+  function dress(opts) {
+    D = Object.assign({ date: todayIso(), occasion: null, crowd: null, ev: null, pin: [], pool: [], lock: {}, first: null, idx: 0, offset: 0, log: false, back: null }, opts || {});
+    if (D.log && D.pool.length) { var bySlot = {}; D.pool.forEach(function (id) { var it = W[id]; if (!it) return; var s = it.kind === 'knit' ? 'top' : it.kind === 'trousers' ? 'bottom' : it.kind; (bySlot[s] = bySlot[s] || []).push(id); }); if (Object.keys(bySlot).every(function (s) { return bySlot[s].length === 1; }) && bySlot.bottom && (bySlot.top || bySlot.shirt)) { D.first = {}; Object.keys(bySlot).forEach(function (s) { D.first[s] = bySlot[s][0]; }); } }
+    if (!D.occasion) { var di = dayInfo(D.date); D.occasion = di.occasion; if (!D.first && !D.pin.length && !D.pool.length) { var p = weekPlan(D.date, 1)[0]; if (p.pick) D.first = p.pick.outfit; } }
+    dressList(); dressDraw();
+  }
+  function dressList() {
+    var c = ctxFor(D.date, D.occasion, D.crowd, !!D.ev);
+    var list = Brain.generate(ITEMS, c, { pin: D.pin, pool: D.pool, lock: D.lock });
+    if (D.first) {
+      var k = Brain.key(D.first), fr = Brain.score(D.first, c, W);
+      list = [{ outfit: outfitOf(D.first), score: fr.score, reasons: fr.reasons }].concat(list.filter(function (x) { return Brain.key(x.outfit) !== k; }));
+    }
+    D.list = list.slice(D.offset, D.offset + 5); D.c = c;
+    if (D.idx >= D.list.length) D.idx = 0;
+  }
+  function dressDraw() {
+    var cur = D.list[D.idx];
+    var head = D.log ? 'Log an outfit' : D.ev ? D.ev.title : D.date === todayIso() ? 'Dress me' : fmt(D.date);
+    var occs = ['work', 'out', 'party', 'weekend', 'trip'].map(function (k) { var o = Brain.OCC[k]; return '<button data-act="occ" data-k="' + k + '" class="' + (D.occasion === k ? 'on' : '') + '">' + ic(o.icon, 16) + o.label + '</button>'; }).join('');
+    var body;
+    if (!cur) body = '<div class="empty">Nothing fits those picks yet. Try fewer locks, or add another piece.</div>';
+    else body =
+      '<div class="on1"><h1 class="mono" id="dmT">' + esc(title(cur.outfit)).replace(' on ', '<br>on ') + '</h1></div>' +
+      '<div class="carousel" id="car">' + D.list.map(function (x, i) {
+        var r = S.ratings[Brain.core(x.outfit)];
+        return '<div class="plinth" data-i="' + i + '">' + flat(x.outfit, Math.min(300, Math.round(window.innerHeight * 0.36))) + '<div class="rate"><button data-act="drate" data-v="love" data-i="' + i + '" class="' + (r === 'love' ? 'on' : '') + '" aria-label="Love this">' + ic('love', 20) + '</button><button data-act="drate" data-v="nope" data-i="' + i + '" class="' + (r === 'nope' ? 'on' : '') + '" aria-label="Not me">' + ic('nope', 20) + '</button></div><div class="cap"><span>' + (i + 1) + ' of ' + D.list.length + '</span><span>' + esc(x.reasons[0] || '') + '</span></div></div>';
+      }).join('') + '</div>' +
+      '<div class="on2"><div class="dots">' + D.list.map(function (x, i) { return '<i class="' + (i === D.idx ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+      '<div class="pieces" id="pcs"></div>' +
+      (D.ev ? '<div class="occs" style="margin-top:12px"><span class="lab" style="align-self:center;flex:none">Who’s going</span>' + CROWDS.map(function (c) { return '<button data-act="dcrowd" data-c="' + c + '" class="' + (D.crowd === c ? 'on' : '') + '">' + CROWDNAME[c] + '</button>'; }).join('') + '</div><p class="note" style="color:inherit;opacity:.75">Turnout won’t repeat a look in front of the same people.</p>' : '') +
+      (D.log ? '<div class="occs" style="margin-top:12px">' + [[todayIso(), 'Today'], [addDays(todayIso(), -1), 'Yesterday'], [addDays(todayIso(), -2), dayName(addDays(todayIso(), -2))]].map(function (x) { return '<button data-act="dwhen" data-d="' + x[0] + '" class="' + (D.date === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="acts">' + (!D.log && (D.date > todayIso() || D.ev) ? '<button class="btn pri" data-act="dplan">' + ic('worn', 18) + 'Plan this</button>' : '<button class="btn pri" data-act="dwear">' + ic('worn', 18) + (D.log ? 'Log it' : 'Wore this') + '</button>') +
+      '<button class="btn sec" data-act="dsave">' + ic('looks', 18) + 'Save look</button><button class="btn sec" data-act="dmore">' + ic('dress', 18) + 'More</button></div>' +
+      ((D.pin.length || D.pool.length) ? '<p class="note" style="color:inherit;opacity:.75">' + (D.pin.length ? 'Built around ' + D.pin.map(function (id) { return W[id] ? W[id].name.toLowerCase() + ' in ' + W[id].colour.toLowerCase() : ''; }).join(', ') : 'Made from your ' + D.pool.length + ' picks') + '.</p>' : '') + '</div>';
+    var p = openSheet('<div class="on1"><div class="sh-h"><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button><span class="word">' + esc(head) + '</span><span class="chip">' + (D.c.temp != null ? Math.round(D.c.temp) + '°' : '–') + '</span></div><div class="occs">' + occs + '</div></div>' + body, { full: true, cls: 'field-sheet' });
+    if (!cur) return;
+    paint(p, cur.outfit); dressPieces();
+    var car = $('#car', p);
+    p.addEventListener('drawn', function (e) { if (e.target.closest('.plinth') && +e.target.closest('.plinth').dataset.i === D.idx) alignSplit(p, e.target); });
+    var t; car.addEventListener('scroll', function () {
+      clearTimeout(t); t = setTimeout(function () {
+        var w = car.firstElementChild.getBoundingClientRect().width + 12, i = Math.round(car.scrollLeft / w);
+        if (i !== D.idx && D.list[i]) { D.idx = i; dressSwitch(p); }
+      }, 90);
+    });
+    if (D.idx) setTimeout(function () { car.scrollLeft = D.idx * (car.firstElementChild.getBoundingClientRect().width + 12); }, 30);
+  }
+  function dressSwitch(p) {
+    var cur = D.list[D.idx]; paint(p, cur.outfit);
+    $('#dmT', p).innerHTML = esc(title(cur.outfit)).replace(' on ', '<br>on ');
+    $$('.dots i', p).forEach(function (x, i) { x.classList.toggle('on', i === D.idx); });
+    var img = $('.plinth[data-i="' + D.idx + '"] .flat', p); if (img) alignSplit(p, img);
+    dressPieces(); buzz();
+  }
+  function dressPieces() {
+    var cur = D.list[D.idx], o = cur.outfit;
+    $('#pcs').innerHTML = ['top', 'shirt', 'over', 'bottom', 'coat', 'shoes'].filter(function (s) { return o[s]; }).map(function (s) {
+      var it = W[o[s]], lk = D.lock[s] === o[s];
+      return '<div class="pc"><img src="' + esc(tileOf(it)) + '" alt=""><span>' + esc(it.colour + ' ' + it.name.toLowerCase()) + '</span><button data-act="lock" data-s="' + s + '" class="' + (lk ? 'on' : '') + '" aria-label="' + (lk ? 'Unlock' : 'Keep this') + '">' + ic(lk ? 'lock' : 'unlock', 16) + '</button><button data-act="swap" data-s="' + s + '" aria-label="Swap">' + ic('swap', 16) + '</button></div>';
+    }).join('');
+  }
+
+  /* ---- a piece ---- */
+  function itemSheet(id, showOwn) {
+    var it = W[id]; if (!it) return;
+    var worn = S.wear.filter(function (w) { return w.top === id || w.bottom === id || w.shirt === id || w.over === id || w.coat === id || w.shoes === id; }).sort(function (a, b) { return b.date.localeCompare(a.date); });
+    if (it.maybe) return maybeSheet(id);
+    var sl = Brain.SLOT[it.kind], isTop = sl === 'top' || sl === 'shirt' || sl === 'over';
+    var other = sl === 'bottom' ? owned().filter(function (i) { var s2 = Brain.SLOT[i.kind]; return s2 === 'top' || s2 === 'shirt'; }) : isTop ? owned().filter(function (i) { return i.kind === 'trousers'; }) : [];
+    var best = other.map(function (o) { return { it: o, h: Brain.harmony(it, o) }; }).sort(function (a, b) { return b.h - a.h; }).slice(0, 3);
+    var note = S.notes.items && S.notes.items[id];
+    var subName = (SUBS[it.kind] || []).filter(function (s) { return s[0] === it.sub; })[0];
+    openSheet('<div class="sh-h"><span class="lab">' + esc(subName ? subName[1] : (KINDS.filter(function (k) { return k[0] === it.kind; })[0] || ['', 'Piece'])[1]) + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<div class="preview"><img src="' + esc(showOwn && it.own ? it.own : tileOf(it)) + '" alt="" style="border-radius:14px"></div>' +
+      (it.own ? '<div style="display:flex;justify-content:center;margin-top:10px"><div class="toggle"><button data-act="item" data-id="' + id + '" class="' + (showOwn ? '' : 'on') + '">Studio</button><button data-act="own" data-id="' + id + '" class="' + (showOwn ? 'on' : '') + '">Your photo</button></div></div>' : '') +
+      '<h2 class="mono" style="margin-top:16px">' + esc(it.name) + '</h2><p style="margin:6px 0 0;color:var(--ash)">' + esc(it.colour) + (it.brand ? ' · ' + esc(it.brand) : '') + '</p>' +
+      '<div class="acts"><button class="btn pri" data-act="around" data-id="' + id + '">' + ic('dress', 18) + 'Build around this</button><button class="btn sec" data-act="edit" data-id="' + id + '">Edit</button></div>' +
+      '<button class="washt' + (it.wash ? ' on' : '') + '" data-act="wash" data-id="' + id + '">' + ic('wash', 20) + '<span><b>' + (it.wash ? 'In the wash' : 'Clean and ready') + '</b><span>' + (it.wash ? 'Tap when it’s back in the wardrobe' : 'Tap if it’s in the wash') + '</span></span><i></i></button>' +
+      (note ? '<div class="card"><span class="lab">Claude’s note</span><p style="margin:6px 0 0">' + esc(note) + '</p></div>' : '') +
+      (best.length ? '<div class="sec-h"><span class="lab">Goes best with</span></div><div class="pair">' + best.map(function (b) { return '<button data-act="pairwith" data-a="' + id + '" data-b="' + b.it.id + '"><img src="' + esc(tileOf(b.it)) + '" alt=""><b style="display:block;padding-top:5px">' + esc(b.it.colour) + '</b>' + esc(b.it.name) + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="hr"></div><div class="kv"><span>Worn</span><span>' + (worn.length ? worn.length + (worn.length === 1 ? ' time' : ' times') : 'Not yet') + '</span></div>' +
+      (worn.length ? '<div class="kv"><span>Last worn</span><span>' + fmt(worn[0].date) + '</span></div>' : '') +
+      '<div class="kv"><span>Smartness · warmth</span><span>' + it.smart + ' of 5 · ' + it.warmth + ' of 5</span></div><div class="kv"><span>Length</span><span>' + it.length + ' cm</span></div>');
+  }
+
+  /* ---- add or edit a piece ---- */
+  var F = null;
+  var NAMES = { jumper: 'Crew-neck jumper', sweatshirt: 'Sweatshirt', hoodie: 'Hoodie', quarterzip: 'Quarter zip', tee: 'T-shirt', football: 'Football shirt', polo: 'Polo shirt', shirt: 'Shirt', overshirt: 'Overshirt', shacket: 'Shacket', jacket: 'Jacket', coat: 'Coat', trousers: 'Trousers', chinos: 'Chinos', jeans: 'Jeans', joggers: 'Joggers', shoes: 'Shoes', trainers: 'Trainers', boots: 'Boots' };
+  var COLOURS = [['Navy', '#1E2638'], ['Black', '#18181A'], ['Charcoal', '#2E3033'], ['Grey', '#8A8B8C'], ['Light grey', '#C4C5C6'], ['White', '#F2F1EC'], ['Cream', '#E8E0CF'], ['Oatmeal', '#D6CBB6'], ['Stone', '#CFC6B8'], ['Camel', '#B88A5A'], ['Tan', '#A47450'], ['Brown', '#6B5546'], ['Dark brown', '#3A2E27'], ['Olive', '#4E5438'], ['Sage', '#8E9C80'], ['Forest green', '#24392C'], ['Oxblood', '#5A1A22'], ['Burgundy', '#6E1E2B'], ['Rust', '#9A4B2C'], ['Mustard', '#C79A3A'], ['Denim blue', '#4A6288'], ['Light wash', '#9DB2C9'], ['Indigo', '#25314A'], ['Sky blue', '#9CB8D9'], ['Pink', '#D9A6A6']];
+  function nearestColour(hex) { var a = Brain.rgb(hex), best = null, bd = 1e9; COLOURS.forEach(function (c) { var b = Brain.rgb(c[1]), d = Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2); if (d < bd) { bd = d; best = c[0]; } }); return best; }
+  function addSheet(id, pre) {
+    var it = id ? W[id] : null;
+    F = it ? Object.assign({}, it) : Object.assign({ kind: 'knit', sub: 'jumper', name: '', colour: '', brand: '', hex: '#8A8B8C', pattern: 'plain', texture: '', smart: 3, warmth: 4, neck: 'crew', length: S.settings.knit, maybe: false, link: '', price: '' }, pre || {});
+    if (!F.sub) F.sub = (SUBS[F.kind] || [[F.kind]])[0][0];
+    F.isNew = !it; formDraw();
+  }
+  function setKind(k, sub) {
+    F.kind = k; F.sub = sub || SUBS[k][0][0];
+    if (F.isNew) {
+      var d = SUBDEF[F.sub] || [3, 3]; F.smart = d[0]; F.warmth = d[1];
+      F.length = k === 'knit' ? S.settings.knit : k === 'trousers' ? S.settings.trousers : Engine.REAL[k];
+      F.neck = F.sub === 'hoodie' ? 'hood' : F.sub === 'quarterzip' ? 'zip' : k === 'shirt' || F.sub === 'polo' ? 'collar' : k === 'knit' ? 'crew' : '';
+      F.texture = F.sub === 'jeans' ? 'denim' : F.sub === 'joggers' ? 'jersey' : k === 'trousers' ? 'twill' : '';
+    }
+  }
+  function pills(name, opts, val) { return '<div class="pills" data-f="' + name + '">' + opts.map(function (o) { return '<button type="button" data-act="fset" data-f="' + name + '" data-v="' + o[0] + '" class="' + (String(val) === String(o[0]) ? 'on' : '') + '">' + o[1] + '</button>'; }).join('') + '</div>'; }
+  function formDraw() {
+    var img = F.cutPreview || (F.id ? tileOf(F) : '');
+    openSheet('<div class="sh-h"><span class="lab">' + (F.isNew ? 'Add a piece' : 'Edit') + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div><div class="form">' +
+      (F.isNew ? '<label>Photo</label><div class="preview" style="cursor:pointer" data-act="pickphoto">' + (img ? '<img src="' + esc(img) + '" alt="">' : '<span style="text-align:center;color:var(--ash)">' + ic('camera', 34) + '<br>Choose the studio shot from Gemini.<br>The background comes off by itself.<br><br><small>Pale piece on a pale background? Lift it out in Photos first: hold the piece, Share, Save Image.</small></span>') + '</div><input type="file" accept="image/*" id="photo" hidden>' : '<div class="preview"><img src="' + esc(img) + '" alt=""></div>') +
+      (F.isNew ? '<div class="toggle wide2"><button data-act="fset" data-f="maybe" data-v="0" class="' + (F.maybe ? '' : 'on') + '">I own it</button><button data-act="fset" data-f="maybe" data-v="1" class="' + (F.maybe ? 'on' : '') + '">' + ic('bag', 16) + 'Maybe, in a shop</button></div>' : '') +
+      '<label>What is it</label>' + pills('kind', [['knit', 'Knitwear'], ['tee', 'Tees'], ['shirt', 'Shirt'], ['overshirt', 'Overshirt'], ['coat', 'Jacket or coat'], ['trousers', 'Trousers'], ['shoes', 'Shoes']], F.kind) +
+      (SUBS[F.kind].length > 1 ? '<label>Type</label>' + pills('sub', SUBS[F.kind], F.sub) : '') +
+      (F.isNew ? '<button type="button" class="plink" data-act="copyprompt" data-sub="' + esc(F.sub) + '">' + ic('copy', 16) + 'Copy the Gemini prompt for ' + esc((SUBS[F.kind].filter(function (s) { return s[0] === F.sub; })[0] || ['', 'this'])[1].toLowerCase()) + (F.maybe ? ' (shop photo)' : '') + '</button>' : '') +
+      '<label for="fname">Name</label><input type="text" id="fname" value="' + esc(F.name) + '" placeholder="' + esc(NAMES[F.sub] || 'Name') + '">' +
+      '<label for="fcol">Colour</label><div class="swatchrow"><input type="color" id="fhex" value="' + esc(F.hex) + '" aria-label="Main colour"><input type="text" id="fcol" value="' + esc(F.colour) + '" placeholder="' + esc(nearestColour(F.hex)) + '"></div>' +
+      '<label for="fbrand">Brand</label><input type="text" id="fbrand" value="' + esc(F.brand) + '" placeholder="' + (F.maybe ? 'M&amp;S, Next…' : 'Optional') + '">' +
+      (F.maybe ? '<label for="flink">Link to it</label><input type="url" id="flink" value="' + esc(F.link || '') + '" placeholder="Optional, paste from the shop" inputmode="url"><label for="fprice">Price (£)</label><input type="text" id="fprice" value="' + esc(F.price || '') + '" placeholder="Optional" inputmode="decimal">' : '') +
+      '<label>Pattern</label>' + pills('pattern', [['plain', 'Plain'], ['stripe', 'Stripes'], ['check', 'Check'], ['ombre', 'Ombré'], ['print', 'Print']], F.pattern) +
+      '<label>How smart</label>' + pills('smart', [[1, 'Lounge'], [2, 'Casual'], [3, 'Smart casual'], [4, 'Smart'], [5, 'Suited']], F.smart) +
+      '<label>How warm</label>' + pills('warmth', [[1, 'Light'], [2, 'Mid'], [3, 'Warm'], [4, 'Very warm'], [5, 'Coldest days']], F.warmth) +
+      (F.kind === 'knit' && (F.sub === 'jumper' || F.sub === 'sweatshirt') ? '<label>Neck</label>' + pills('neck', [['crew', 'Crew'], ['collar', 'Collar'], ['roll', 'Roll neck'], ['v', 'V-neck']], F.neck) : '') +
+      (F.kind === 'trousers' ? '<label>Fabric</label>' + pills('texture', [['twill', 'Chino'], ['denim', 'Denim'], ['wool', 'Wool'], ['jersey', 'Jersey'], ['cord', 'Cord']], F.texture) : '') +
+      '<label for="flen">Length in cm (' + (F.kind === 'trousers' ? 'waist to hem' : F.kind === 'shoes' ? 'height' : 'shoulder to hem') + ')</label><input type="number" id="flen" value="' + esc(F.length || Engine.REAL[F.kind]) + '" inputmode="numeric">' +
+      '<div class="acts"><button class="btn pri wide" data-act="fsave">' + ic(F.maybe ? 'bag' : 'worn', 18) + (F.isNew ? (F.maybe ? 'Add as a Maybe' : 'Add to wardrobe') : 'Save') + '</button></div>' +
+      (!F.isNew ? '<div class="acts"><button class="btn sec wide" data-act="farchive">' + (F.archived ? 'Bring back' : 'Put away (archive)') + '</button></div>' : '') +
+      '</div>');
+    var ph = $('#photo'); if (ph) ph.addEventListener('change', function () {
+      var f = ph.files && ph.files[0]; if (!f) return;
+      toast('Cutting it out…');
+      Engine.cutout(f).then(function (r) { F.cut = r.cut; F.tileData = r.tile; F.cutPreview = r.cut; F.hex = r.hex; if (!F.colour) F.colour = nearestColour(r.hex); keepForm(); formDraw(); })
+        .catch(function (e) { toast('Couldn’t cut that one out'); var pv = $('.preview'); if (pv) pv.insertAdjacentHTML('afterend', '<p class="note" style="color:var(--ink)">' + esc(e.message || 'That photo didn’t work.') + '</p>'); });
+    });
+  }
+  function keepForm() {
+    var g = function (id) { var el = document.getElementById(id); return el ? el.value : null; };
+    if (g('fname') != null) F.name = g('fname').trim();
+    if (g('fcol') != null) F.colour = g('fcol').trim();
+    if (g('fbrand') != null) F.brand = g('fbrand').trim();
+    if (g('fhex')) F.hex = g('fhex');
+    if (g('flen')) F.length = +g('flen') || F.length;
+    if (g('flink') != null) F.link = /^https?:\/\//.test(g('flink').trim()) ? g('flink').trim() : '';
+    if (g('fprice') != null) F.price = g('fprice').replace(/[^0-9.]/g, '');
+  }
+  function formSave() {
+    keepForm();
+    if (F.isNew && !F.cut) return toast('Choose a photo first.');
+    var id = F.id || ('up:' + Date.now().toString(36));
+    var it = { id: id, kind: F.kind, sub: F.sub || '', maybe: !!F.maybe, wash: !!F.wash, link: F.link || '', price: F.price || '', name: F.name || NAMES[F.sub] || 'Piece', colour: F.colour || nearestColour(F.hex), brand: F.brand, hex: F.hex, pattern: F.pattern, texture: F.texture || '', smart: +F.smart, warmth: +F.warmth, neck: F.neck || '', length: +F.length || Engine.REAL[F.kind], added: F.added || todayIso(), archived: !!F.archived };
+    if (F.isNew) { it.img = id; it.tile = ''; imgPut(id, { cut: F.cut, tile: F.tileData }); }
+    else { it.img = F.img; it.tile = F.tile; it.own = F.own; }
+    var keepSrc = F.isNew ? F.cut : (W[id] && W[id].src), keepTile = F.isNew ? F.tileData : (W[id] && W[id].tileSrc);
+    S.custom[id] = it; save(); buildItems(); if (keepSrc) { W[id].src = keepSrc; W[id].tileSrc = keepTile; }
+    send('item', F.isNew ? { item: it, cut: F.cut, tile: F.tileData } : { item: it });
+    Engine.forget(); SHOP = null;
+    if (F.isNew && F.maybe) { wSeg = 'shop'; tab = 'wardrobe'; closeSheet(); route(); toast('Weighing it up…'); setTimeout(function () { maybeSheet(id); }, 120); return; }
+    closeSheet(); toast(F.isNew ? 'Added to your wardrobe' : 'Saved'); route();
+  }
+
+  /* ---- settings ---- */
+  function settings() {
+    var st = S.settings;
+    openSheet('<div class="sh-h"><span class="lab">Settings</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div><div class="form">' +
+      '<div class="kv"><span>Connected</span><span>' + (S.synced ? 'Synced ' + new Date(S.synced).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Not yet') + (S.queue.length ? ' · ' + S.queue.length + ' waiting' : '') + '</span></div>' +
+      '<div class="acts"><button class="btn sec" data-act="syncnow">Sync now</button><button class="btn sec" data-act="plannow">Check for Claude’s plan</button></div>' +
+      '<label>Work days</label>' + pills('workdays', [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']], '').replace(/data-v="(\d)" class=""/g, function (m, d) { return 'data-v="' + d + '" class="' + (st.workdays.indexOf(+d) >= 0 ? 'on' : '') + '"'; }) +
+      '<p class="note">Work days start on Work; other days start on Weekend. You can always switch on Today.</p>' +
+      '<label for="sk">Knit length (cm)</label><input type="number" id="sk" value="' + st.knit + '">' +
+      '<label for="st">Trouser length (cm)</label><input type="number" id="st" value="' + st.trousers + '">' +
+      '<label for="so">Knit over the waistband (cm)</label><input type="number" id="so" value="' + st.overlap + '">' +
+      '<label for="sc">Calendars to read for nights out</label><input type="text" id="sc" value="' + esc(st.calendars) + '">' +
+      '<label>Your sizes, for the wish list (e.g. M · 32R · 9)</label><div class="sizes"><input type="text" id="sz1" value="' + esc(st.sizes.tops) + '" placeholder="Tops"><input type="text" id="sz2" value="' + esc(st.sizes.trousers) + '" placeholder="Trousers"><input type="text" id="sz3" value="' + esc(st.sizes.shoes) + '" placeholder="Shoes"></div>' +
+      (st.none.length ? '<label>Told Turnout you own none of</label><div class="pills">' + st.none.map(function (k) { return '<button data-act="unnone" data-k="' + k + '" class="on" style="display:inline-flex;align-items:center;gap:6px">' + KNAME[k] + ic('close', 12) + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="acts"><button class="btn sec wide" data-act="prompts">' + ic('copy', 18) + 'Gemini prompts</button></div>' +
+      '<div class="acts"><button class="btn pri wide" data-act="ssave">Save settings</button></div>' +
+      '<div class="acts"><button class="btn sec wide" data-act="signout">Forget this phone’s key</button></div></div>');
+  }
+
+  /* ---- first open ---- */
+  function setup(v) {
+    $('#tabs').style.display = 'none';
+    v.innerHTML = '<section class="boot"><div>' + mark() + '<h2 class="mono">turnout</h2><p class="note" style="max-width:30ch;margin:10px auto 0">Not connected yet. Paste your Apps Script link into index.html, where it says PASTE, then open Turnout again.</p></div></section>';
+  }
+  function askKey(v) {
+    $('#tabs').style.display = 'none';
+    v.innerHTML = '<section class="boot"><div style="width:100%;max-width:340px">' + mark() + '<h2 class="mono">turnout</h2><div class="form" style="text-align:left"><label for="kk">Your Turnout key</label><input type="password" id="kk" autocomplete="current-password" placeholder="From the setup steps"><div class="acts"><button class="btn pri wide" data-act="key">Open Turnout</button></div></div></div></section>';
+  }
+
+  /* ============ actions ============ */
+  function setRating(o, v) {
+    var k = Brain.core(o); S.ratings[k] = S.ratings[k] === v ? undefined : v; if (!S.ratings[k]) delete S.ratings[k];
+    save(); send('rate', { key: k, v: S.ratings[k] || '' }); buzz();
+  }
+  function wearIt(date, o, occ, ev) {
+    S.wear = S.wear.filter(function (w) { return !(w.date === date && (w.event || '') === (ev ? ev.id : '')); });
+    var rec = Object.assign({ date: date, occasion: occ, event: ev ? ev.id : '', crowd: ev ? (ev.crowd || '') : '' }, outfitOf(o));
+    S.wear.push(rec); save(); send('wear', rec); buzz();
+  }
+  function planIt(dateKey, o) { S.myplan[dateKey] = outfitOf(o); save(); send('plan', { date: dateKey, outfit: S.myplan[dateKey] }); buzz(); }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-act],[data-go],.tab'); if (!t) return;
+    if (t.classList.contains('tab')) { tab = t.dataset.tab; selMode = false; logMode = false; sel = []; return route(); }
+    if (t.dataset.go) { tab = t.dataset.go; return route(); }
+    var a = t.dataset.act, F2;
+    switch (a) {
+      case 'close': closeSheet(); route(); break;
+      case 'settings': settings(); break;
+      case 'rate': setRating(today.focus.outfit, t.dataset.v); route(); break;
+      case 'wear': wearIt(today.focus.date, today.focus.outfit, today.focus.occasion); toast('Logged. Enjoy it.'); route(); break;
+      case 'another': T.idx++; route(); break;
+      case 'tocc': T.occ = t.dataset.k; T.idx = 0; route(); break;
+      case 'dress': dress({ date: todayIso(), occasion: today.focus.occasion, first: today.focus.outfit, log: !!t.dataset.log }); break;
+      case 'plan': planSheet(); break;
+      case 'planday': { var pd = planSheet.plan.filter(function (x) { return x.date === t.dataset.date; })[0]; dress({ date: pd.date, occasion: pd.occasion, first: pd.pick ? pd.pick.outfit : null, back: 'plan' }); break; }
+      case 'keepweek': planSheet.plan.forEach(function (d) { if (d.pick && !d.worn && !S.myplan[d.date]) S.myplan[d.date] = outfitOf(d.pick.outfit); }); save(); send('planmany', { plans: planSheet.plan.filter(function (d) { return S.myplan[d.date]; }).map(function (d) { return { date: d.date, outfit: S.myplan[d.date] }; }) }); toast('Week kept'); planSheet(); break;
+      case 'clearweek': planSheet.plan.forEach(function (d) { delete S.myplan[d.date]; delete S.plan[d.date]; }); save(); send('clearplan', { from: planSheet.from, days: 7 }); toast('Cleared'); planSheet(); break;
+      case 'askclaude': toast('Sending…'); api('brief', { from: planSheet.from }).then(function (r) { toast(r && r.ok ? 'Sent to Claude. Back within about two hours.' : 'Couldn’t send it. Try again in a bit.'); }); break;
+      case 'logadd': selMode = true; sel = []; tab = 'wardrobe'; logMode = true; route(); toast('Pick what you wore'); break;
+      case 'logrow': logSheet(t.dataset.k); break;
+      case 'wearagain': { var kk = t.dataset.k.split('|'), wr = S.wear.filter(function (x) { return x.date === kk[0] && (x.event || '') === kk[1]; })[0]; if (wr) { wearIt(todayIso(), outfitOf(wr), wr.occasion || 'work'); closeSheet(); tab = 'today'; toast('Logged for today'); route(); } break; }
+      case 'savelog': { var k2 = t.dataset.k.split('|'), w2 = S.wear.filter(function (x) { return x.date === k2[0] && (x.event || '') === k2[1]; })[0]; if (w2) { var lk2 = { id: 'l' + Date.now().toString(36), outfit: outfitOf(w2), name: title(outfitOf(w2)), at: new Date().toISOString() }; S.looks.push(lk2); save(); send('look', lk2); toast('Saved to Looks'); } break; }
+      case 'unwear': { var k3 = t.dataset.k.split('|'); S.wear = S.wear.filter(function (x) { return !(x.date === k3[0] && (x.event || '') === k3[1]); }); save(); send('unwear', { date: k3[0], event: k3[1] }); closeSheet(); toast('Removed'); route(); break; }
+      case 'forgotten': { sel = logTab.forgotten.map(function (x) { return x.id; }); if (!sel.length) { toast('You’ve worn everything lately'); break; } selMode = false; dress({ pool: sel.slice() }); sel = []; break; }
+      case 'dcrowd': { var nc = t.dataset.c; S.evOver[D.ev.id] = Object.assign({}, S.evOver[D.ev.id], { crowd: nc }); save(); send('event', { id: D.ev.id, crowd: nc }); D.crowd = nc; D.ev.crowd = nc; D.first = null; D.idx = 0; dressList(); dressDraw(); break; }
+      case 'dwhen': D.date = t.dataset.d; $$('[data-act="dwhen"]').forEach(function (x) { x.classList.toggle('on', x === t); }); break;
+      case 'night': { var ev = evInfo(S.events.filter(function (x) { return x.id === t.dataset.ev; })[0] || {}); if (!ev.id) break; var L = lookFor(ev); dress({ date: ev.date, occasion: ev.kind === 'trip' ? 'trip' : ev.kind === 'party' ? 'party' : 'out', crowd: ev.crowd, ev: ev, first: L ? L.outfit : null }); break; }
+      case 'occ': D.occasion = t.dataset.k; D.first = null; D.idx = 0; D.offset = 0; dressList(); dressDraw(); break;
+      case 'drate': setRating(D.list[+t.dataset.i].outfit, t.dataset.v); t.classList.toggle('on', S.ratings[Brain.core(D.list[+t.dataset.i].outfit)] === t.dataset.v); $$('.rate button', t.parentNode).forEach(function (b) { if (b !== t) b.classList.remove('on'); }); break;
+      case 'lock': { var s = t.dataset.s, cur = D.list[D.idx].outfit; if (D.lock[s] === cur[s]) delete D.lock[s]; else D.lock[s] = cur[s]; dressPieces(); break; }
+      case 'swap': {
+        var s2 = t.dataset.s, cur2 = D.list[D.idx].outfit, alts = Brain.swap(ITEMS, D.c, cur2, s2);
+        if (!alts.length) { toast('Nothing else fits there'); break; }
+        D.swaps = D.swaps || {}; var n = (D.swaps[s2] = ((D.swaps[s2] || 0) + 1)) - 1;
+        var nx = alts[n % alts.length]; D.list[D.idx] = nx; D.first = null;
+        var plinth = $('.plinth[data-i="' + D.idx + '"]');
+        plinth.innerHTML = flat(nx.outfit, Math.min(300, Math.round(window.innerHeight * 0.36))) + '<div class="rate"><button data-act="drate" data-v="love" data-i="' + D.idx + '" aria-label="Love this">' + ic('love', 20) + '</button><button data-act="drate" data-v="nope" data-i="' + D.idx + '" aria-label="Not me">' + ic('nope', 20) + '</button></div><div class="cap"><span>' + (D.idx + 1) + ' of ' + D.list.length + '</span><span>' + esc(nx.reasons[0] || '') + '</span></div>';
+        dressSwitch($('#sheet .panel')); break;
+      }
+      case 'dmore': D.offset += 5; D.first = null; D.idx = 0; dressList(); if (!D.list.length) { D.offset = 0; dressList(); } dressDraw(); break;
+      case 'dwear': wearIt(D.date, D.list[D.idx].outfit, D.occasion, D.ev); closeSheet(); toast(D.log ? 'Logged' : 'Logged. Enjoy it.'); if (D.log) tab = 'log'; logMode = false; route(); break;
+      case 'dplan': { var back = D.back; planIt(D.ev ? 'ev:' + D.ev.id : D.date, D.list[D.idx].outfit); toast(D.ev ? 'Planned for ' + D.ev.title : 'Planned for ' + fmt(D.date)); if (back === 'plan') planSheet(); else { closeSheet(); route(); } break; }
+      case 'dsave': { var lk = { id: 'l' + Date.now().toString(36), outfit: outfitOf(D.list[D.idx].outfit), name: title(D.list[D.idx].outfit), at: new Date().toISOString() }; S.looks.push(lk); save(); send('look', lk); toast('Saved to Looks'); break; }
+      case 'filter': wFilter = t.dataset.k; route(); break;
+      case 'wseg': wSeg = t.dataset.k; selMode = false; sel = []; route(); window.scrollTo(0, 0); break;
+      case 'buy': buySheet(+t.dataset.i); break;
+      case 'maybe': maybeSheet(t.dataset.id); break;
+      case 'wish': wishSheet(); break;
+      case 'round': roundSheet(t.dataset.m); break;
+      case 'prompts': promptsSheet(); break;
+      case 'copyp': copyText(t.dataset.k === '__shop' ? PROMPTS.shop : PROMPTS.subs[t.dataset.k]); break;
+      case 'copyprompt': copyText(t.dataset.name ? promptFor(null, t.dataset.name) : (F && F.maybe ? promptFor(null, (F.name || NAMES[F.sub] || '').toLowerCase() || '[item]') : promptFor(t.dataset.sub))); break;
+      case 'nonekind': S.settings.none.push(t.dataset.k); save(); send('settings', S.settings); SHOP = null; route(); toast('Got it. Suggestions updated.'); break;
+      case 'unnone': S.settings.none = S.settings.none.filter(function (k) { return k !== t.dataset.k; }); save(); send('settings', S.settings); SHOP = null; t.remove(); break;
+      case 'foundone': { var g0 = shopData().buys[+t.dataset.i].item; addSheet(null, { maybe: true, kind: g0.kind, sub: g0.sub, name: g0.name, hex: g0.hex, colour: g0.colour, smart: g0.smart, warmth: g0.warmth, neck: g0.neck, texture: g0.texture, length: g0.kind === 'knit' ? S.settings.knit : g0.kind === 'trousers' ? S.settings.trousers : Engine.REAL[g0.kind] }); break; }
+      case 'bought': { var bi = S.custom[t.dataset.id]; if (bi) { bi.maybe = false; bi.added = todayIso(); save(); buildItems(); resolveImages(); send('item', { item: bi }); } S.wish = S.wish.filter(function (w) { return w.ref !== t.dataset.id; }); send('wish', { list: S.wish }); SHOP = null; closeSheet(); wSeg = 'pieces'; route(); toast('In your wardrobe. Nice buy.'); break; }
+      case 'notforme': { var nf = S.custom[t.dataset.id]; if (nf) { nf.archived = true; save(); buildItems(); send('item', { item: nf }); } S.wish = S.wish.filter(function (w) { return w.ref !== t.dataset.id; }); send('wish', { list: S.wish }); SHOP = null; closeSheet(); route(); toast('Gone'); break; }
+      case 'wishadd': { var gb = shopData().buys[+t.dataset.i]; if (!S.wish.some(function (w) { return w.ref === gb.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: gb.item.id, name: gb.item.name, kind: gb.item.kind, colour: gb.item.colour, hex: gb.item.hex, why: '+' + gb.adds + ' outfits. ' + gb.why, at: todayIso() }); save(); send('wish', { list: S.wish }); } t.innerHTML = ic('gift', 18) + 'On wish list'; toast('On the wish list'); break; }
+      case 'wishmaybe': { var mm = shopData().maybes.filter(function (x) { return x.item.id === t.dataset.id; })[0]; if (mm && !S.wish.some(function (w) { return w.ref === mm.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: mm.item.id, name: mm.item.name, kind: mm.item.kind, colour: mm.item.colour, hex: mm.item.hex, why: '+' + mm.adds + ' outfits with what you own', link: mm.item.link || '', price: mm.item.price || '', at: todayIso() }); save(); send('wish', { list: S.wish }); } toast('On the wish list'); break; }
+      case 'wishdel': S.wish.splice(+t.dataset.i, 1); save(); send('wish', { list: S.wish }); wishSheet(); break;
+      case 'wash': { var wid = t.dataset.id, wv = !W[wid].wash; S.custom[wid] = Object.assign({}, S.custom[wid] || {}, { wash: wv }); if (!S.custom[wid].kind) S.custom[wid].id = wid; save(); buildItems(); resolveImages(); send('wash', { ids: [wid], v: wv }); SHOP = null; itemSheet(wid, false); toast(wv ? 'In the wash. Turnout will leave it out.' : 'Back in the wardrobe'); break; }
+      case 'allclean': { var ids = ITEMS.filter(function (i) { return i.wash; }).map(function (i) { return i.id; }); ids.forEach(function (x) { S.custom[x] = Object.assign({}, S.custom[x], { wash: false }); }); save(); buildItems(); resolveImages(); send('wash', { ids: ids, v: false }); SHOP = null; route(); toast('All clean'); break; }
+      case 'logphoto': { var mi = $('#mph'); if (mi) mi.click(); break; }
+      case 'selmode': selMode = !selMode; sel = []; route(); break;
+      case 'selcancel': selMode = false; sel = []; if (logMode) { logMode = false; tab = 'log'; } route(); break;
+      case 'pick': { var id = t.dataset.id, i = sel.indexOf(id); if (i >= 0) sel.splice(i, 1); else sel.push(id); route(); window.scrollTo(0, window.scrollY); break; }
+      case 'selgo': if (!sel.length) break; dress({ pool: sel.slice(), log: logMode }); break;
+      case 'item': itemSheet(t.dataset.id, false); break;
+      case 'own': itemSheet(t.dataset.id, true); break;
+      case 'around': dress({ pin: [t.dataset.id] }); break;
+      case 'pairwith': dress({ pin: [t.dataset.a, t.dataset.b] }); break;
+      case 'edit': addSheet(t.dataset.id); break;
+      case 'add': addSheet(null, t.dataset.maybe ? { maybe: true } : null); break;
+      case 'pickphoto': keepForm(); $('#photo').click(); break;
+      case 'fset': { keepForm(); var ff = t.dataset.f, fv = t.dataset.v;
+        if (ff === 'kind') setKind(fv); else if (ff === 'sub') setKind(F.kind, fv); else if (ff === 'maybe') F.maybe = fv === '1'; else F[ff] = isNaN(+fv) ? fv : +fv;
+        formDraw(); break; }
+      case 'fsave': formSave(); break;
+      case 'farchive': keepForm(); F.archived = !F.archived; formSave(); break;
+      case 'look': { var l = S.looks.filter(function (x) { return x.id === t.dataset.id; })[0]; if (l) dress({ first: outfitOf(l.outfit) }); break; }
+      case 'loved': dress({ first: looks.loved[+t.dataset.i] }); break;
+      case 'crowd': { var e2 = S.events.filter(function (x) { return x.id === t.dataset.ev; })[0]; var curC = evInfo(e2).crowd; var nxC = CROWDS[(CROWDS.indexOf(curC) + 1) % CROWDS.length]; S.evOver[e2.id] = Object.assign({}, S.evOver[e2.id], { crowd: nxC }); save(); send('event', { id: e2.id, crowd: nxC }); route(); break; }
+      case 'syncnow': sync(true).then(function () { toast('Up to date'); settings(); }); break;
+      case 'plannow': api('checkplan').then(function (r) { toast(r && r.found ? 'Claude’s plan is in' : 'No new plan yet'); return sync(true); }); break;
+      case 'briefnow': api('brief').then(function (r) { toast(r && r.ok ? 'Sent. Claude replies within the hour.' : 'Couldn’t send it'); }); break;
+      case 'ssave': {
+        var st = S.settings, gv = function (id) { return document.getElementById(id).value; };
+        st.knit = +gv('sk') || 74; st.trousers = +gv('st') || 104; st.overlap = +gv('so') || 9; st.calendars = gv('sc'); st.sizes = { tops: gv('sz1').trim(), trousers: gv('sz2').trim(), shoes: gv('sz3').trim() };
+        st.workdays = $$('.pills[data-f="workdays"] button.on').map(function (b) { return +b.dataset.v; });
+        save(); send('settings', st); buildItems(); Engine.forget(); closeSheet(); toast('Saved'); route(); break;
+      }
+      case 'signout': try { localStorage.removeItem(KEY); } catch (e2) {} key = ''; closeSheet(); route(); break;
+      case 'key': { var kv = ($('#kk').value || '').trim(); if (!kv) break; key = kv; try { localStorage.setItem(KEY, kv); } catch (e3) {} toast('Opening…'); sync(true).then(function () { route(); }); break; }
+    }
+    // pills in settings toggle on their own
+    if (a === 'fset' && t.closest('.pills') && (t.dataset.f === 'workdays' || t.dataset.f === 'nudge')) {}
+  });
+  // settings pills (multi-select for work days)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.pills[data-f="workdays"] button, .pills[data-f="nudge"] button'); if (!b) return;
+    e.stopImmediatePropagation();
+    if (b.parentNode.dataset.f === 'workdays') b.classList.toggle('on'); else $$('button', b.parentNode).forEach(function (x) { x.classList.toggle('on', x === b); });
+  }, true);
+
+  /* ============ start ============ */
+  function start() {
+    fetch('wardrobe.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).catch(function () { return { items: [] }; }).then(function (j) {
+      SEED = j.items || []; buildItems();
+      return resolveImages();
+    }).then(function () {
+      route();
+      getWeather().then(function () { if (!$('#sheet').classList.contains('open')) route(); });
+      sync(false);
+    });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { flush(); sync(false); } });
+    window.addEventListener('online', flush);
+    if ('serviceWorker' in navigator && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
+  }
+  window.TurnoutApp = { S: S, route: route, dress: dress, itemSheet: itemSheet, addSheet: addSheet, settings: settings, W: function () { return W; }, setTab: function (t) { tab = t; route(); } };
+  start();
+})();
+
+</script>
+</body>
+</html>
