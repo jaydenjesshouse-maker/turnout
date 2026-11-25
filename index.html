@@ -122,7 +122,7 @@ h2.mono{font-size:clamp(28px,8.5vw,38px)}
 .tabbar{position:fixed;left:16px;right:16px;bottom:calc(10px + var(--sb));height:64px;border-radius:32px;display:flex;justify-content:space-around;align-items:center;z-index:50;
   background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2);
   box-shadow:inset 0 .5px 0 rgba(255,255,255,.9),inset 0 0 0 .5px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.12);color:var(--ash)}
-.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;width:72px;padding:6px 0}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;width:62px;padding:6px 0}
 .tab.on{color:var(--ink)}
 
 /* sheets */
@@ -381,6 +381,94 @@ a.btn{text-decoration:none;color:inherit}
 .kv.fam{align-items:center}.kv.fam span:first-child b{display:block}.kv.fam em{font-style:normal;font-size:13px;color:var(--ash)}.kv.fam span:last-child{display:inline-flex;gap:8px;align-items:center}
 .iconbtn.sure{background:#6A2A1E;color:#F5F1EA}
 
+/* ============ 1.9: outfit rails, three-step add, Shop tab ============ */
+.panel.studio{background:var(--cream);color:var(--ink)}
+.panel.studio .occs{margin-top:10px}
+.st-t{font-size:26px;margin-top:14px;text-wrap:balance}
+.stage{position:relative;margin-top:12px;border-radius:26px;background:radial-gradient(120% 80% at 50% 30%,var(--plinth),var(--linen));overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none;height:420px}
+.stage img.fit{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);transform-origin:50% 50%;pointer-events:none;-webkit-user-drag:none;max-width:none}
+.stage .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:10px;white-space:nowrap;background:var(--glass);padding:3px 10px;border-radius:9px;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--ash);pointer-events:none;transition:opacity .3s}
+.stage .zl{position:absolute;left:12px;top:12px;font-family:var(--mono);font-size:11px;background:var(--ink);color:var(--cream);padding:3px 7px;border-radius:6px;opacity:0;transition:opacity .2s}
+.stage .zl.on{opacity:.85}
+.stage .rate{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:8px;z-index:2}
+.stage .rate button{background:var(--glass)}.stage .rate button.on{background:var(--ink);color:var(--cream)}
+.rail{margin-top:12px}
+.rh{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:26px;margin-bottom:6px}
+.rn{font-size:13px;color:var(--ash);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%}
+.rl{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:3px 2px;margin:0 -2px;scrollbar-width:none}
+.rl::-webkit-scrollbar{display:none}
+.rt{flex:none;width:62px;height:62px;border-radius:16px;overflow:hidden;background:var(--plinth);position:relative;scroll-snap-align:start}
+.rt img{width:100%;height:100%;object-fit:cover;display:block}
+.rt img.gh,.rt.buyt img{object-fit:contain;padding:5px}
+.rt.sel{box-shadow:0 0 0 2.5px var(--ink)}
+.rt.none{display:grid;place-items:center;background:none;box-shadow:inset 0 0 0 1.5px var(--line2);font-size:12px;color:var(--ash);font-weight:600}
+.rt.none.sel{box-shadow:0 0 0 2.5px var(--ink);color:var(--ink)}
+.rt.dim img{opacity:.55}
+.rt .wsh{position:absolute;right:3px;bottom:3px;width:20px;height:20px;border-radius:10px;background:var(--cream);display:grid;place-items:center}
+.buy{position:absolute;left:4px;top:4px;font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--cream);padding:1px 4px;border-radius:4px;z-index:1}
+.lsw{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ash)}
+.lsw i{width:40px;height:24px;border-radius:12px;background:var(--line2);position:relative;transition:background .15s}
+.lsw i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--cream);transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.lsw.on{color:var(--ink)}.lsw.on i{background:var(--ink)}.lsw.on i::after{left:19px}
+
+.form.step .prog{display:flex;gap:5px;margin-top:4px}.form.step .prog i{flex:1;height:4px;border-radius:2px;background:var(--line)}.form.step .prog i.on{background:var(--ink)}
+.form.step .hq{font-size:30px;margin-top:14px}
+.big2{display:grid;gap:10px;margin-top:16px}
+.bt{border-radius:22px;padding:16px;text-align:left;display:flex;gap:14px;align-items:center;width:100%}
+.bt.dk{background:var(--ink);color:var(--cream)}.bt.lt2{background:var(--paper)}
+.bt b{display:block;font-size:17px}.bt span span{font-size:14px;opacity:.78;line-height:1.35}
+.bt .ico{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;background:rgba(255,255,255,.12);flex:none}.bt.lt2 .ico{background:var(--cream)}
+.fold{margin-top:14px;border-radius:18px;box-shadow:inset 0 0 0 1.5px var(--line);padding:12px 14px}
+.fold b{display:block;font-size:15px}.fold>span{display:block;font-size:13px;color:var(--ash);margin:2px 0 9px}
+.fold .pills button{padding:7px 11px;font-size:13px}
+.ul{text-decoration:underline;text-underline-offset:3px;font-weight:600;color:var(--ink)}
+.row2{display:flex;align-items:center;gap:14px;margin-top:14px}
+.row2 .thumb{width:72px;height:72px;border-radius:18px;object-fit:contain;background:var(--plinth);padding:4px;flex:none}
+.tgh{margin:16px 0 6px}
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.tg{position:relative;height:50px;border-radius:15px;background:var(--paper);font-size:13.5px;font-weight:600;padding:0 4px;line-height:1.15}
+.tg.on{background:var(--ink);color:var(--cream)}
+.tg small{position:absolute;top:3px;right:7px;font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+.swr{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px}
+.swr button{width:34px;height:34px;border-radius:17px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);position:relative}
+.swr button.on{box-shadow:0 0 0 2px var(--cream),0 0 0 4px var(--ink)}
+.swr button.det::after{content:"";position:absolute;right:-3px;top:-3px;width:12px;height:12px;border-radius:6px;background:var(--ink);box-shadow:0 0 0 2px var(--cream)}
+.scale{margin-top:16px}
+.scale .track{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:7px}
+.scale .track button{height:46px;border-radius:14px;background:var(--paper);font-size:12px;font-weight:600;line-height:1.1;padding:0 2px}
+.scale .track button.on{background:var(--ink);color:var(--cream)}
+.lrow{display:flex;align-items:center;gap:12px;border-radius:18px;background:var(--paper);padding:10px 12px;margin-top:16px;width:100%;text-align:left}
+.lrow img,.lrow .lph{width:46px;height:46px;border-radius:12px;object-fit:contain;background:var(--plinth);flex:none;display:grid;place-items:center}
+.lrow>span:not(.chip):not(.lph){flex:1;font-size:13px;line-height:1.3;color:var(--ash)}.lrow b{display:block;font-size:15px;color:var(--ink)}
+.lks{display:flex;gap:16px}
+details.more{margin-top:16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+details.more summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-weight:600;font-size:15px;cursor:pointer}
+details.more summary::-webkit-details-marker{display:none}
+details.more[open] summary svg{transform:rotate(180deg)}
+details.more>*:last-child{margin-bottom:14px}
+
+.shero{border-radius:26px;background:var(--ink);color:var(--cream);margin-top:14px;padding:14px}
+.sh-top{display:flex;gap:12px;align-items:center;width:100%;text-align:left}
+.gimg{width:78px;height:78px;border-radius:18px;background:var(--plinth);display:grid;place-items:center;flex:none;overflow:hidden}
+.gimg img{max-width:88%;max-height:88%}
+.gimg.sm{width:52px;height:52px;border-radius:13px}
+.sh-t{flex:1;min-width:0}.sh-t .lab{color:var(--sand)}.sh-t b{display:block;font-size:18px;margin-top:3px}.sh-t>span:last-child{display:block;font-size:13px;opacity:.75;margin-top:2px;line-height:1.35}
+.sh-n{text-align:right}.sh-n b{display:block;font-family:var(--mono);font-weight:500;font-size:30px;letter-spacing:-.05em;line-height:1}.sh-n span{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sand)}
+.looks3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+.looks3 button{background:var(--plinth);border-radius:15px;height:140px;display:flex;justify-content:center;align-items:center;overflow:hidden}
+.looks3 img{height:128px;width:auto}
+.looks3 .oc{transform:scale(.8)}
+.shero .acts{margin-top:12px}.shero .acts .btn{flex:1;height:42px;font-size:14px}
+.shero .btn.lite{background:var(--cream);color:var(--ink)}
+.shero .btn.ghost{box-shadow:inset 0 0 0 1.5px rgba(245,241,234,.45);color:var(--cream)}
+.rk{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.rk .no{font-family:var(--mono);font-size:12px;color:var(--ash);width:18px;flex:none}
+.rk .swt{border-radius:13px}
+.rk-t{flex:1;min-width:0;line-height:1.25}.rk-t b{font-size:15px}.rk-t span{display:block;font-size:13px;color:var(--ash)}
+.rk em{font-style:normal;font-family:var(--mono);font-size:16px;letter-spacing:-.03em}
+.maycard{display:flex;gap:12px;align-items:center;width:100%;text-align:left;margin-top:14px;font-size:14px;line-height:1.35}
+.maycard b{display:block;font-size:15px}
+
 </style>
 </head>
 <body>
@@ -388,6 +476,7 @@ a.btn{text-decoration:none;color:inherit}
 <nav class="tabbar" id="tabs">
  <button class="tab on" data-tab="today"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12V7a3 3 0 0 1 3-3h2.6a2.4 2.4 0 0 0 4.8 0H17a3 3 0 0 1 3 3v5z" fill="currentColor" stroke="none"/><path d="M4 12v5a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-5z"/></svg>Today</button>
  <button class="tab" data-tab="looks"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3.5" width="13.5" height="13.5" rx="2.6"/><path d="M7 10.2V6.1a2.6 2.6 0 0 1 2.6-2.6h8.3a2.6 2.6 0 0 1 2.6 2.6v4.1z" fill="currentColor" stroke="none"/><path d="M4 8v9.4A3.1 3.1 0 0 0 7.1 20.5H16"/></svg>Looks</button>
+ <button class="tab" data-tab="shop"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1.2 12.5H4.8z" fill="currentColor" stroke="none"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>Shop</button>
  <button class="tab" data-tab="wardrobe"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2" fill="currentColor"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>Wardrobe</button>
  <button class="tab" data-tab="log"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="3.5" y="10.5" width="5" height="5" rx="1.5"/><rect x="3.5" y="17" width="5" height="3.5" rx="1.2"/><path d="M11.5 6.5h9M11.5 13h9M11.5 18.8h6"/></svg>Log</button>
 </nav>
@@ -784,14 +873,14 @@ var Engine = (function () {
   var FV = 1; try { FV = +(localStorage.getItem('turnout-flatv') || 1); } catch (e) {}
   function ckey(k) { return '/flat/' + FV + '/' + encodeURIComponent(k); }
   function cacheGet(k) {
-    if (!window.caches) return Promise.resolve(null);
+    try { if (!window.caches) return Promise.resolve(null); } catch (x) { return Promise.resolve(null); }
     return caches.open('turnout-flats').then(function (c) { return c.match(ckey(k)); }).then(function (r) {
       if (!r) return null; var meta = JSON.parse(r.headers.get('x-meta') || 'null'); if (!meta) return null;
       return r.blob().then(function (b) { meta.url = URL.createObjectURL(b); return meta; });
     }).catch(function () { return null; });
   }
   function cachePut(k, blob, meta) {
-    if (!window.caches || !blob) return;
+    try { if (!window.caches || !blob) return; } catch (x) { return; }
     caches.open('turnout-flats').then(function (c) { return c.put(ckey(k), new Response(blob, { headers: { 'content-type': blob.type, 'x-meta': JSON.stringify({ w: meta.w, h: meta.h, hem: meta.hem, waist: meta.waist }) } })); }).catch(function () {});
   }
 
@@ -1173,6 +1262,7 @@ var Engine = (function () {
       it.openImg = it.openSrc || (it.open && it.open !== 'up' ? it.open : null);
     });
     ITEMS = out.filter(function (i) { return !i.archived; }); W = {}; out.forEach(function (i) { W[i.id] = i; });
+    if (typeof GH !== 'undefined') { Object.keys(GH).forEach(function (k) { if (!W[k]) W[k] = GH[k]; }); }
     markDirty();
   }
   function resolveImages() {
@@ -1356,7 +1446,7 @@ var Engine = (function () {
     if (!key) return askKey(v);
     $$('.tab').forEach(function (t) { t.classList.toggle('on', t.dataset.tab === tab); });
     $('#tabs').style.display = '';
-    ({ today: today, log: logTab, wardrobe: wardrobe, looks: looks })[tab](v);
+    ({ today: today, log: logTab, wardrobe: wardrobe, looks: looks, shop: shopTab })[tab](v);
     if (route.last !== tab) { v.classList.remove('fade'); void v.offsetWidth; v.classList.add('fade'); route.last = tab; }
     window.scrollTo(0, 0);
   }
@@ -1473,7 +1563,7 @@ var Engine = (function () {
   function owned() { return ITEMS.filter(function (i) { return !i.maybe; }); }
   function wardrobe(v) {
     var mine = owned(), count = function (k) { return k === 'all' ? mine.length : mine.filter(function (i) { return i.kind === k; }).length; };
-    var seg = '<div class="seg3 two"><button data-act="wseg" data-k="pieces" class="' + (wSeg === 'pieces' ? 'on' : '') + '">Wardrobe</button><button data-act="wseg" data-k="shop" class="' + (wSeg === 'shop' ? 'on' : '') + '">Shop</button></div>';
+    wSeg = 'pieces'; var seg = ''; var seg0 = '<div class="seg3 two"><button data-act="wseg" data-k="pieces" class="' + (wSeg === 'pieces' ? 'on' : '') + '">Wardrobe</button><button data-act="wseg" data-k="shop" class="' + (wSeg === 'shop' ? 'on' : '') + '">Shop</button></div>';
     var head = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px">' + (wSeg === 'pieces' ? '<button class="iconbtn" data-act="selmode" aria-label="Pick a handful">' + ic('select', 22) + '</button>' : '<button class="chip" data-act="wish" style="height:44px;border-radius:22px;padding:0 14px">' + ic('gift', 16) + 'Wish list' + (S.wish.length ? ' ' + S.wish.length : '') + '</button>') + '<button class="iconbtn" data-act="add" aria-label="Add a piece">' + ic('add', 22) + '</button></span></div>' +
       '<h2 class="mono" style="margin-top:14px">' + (wSeg === 'shop' ? 'Shop smart' : wSeg === 'balance' ? 'Balance' : 'Wardrobe') + '</h2>' + seg;
     if (wSeg === 'shop') return shopView(v, head);
@@ -2070,8 +2160,11 @@ var Engine = (function () {
     if (S.settings.fit2) return false;
     S.settings.fit2 = true; if (+S.settings.trousers === 104) S.settings.trousers = 98; return true;
   }
-  var VERSION = '1.8.1';
+  var VERSION = '1.9.0';
   var WHATS_NEW = [
+    ['Play with an outfit', 'Open any outfit and change it piece by piece: a row for the layer, top, trousers and shoes. Switch the layer off and on, pinch or double-tap to zoom, and swipe the top or trousers to try the next one.'],
+    ['Adding in three steps', 'Photo, what is it, when would you wear it. Turnout guesses the type and colour from the photo, so it’s usually just Next, Next, Add. Name, brand and length fold away.'],
+    ['A Shop tab', 'Your best buy first, drawn in its colour with the looks it makes. Tap a look to try it on with your other pieces. Maybes and your wish list sit alongside.'],
     ['Open layers, from a photo', 'Overshirts, cardigans, jackets and coats can have a second Gemini shot of them hanging open. Turnout uses it when they’re worn over something, so the drape, buttons and collar look real. Edit a piece and add it under Worn open.'],
     ['Better proportions', 'Tops and layers are a touch bigger next to trousers, and a layer grows evenly to hang over the waistband.'],
     ['Family and friends', 'Invite people from Settings. Each gets a code and their own private Turnout.'],
@@ -2309,7 +2402,7 @@ var Engine = (function () {
     var msg = F.isNew ? { item: it, cut: F.cut, tile: F.tileData } : { item: it }; if (F.openCut) msg.openCut = F.openCut;
     send('item', msg);
     Engine.forget(); SHOP = null;
-    if (F.isNew && F.maybe) { wSeg = 'shop'; tab = 'wardrobe'; closeSheet(); route(); toast('Weighing it up…'); setTimeout(function () { maybeSheet(id); }, 120); return; }
+    if (F.isNew && F.maybe) { tab = 'shop'; sSeg = 'maybes'; closeSheet(); route(); toast('Weighing it up…'); setTimeout(function () { maybeSheet(id); }, 120); return; }
     closeSheet(); toast(F.isNew ? 'Added to your wardrobe' : 'Saved'); route();
   }
 
@@ -2393,6 +2486,325 @@ var Engine = (function () {
   }
   function planIt(dateKey, o) { S.myplan[dateKey] = outfitOf(o); save(); send('plan', { date: dateKey, outfit: S.myplan[dateKey] }); buzz(); }
 
+  I.down = '<path d="M6 9l6 6 6-6"/>';
+  /* ============ 1.9: outfit rails, adding in three steps, the Shop tab ============ */
+  var TYPES = [
+    ['Tops', [['jumper', 'Jumper'], ['sweatshirt', 'Sweatshirt'], ['hoodie', 'Hoodie'], ['quarterzip', 'Quarter zip'], ['tee', 'T-shirt'], ['polo', 'Polo'], ['henley', 'Henley'], ['football', 'Football shirt'], ['shirt', 'Shirt']]],
+    ['Layers', [['cardigan', 'Cardigan'], ['overshirt', 'Overshirt'], ['shacket', 'Shacket'], ['jacket', 'Jacket'], ['coat', 'Coat']]],
+    ['Bottoms', [['chinos', 'Chinos'], ['trousers', 'Trousers'], ['jeans', 'Jeans'], ['joggers', 'Joggers'], ['shorts', 'Shorts']]],
+    ['Shoes', [['trainers', 'Trainers'], ['shoes', 'Shoes'], ['boots', 'Boots']]]
+  ];
+  function typeName(sub) { var n = null; TYPES.forEach(function (g) { g[1].forEach(function (t) { if (t[0] === sub) n = t[1]; }); }); return n || sub; }
+
+  /* ---- buys drawn in their colour: a piece you own of the same type, recoloured ---- */
+  var GH = {}, GHP = {};
+  function tintTo(src, hex) {
+    return new Promise(function (res, rej) {
+      var im = new Image(); im.crossOrigin = 'anonymous';
+      im.onload = function () {
+        try {
+          var sc = Math.min(1, 700 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * sc), h = Math.round(im.naturalHeight * sc);
+          var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, w, h);
+          var d = x.getImageData(0, 0, w, h), p = d.data, sum = 0, n = 0, i, L;
+          for (i = 0; i < p.length; i += 4) if (p[i + 3] > 40) { sum += (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255; n++; }
+          var m = n ? sum / n : 0.5, rgb = Brain.rgb(hex), lightC = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.6;
+          for (i = 0; i < p.length; i += 4) {
+            if (!p[i + 3]) continue;
+            L = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255;
+            var f = lightC ? Math.max(0.5, Math.min(1.1, 0.97 + 0.7 * (L - m))) : Math.max(0.25, Math.min(1.5, 0.62 + 0.75 * (L - m)));
+            p[i] = Math.min(255, rgb[0] * f); p[i + 1] = Math.min(255, rgb[1] * f); p[i + 2] = Math.min(255, rgb[2] * f);
+          }
+          x.putImageData(d, 0, 0); res(c.toDataURL('image/webp', 0.86));
+        } catch (e) { rej(e); }
+      };
+      im.onerror = function () { rej(new Error('template')); };
+      im.src = src;
+    });
+  }
+  function templateFor(c) {
+    var mine = ITEMS.filter(function (i) { return !i.maybe && !i.ghost && (i.src || i.img); });
+    return mine.filter(function (i) { return c.sub && i.sub === c.sub; })[0] || mine.filter(function (i) { return i.kind === c.kind; })[0] || null;
+  }
+  function ghostFor(c) {
+    if (GH[c.id]) { W[c.id] = GH[c.id]; return Promise.resolve(GH[c.id]); }
+    if (GHP[c.id]) return GHP[c.id];
+    var t = templateFor(c); if (!t) return Promise.resolve(null);
+    GHP[c.id] = Promise.all([tintTo(t.src || t.img, c.hex), t.openImg ? tintTo(t.openImg, c.hex).catch(function () { return null; }) : null]).then(function (r) {
+      var g = Object.assign({}, c, { img: r[0], src: r[0], tileSrc: r[0], openImg: r[1], length: t.length, closure: t.closure || '', sub: c.sub || t.sub, maybe: true, ghost: true, colour: c.colour || nearestColour(c.hex) });
+      GH[c.id] = g; W[c.id] = g; return g;
+    }).catch(function () { return null; });
+    return GHP[c.id];
+  }
+  function ghostsReady(n) { var D2 = shopData(); return Promise.all(D2.buys.slice(0, n || 8).map(function (g) { return ghostFor(g.item); })); }
+  function pieceImg(it, cls) { var g = GH[it.id] || it; return g.ghost || tileOf(g) ? '<img class="' + (cls || '') + (g.ghost ? ' gh' : '') + '" src="' + esc(g.ghost ? g.img : tileOf(g)) + '" alt="">' : swatch(it, 48); }
+
+  /* ---- the outfit, with a rail for each slot ---- */
+  var RAILS = [['over', 'Layer'], ['coat', 'Coat'], ['top', 'Top'], ['shirt', 'Shirt'], ['bottom', 'Trousers'], ['shoes', 'Shoes']];
+  function railItems(s) { return ITEMS.filter(function (i) { return !i.maybe && !i.archived && Brain.SLOT[i.kind] === s; }); }
+  function railBuys(s) { var D2 = SHOP || shopData(); return D2.buys.slice(0, 8).filter(function (g) { return Brain.SLOT[g.item.kind] === s && GH[g.item.id]; }).map(function (g) { return g.item.id; }); }
+  function curO() { return D.list[D.idx].outfit; }
+  function setO(o) { D.list[D.idx] = { outfit: o, score: 0, reasons: [] }; }
+  function dressDraw() {
+    var cur = D.list[D.idx];
+    var head = D.log ? 'Log an outfit' : D.ev ? D.ev.title : D.date === todayIso() ? 'Dress me' : fmt(D.date);
+    var occs = ['work', 'out', 'party', 'weekend', 'trip'].map(function (k) { var o = Brain.OCC[k]; return '<button data-act="occ" data-k="' + k + '" class="' + (D.occasion === k ? 'on' : '') + '">' + ic(o.icon, 16) + o.label + '</button>'; }).join('');
+    var body;
+    if (!cur) body = '<div class="empty">Nothing fits those picks yet. Try another kind of day, or add another piece.</div>';
+    else {
+      if (!D.lastLayer) D.lastLayer = cur.outfit.over || (railItems('over')[0] || {}).id || null;
+      var r = S.ratings[Brain.core(cur.outfit)];
+      body = '<h1 class="mono st-t" id="dmT">' + esc(title(cur.outfit)) + '</h1>' +
+        '<div class="stage" id="stg"><img class="fit" alt=""><span class="zl"></span>' +
+        '<div class="rate"><button data-act="drate" data-v="love" data-i="' + D.idx + '" class="' + (r === 'love' ? 'on' : '') + '" aria-label="Love this">' + ic('love', 20) + '</button><button data-act="drate" data-v="nope" data-i="' + D.idx + '" class="' + (r === 'nope' ? 'on' : '') + '" aria-label="Not me">' + ic('nope', 20) + '</button></div>' +
+        '<span class="hint">Pinch to zoom · swipe a piece</span></div>' +
+        '<div id="rails"></div>' +
+        (D.ev ? '<div class="occs" style="margin-top:12px"><span class="lab" style="align-self:center;flex:none">Who’s going</span>' + CROWDS.map(function (c) { return '<button data-act="dcrowd" data-c="' + c + '" class="' + (D.crowd === c ? 'on' : '') + '">' + CROWDNAME[c] + '</button>'; }).join('') + '</div>' : '') +
+        (D.log ? '<div class="occs" style="margin-top:12px">' + [[todayIso(), 'Today'], [addDays(todayIso(), -1), 'Yesterday'], [addDays(todayIso(), -2), dayName(addDays(todayIso(), -2))]].map(function (x) { return '<button data-act="dwhen" data-d="' + x[0] + '" class="' + (D.date === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>' : '') +
+        '<div class="acts">' + (!D.log && (D.date > todayIso() || D.ev) ? '<button class="btn pri" data-act="dplan">' + ic('worn', 18) + 'Plan this</button>' : '<button class="btn pri" data-act="dwear">' + ic('worn', 18) + (D.log ? 'Log it' : 'Wore this') + '</button>') +
+        '<button class="btn sec" data-act="dsave">' + ic('looks', 18) + 'Save look</button><button class="btn sec" data-act="dmore">' + ic('dress', 18) + 'Next idea</button></div>' +
+        ((D.pin.length || D.pool.length) ? '<p class="note">' + (D.pin.length ? 'Built around ' + D.pin.map(function (id) { return W[id] ? W[id].name.toLowerCase() + ' in ' + W[id].colour.toLowerCase() : ''; }).join(', ') : 'Made from your ' + D.pool.length + ' picks') + '.</p>' : '');
+    }
+    var p = openSheet('<div class="sh-h"><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button><span class="word">' + esc(head) + '</span><span class="chip">' + (D.c.temp != null ? Math.round(D.c.temp) + '°' : '–') + '</span></div><div class="occs">' + occs + '</div>' + body, { full: true, cls: 'studio' });
+    if (!cur) return;
+    var stg = $('#stg', p);
+    D.stage = stageCtl(stg, function (zone, d) {
+      var o = Object.assign({}, curO()), s = zone === 'top' ? (o.top ? 'top' : 'shirt') : 'bottom';
+      var list = railItems(s).map(function (i) { return i.id; }); if (!list.length) return;
+      o[s] = list[(list.indexOf(o[s]) + d + list.length) % list.length]; setO(o); studioUpdate(true);
+    });
+    studioUpdate(false);
+    if (Object.keys(GH).length < 2) ghostsReady(8).then(function () { if ($('#rails')) railsDraw(); });
+  }
+  function studioUpdate(scroll) {
+    var o = curO(), t = $('#dmT'); if (t) t.textContent = title(o);
+    railsDraw(scroll);
+    var stg = $('#stg'); if (!stg) return;
+    var h = Math.max(260, Math.min(420, Math.round(window.innerHeight * 0.46))); stg.style.height = (h + 16) + 'px';
+    var img = $('img.fit', stg); img.style.opacity = 0.35;
+    Engine.render(o, W, h, { overlap: S.settings.overlap, dotted: Object.keys(o).map(function (k) { return o[k]; }).filter(function (id) { return W[id] && W[id].maybe; }) }).then(function (r) {
+      img.src = r.url; img.style.height = h + 'px'; img.style.width = r.w + 'px'; img.style.opacity = 1;
+    }).catch(function () { img.style.opacity = 1; });
+    $$('[data-act="drate"]').forEach(function (b) { b.classList.toggle('on', S.ratings[Brain.core(o)] === b.dataset.v); });
+  }
+  function railsDraw(scroll) {
+    var el = $('#rails'); if (!el) return; var o = curO();
+    el.innerHTML = RAILS.filter(function (r) { return railItems(r[0]).length || o[r[0]] || railBuys(r[0]).length; }).map(function (r) {
+      var s = r[0], items = railItems(s), buys = railBuys(s), sel = o[s] || '';
+      var noneOk = s === 'top' ? !!o.shirt : s === 'shirt' ? !!o.top : s !== 'bottom';
+      var cur = sel && W[sel];
+      var right = s === 'over' ? '<button class="lsw' + (o.over ? ' on' : '') + '" data-act="layersw" aria-pressed="' + (!!o.over) + '"><span>' + (o.over ? 'Layer on' : 'Layer off') + '</span><i></i></button>'
+        : '<span class="rn">' + (cur ? esc(cur.colour + ' ' + (cur.sub && cur.sub !== cur.kind ? typeName(cur.sub) : cur.name).toLowerCase()) : 'None') + '</span>';
+      return '<div class="rail"><div class="rh"><span class="lab">' + r[1] + '</span>' + right + '</div><div class="rl">' +
+        (noneOk ? '<button class="rt none' + (sel ? '' : ' sel') + '" data-act="rail" data-s="' + s + '" data-id="">None</button>' : '') +
+        items.map(function (it) { return '<button class="rt' + (sel === it.id ? ' sel' : '') + (it.wash || it.dirty ? ' dim' : '') + '" data-act="rail" data-s="' + s + '" data-id="' + it.id + '" aria-label="' + esc(it.colour + ' ' + it.name) + '"><img src="' + esc(tileOf(it)) + '" alt="" loading="lazy">' + (it.wash || it.dirty ? '<span class="wsh">' + ic('wash', 12) + '</span>' : '') + '</button>'; }).join('') +
+        buys.map(function (id) { var g = GH[id]; return '<button class="rt buyt' + (sel === id ? ' sel' : '') + '" data-act="rail" data-s="' + s + '" data-id="' + id + '" aria-label="' + esc(g.name) + ', to buy"><span class="buy">Buy</span><img src="' + esc(g.img) + '" alt=""></button>'; }).join('') +
+        '</div></div>';
+    }).join('');
+    if (scroll) $$('.rl .sel', el).forEach(function (b) { b.parentNode.scrollTo({ left: Math.max(0, b.offsetLeft - 70), behavior: 'smooth' }); });
+  }
+  function railPick(s, id) {
+    var o = Object.assign({}, curO());
+    if (id) o[s] = id; else delete o[s];
+    if (s === 'over' && id) D.lastLayer = id;
+    if (!o.top && !o.shirt) { var t0 = railItems('top')[0]; if (t0) o.top = t0.id; }
+    setO(o); studioUpdate(false); buzz();
+  }
+  function layerSwitch() {
+    var o = Object.assign({}, curO());
+    if (o.over) { D.lastLayer = o.over; delete o.over; } else { var l = D.lastLayer || (railItems('over')[0] || {}).id; if (!l) return toast('Add an overshirt or cardigan first'); o.over = l; }
+    setO(o); studioUpdate(false); buzz();
+  }
+  function ghostIn(o) { return Object.keys(o).map(function (k) { return W[o[k]]; }).filter(function (x) { return x && x.ghost; })[0]; }
+
+  /* zoom, pan and swipe on the outfit */
+  function stageCtl(el, onSwipe) {
+    var img = $('img.fit', el), zl = $('.zl', el), hint = $('.hint', el);
+    var s = 1, tx = 0, ty = 0, P = {}, st = null, lastTap = 0, zt;
+    function apply(anim) {
+      img.style.transition = anim ? 'transform .22s ease, opacity .18s' : 'opacity .18s';
+      img.style.transform = 'translate(-50%,-50%) translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')';
+      el.style.touchAction = s > 1.02 ? 'none' : 'pan-y';
+      if (zl) { zl.textContent = s.toFixed(1) + '×'; zl.classList.toggle('on', s > 1.02); clearTimeout(zt); zt = setTimeout(function () { zl.classList.remove('on'); }, 900); }
+    }
+    function clamp() { var w = el.clientWidth, h = el.clientHeight, mx = w * (s - 1) / 2 + 20, my = h * (s - 1) / 2 + 20; tx = Math.max(-mx, Math.min(mx, tx)); ty = Math.max(-my, Math.min(my, ty)); }
+    function zoomTo(ns, cx, cy) { var r = el.getBoundingClientRect(), px = (cx == null ? r.width / 2 : cx - r.left) - r.width / 2, py = (cy == null ? r.height / 2 : cy - r.top) - r.height / 2, k = ns / s; tx = px - (px - tx) * k; ty = py - (py - ty) * k; s = ns; if (s <= 1.001) { s = 1; tx = ty = 0; } clamp(); apply(true); if (hint) hint.style.opacity = 0; }
+    el.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('button')) return;
+      try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      P[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(P);
+      if (ids.length === 1) st = { x: e.clientX, y: e.clientY, tx: tx, ty: ty };
+      if (ids.length === 2) { var a = P[ids[0]], b = P[ids[1]]; st = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: s, tx: tx, ty: ty, pinch: true }; }
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!P[e.pointerId]) return; P[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(P);
+      if (ids.length === 2 && st && st.pinch) { var a = P[ids[0]], b = P[ids[1]]; s = Math.max(1, Math.min(3.2, st.s * Math.hypot(a.x - b.x, a.y - b.y) / st.d)); tx = st.tx; ty = st.ty; clamp(); apply(false); if (hint) hint.style.opacity = 0; }
+      else if (ids.length === 1 && st && !st.pinch && s > 1) { tx = st.tx + e.clientX - st.x; ty = st.ty + e.clientY - st.y; clamp(); apply(false); }
+    });
+    function up(e) {
+      if (!P[e.pointerId]) return;
+      if (Object.keys(P).length === 1 && st && !st.pinch) {
+        var dx = e.clientX - st.x, dy = e.clientY - st.y, now = Date.now();
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { if (now - lastTap < 320) { zoomTo(s > 1.05 ? 1 : 2.2, e.clientX, e.clientY); lastTap = 0; } else lastTap = now; }
+        else if (s <= 1.02 && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { var r = el.getBoundingClientRect(); if (hint) hint.style.opacity = 0; onSwipe((st.y - r.top) / r.height < 0.5 ? 'top' : 'bottom', dx < 0 ? 1 : -1); }
+      }
+      delete P[e.pointerId]; if (!Object.keys(P).length) st = null;
+    }
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', function (e) { delete P[e.pointerId]; if (!Object.keys(P).length) st = null; });
+    el.addEventListener('wheel', function (e) { if (!e.ctrlKey && s <= 1) return; e.preventDefault(); zoomTo(Math.max(1, Math.min(3.2, s * (e.deltaY < 0 ? 1.12 : 0.89))), e.clientX, e.clientY); }, { passive: false });
+    apply(false);
+    return { reset: function () { s = 1; tx = ty = 0; apply(true); } };
+  }
+
+  /* ---- adding a piece: photo, what is it, when would you wear it ---- */
+  function guessType(src) {
+    return new Promise(function (res) {
+      var im = new Image();
+      im.onload = function () {
+        try {
+          var sc = 120 / Math.max(im.naturalWidth, im.naturalHeight), w = Math.max(8, Math.round(im.naturalWidth * sc)), h = Math.max(8, Math.round(im.naturalHeight * sc));
+          var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h);
+          var d = x.getImageData(0, 0, w, h).data, A = function (i, j) { return d[(j * w + i) * 4 + 3] > 80; };
+          var x0 = w, x1 = 0, y0 = h, y1 = 0, i, j;
+          for (j = 0; j < h; j++) for (i = 0; i < w; i++) if (A(i, j)) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j; }
+          var bw = x1 - x0 + 1, bh = y1 - y0 + 1, aspect = bh / bw, cx = Math.round((x0 + x1) / 2);
+          if (aspect < 0.72) return res('trainers');
+          var gap = 0, rows = 0;
+          for (j = Math.round(y0 + bh * 0.62); j <= y1; j++) { rows++; if (!A(cx, j) && !A(cx - 1, j) && !A(cx + 1, j)) gap++; }
+          if (rows && gap / rows > 0.6) return res(aspect > 1.15 ? 'chinos' : 'shorts');
+          var row = Math.round(y0 + bh * 0.75), rw = 0; for (i = x0; i <= x1; i++) if (A(i, row)) rw++;
+          res(rw / bw < 0.7 ? 'tee' : 'jumper');
+        } catch (e) { res('jumper'); }
+      };
+      im.onerror = function () { res('jumper'); };
+      im.src = src;
+    });
+  }
+  function addSheet(id, pre) {
+    var it = id ? W[id] : null;
+    F = it ? Object.assign({}, it) : Object.assign({ kind: 'knit', sub: 'jumper', name: '', colour: '', brand: '', hex: '#8A8B8C', pattern: 'plain', texture: '', smart: 3, warmth: 4, neck: 'crew', length: S.settings.knit, maybe: false, link: '', price: '' }, pre || {});
+    if (!F.sub) F.sub = (SUBS[F.kind] || [[F.kind]])[0][0];
+    F.isNew = !it; F.step = it ? 0 : 1; formDraw();
+  }
+  function stepHead(n, label) {
+    return '<div class="sh-h">' + (n > 1 ? '<button class="iconbtn" data-act="fstep" data-v="' + (n - 1) + '" aria-label="Back">' + ic('back', 20) + '</button>' : '<span class="lab">' + label + '</span>') +
+      (n ? '<span class="lab">' + n + ' of 3</span>' : '') + '<button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      (n ? '<div class="prog"><i class="on"></i><i class="' + (n > 1 ? 'on' : '') + '"></i><i class="' + (n > 2 ? 'on' : '') + '"></i></div>' : '');
+  }
+  function typeBody() {
+    var fam = Brain.SLOT[F.kind] === 'over' || Brain.SLOT[F.kind] === 'coat' ? 1 : F.kind === 'trousers' ? 2 : F.kind === 'shoes' ? 3 : 0;
+    var order = [fam].concat([0, 1, 2, 3].filter(function (k) { return k !== fam; }));
+    var sw = [[F.detHex || F.hex, 'From photo']].concat(COLOURS.filter(function (c) { return c[1].toLowerCase() !== String(F.detHex || '').toLowerCase(); }).slice(0, 13).map(function (c) { return [c[1], c[0]]; }));
+    var colName = F.colour || nearestColour(F.hex);
+    return order.map(function (k) {
+      var g = TYPES[k];
+      return '<div class="tgh lab">' + g[0] + '</div><div class="tgrid">' + g[1].map(function (t) { var on = F.sub === t[0]; return '<button class="tg' + (on ? ' on' : '') + '" data-act="ftype" data-v="' + t[0] + '">' + (on && F.guess === t[0] ? '<small>Guess</small>' : '') + esc(t[1]) + '</button>'; }).join('') + '</div>';
+    }).join('') +
+      '<div class="lab" style="margin-top:18px">Colour · <span style="color:var(--ink)">' + esc(colName) + '</span></div><div class="swr">' + sw.map(function (c, i) { return '<button class="' + (String(F.hex).toLowerCase() === String(c[0]).toLowerCase() ? 'on' : '') + (i === 0 && F.detHex ? ' det' : '') + '" style="background:' + c[0] + '" data-act="fcolour" data-hex="' + c[0] + '" data-name="' + esc(i === 0 && F.detHex ? nearestColour(c[0]) : c[1]) + '" aria-label="' + esc(c[1]) + '"></button>'; }).join('') + '</div>' +
+      (F.kind === 'overshirt' || F.kind === 'coat' ? '<div class="lab" style="margin-top:16px">Fastens with</div>' + pills('closure', [['buttons', 'Buttons'], ['zip', 'Zip'], ['none', 'Open front']], F.closure || (F.sub === 'jacket' ? 'zip' : 'buttons')) : '') +
+      (F.kind === 'knit' && (F.sub === 'jumper' || F.sub === 'sweatshirt') ? '<div class="lab" style="margin-top:16px">Neck</div>' + pills('neck', [['crew', 'Crew'], ['collar', 'Collar'], ['roll', 'Roll neck'], ['v', 'V-neck']], F.neck) : '') +
+      (F.kind === 'trousers' ? '<div class="lab" style="margin-top:16px">Fabric</div>' + pills('texture', [['twill', 'Chino'], ['denim', 'Denim'], ['wool', 'Wool'], ['jersey', 'Jersey'], ['cord', 'Cord']], F.texture) : '');
+  }
+  function wearBody() {
+    var layer = F.kind === 'overshirt' || F.kind === 'coat';
+    var scale = function (f, opts) { return '<div class="scale"><div class="lab">' + (f === 'smart' ? 'How smart' : 'How warm') + '</div><div class="track">' + opts.map(function (o) { return '<button class="' + (+F[f] === o[0] ? 'on' : '') + '" data-act="fset" data-f="' + f + '" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div></div>'; };
+    return scale('smart', [[1, 'Lounge'], [2, 'Casual'], [3, 'Smart casual'], [4, 'Smart'], [5, 'Suited']]) +
+      scale('warmth', [[1, 'Light'], [2, 'Mid'], [3, 'Warm'], [4, 'Very warm'], [5, 'Coldest']]) +
+      (layer ? '<button class="lrow" data-act="pickopen">' + (F.openCut || F.openImg ? '<img src="' + esc(F.openCut || F.openImg) + '" alt="">' : '<span class="lph">' + ic('camera', 20) + '</span>') + '<span><b>Worn open shot</b>' + (F.openCut || F.openImg ? 'Added · tap to change' : 'Optional · makes layers look real') + '</span><span class="chip">' + (F.openCut || F.openImg ? 'Change' : 'Add') + '</span></button>' +
+        '<input type="file" accept="image/*" id="openphoto" hidden>' +
+        '<div class="lks"><button type="button" class="plink" data-act="copyprompt" data-sub="__open">' + ic('copy', 16) + 'Gemini prompt for the open shot</button>' + (F.openCut || F.openImg ? '<button type="button" class="plink" data-act="dropopen">Remove</button>' : '') + '</div>' : '') +
+      '<details class="more"' + (F.step === 0 ? ' open' : '') + '><summary>Name, brand, pattern, length' + ic('down', 18) + '</summary>' +
+      '<label for="fname">Name</label><input type="text" id="fname" value="' + esc(F.name) + '" placeholder="' + esc(NAMES[F.sub] || 'Name') + '">' +
+      '<label for="fcol">Colour name</label><input type="text" id="fcol" value="' + esc(F.colour) + '" placeholder="' + esc(nearestColour(F.hex)) + '">' +
+      '<label for="fbrand">Brand</label><input type="text" id="fbrand" value="' + esc(F.brand) + '" placeholder="' + (F.maybe ? 'M&amp;S, Next…' : 'Optional') + '">' +
+      (F.maybe ? '<label for="flink">Link to it</label><input type="url" id="flink" value="' + esc(F.link || '') + '" placeholder="Optional, paste from the shop" inputmode="url"><label for="fprice">Price (£)</label><input type="text" id="fprice" value="' + esc(F.price || '') + '" placeholder="Optional" inputmode="decimal">' : '') +
+      '<label>Pattern</label>' + pills('pattern', [['plain', 'Plain'], ['stripe', 'Stripes'], ['check', 'Check'], ['ombre', 'Ombré'], ['print', 'Print']], F.pattern) +
+      '<label for="flen">Length in cm (' + (F.kind === 'trousers' ? 'waist to hem' : F.kind === 'shoes' ? 'height' : 'shoulder to hem') + ')</label><input type="number" id="flen" value="' + esc(F.length || Engine.REAL[F.kind]) + '" inputmode="numeric">' +
+      '</details>';
+  }
+  function formDraw() {
+    var st = F.isNew ? (F.step || 1) : 0, img = F.cutPreview || (F.id ? tileOf(F) : ''), html;
+    if (st === 1) html = stepHead(1, F.maybe ? 'Add a Maybe' : 'Add a piece') +
+      '<h2 class="mono hq">' + (F.maybe ? 'Found it<br>in a shop?' : 'Got a photo<br>of it?') + '</h2>' +
+      '<div class="big2"><button class="bt dk" data-act="pickphoto"><span class="ico">' + ic('claude', 22) + '</span><span><b>' + (F.maybe ? 'The shop’s photo' : 'Gemini studio shot') + '</b><span>' + (F.maybe ? 'Save it from the shop’s site or app. The background comes off by itself.' : 'Best look. The background comes off by itself.') + '</span></span></button>' +
+      '<button class="bt lt2" data-act="pickcam"><span class="ico">' + ic('camera', 22) + '</span><span><b>' + (F.maybe ? 'Photo it in the shop' : 'Quick phone photo') + '</b><span>' + (F.maybe ? 'Hold it up against a plain wall.' : 'Lay it flat on the bed or floor in daylight. Fine for now.') + '</span></span></button></div>' +
+      '<input type="file" accept="image/*" id="photo" hidden><input type="file" accept="image/*" capture="environment" id="photocam" hidden>' +
+      '<div class="fold"><b>Need the studio shot first?</b><span>Copy the Gemini prompt for:</span><div class="pills">' + [['jumper', 'Jumper'], ['hoodie', 'Hoodie'], ['quarterzip', 'Quarter zip'], ['tee', 'T-shirt'], ['polo', 'Polo'], ['shirt', 'Shirt'], ['cardigan', 'Cardigan'], ['overshirt', 'Overshirt'], ['jacket', 'Jacket'], ['coat', 'Coat'], ['chinos', 'Chinos'], ['jeans', 'Jeans'], ['shorts', 'Shorts'], ['trainers', 'Trainers'], ['shoes', 'Shoes'], ['boots', 'Boots']].map(function (t) { return '<button type="button" data-act="copyprompt" data-sub="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div></div>' +
+      '<p class="note" style="margin-top:14px">' + (F.maybe ? 'Already yours? <button class="ul" data-act="fset" data-f="maybe" data-v="0">Add it to your wardrobe</button>' : 'In a shop? <button class="ul" data-act="fset" data-f="maybe" data-v="1">Add a Maybe</button> to see what it would make.') + '</p>';
+    else if (st === 2) html = stepHead(2) +
+      '<div class="row2">' + (img ? '<img class="thumb" src="' + esc(img) + '" alt="">' : '') + '<h2 class="mono hq" style="margin:0">What is it?</h2></div>' + typeBody() +
+      '<div class="acts sticky"><button class="btn pri wide" data-act="fstep" data-v="3">Next</button></div>';
+    else if (st === 3) html = stepHead(3) +
+      '<div class="row2">' + (img ? '<img class="thumb" src="' + esc(img) + '" alt="">' : '') + '<h2 class="mono hq" style="margin:0">When would<br>you wear it?</h2></div>' + wearBody() +
+      '<div class="acts sticky"><button class="btn pri wide" data-act="fsave">' + ic(F.maybe ? 'bag' : 'worn', 18) + (F.maybe ? 'Add as a Maybe' : 'Add to wardrobe') + '</button></div>';
+    else html = '<div class="sh-h"><span class="lab">Edit</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      (img ? '<div class="preview"><img src="' + esc(img) + '" alt=""></div>' : '') +
+      '<h2 class="mono hq">' + esc(F.name || NAMES[F.sub] || 'Piece') + '</h2>' + typeBody() + '<div style="height:8px"></div>' + wearBody() +
+      '<div class="acts sticky"><button class="btn pri wide" data-act="fsave">' + ic('worn', 18) + 'Save</button></div>' +
+      '<div class="acts"><button class="btn sec wide" data-act="farchive">' + (F.archived ? 'Bring back' : 'Put away (archive)') + '</button></div>';
+    openSheet('<div class="form step">' + html + '</div>');
+    var onPhoto = function (ph) {
+      var f = ph.files && ph.files[0]; if (!f) return;
+      toast('Cutting it out…');
+      Engine.cutout(f).then(function (r) {
+        F.cut = r.cut; F.tileData = r.tile; F.cutPreview = r.cut; F.hex = r.hex; F.detHex = r.hex; F.colour = '';
+        return guessType(r.cut).then(function (sub) { F.guess = sub; setKind(SUBKIND[sub] || 'knit', sub); F.step = 2; formDraw(); });
+      }).catch(function (e) { toast('Couldn’t cut that one out'); var pv = $('.big2'); if (pv) pv.insertAdjacentHTML('afterend', '<p class="note" style="color:var(--ink)">' + esc((e && e.message) || 'That photo didn’t work.') + ' Try one with more space around the piece, on a plain background.</p>'); });
+    };
+    ['photo', 'photocam'].forEach(function (k) { var ph = $('#' + k); if (ph) ph.addEventListener('change', function () { onPhoto(ph); }); });
+    var op = $('#openphoto'); if (op) op.addEventListener('change', function () {
+      var f = op.files && op.files[0]; if (!f) return; toast('Cutting it out…');
+      Engine.cutout(f).then(function (r) { F.openCut = r.cut; F.dropOpen = false; keepForm(); formDraw(); }).catch(function () { toast('Couldn’t cut that one out'); });
+    });
+  }
+
+  /* ---- the Shop tab ---- */
+  var sSeg = 'buys';
+  function wishHtml() {
+    var sz = S.settings.sizes || {};
+    var sizeFor = function (k) { return k === 'trousers' ? sz.trousers : k === 'shoes' ? sz.shoes : sz.tops; };
+    return (S.wish.length ? S.wish.map(function (w, i) { return '<div class="wl">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : swatch(w, 56)) + '<span><b>' + esc(w.name) + '</b><span>' + esc(w.why || '') + '</span><em>' + (sizeFor(w.kind) ? 'Size ' + esc(sizeFor(w.kind)) : 'Add your size in Settings') + (w.price ? ' · £' + esc(w.price) : '') + '</em></span><button class="iconbtn sm" data-act="wishdel" data-i="' + i + '" aria-label="Remove">' + ic('close', 16) + '</button></div>'; }).join('')
+      : '<div class="empty">Nothing on it yet. Open a buy or a Maybe and tap Wish list.</div>') +
+      '<p class="note">For Christmas: it goes to Our Hub for Jess once the hub’s update lands.</p>';
+  }
+  function shopTab(v) {
+    var D2 = shopData(), mine = owned();
+    var nM = D2.maybes.length, nW = S.wish.length;
+    var head = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px"><button class="iconbtn" data-act="add" data-maybe="1" aria-label="Add a Maybe">' + ic('add', 22) + '</button><button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 22) + '</button></span></div>' +
+      '<h2 class="mono" style="margin-top:14px">Shop</h2>' +
+      '<div class="seg3"><button data-act="sseg" data-k="buys" class="' + (sSeg === 'buys' ? 'on' : '') + '">Buys</button><button data-act="sseg" data-k="maybes" class="' + (sSeg === 'maybes' ? 'on' : '') + '">Maybes' + (nM ? ' ' + nM : '') + '</button><button data-act="sseg" data-k="wish" class="' + (sSeg === 'wish' ? 'on' : '') + '">Wish list' + (nW ? ' ' + nW : '') + '</button></div>';
+    if (sSeg === 'wish') { v.innerHTML = head + wishHtml() + '</section>'; return; }
+    if (sSeg === 'maybes') {
+      v.innerHTML = head + (D2.maybes.length ? D2.maybes.map(function (m) {
+        return '<button class="mb" data-act="maybe" data-id="' + m.item.id + '"><img src="' + esc(tileOf(m.item)) + '" alt=""><span><span class="vd ' + m.verdict.k + '">' + esc(m.verdict.t) + '</span><b>' + esc(m.item.name) + '</b><span>' + esc(m.item.colour) + (m.item.brand ? ' · ' + esc(m.item.brand) : '') + (m.item.price ? ' · £' + esc(m.item.price) : '') + '</span></span><span class="n"><b>+' + m.adds + '</b><span>outfits</span></span></button>';
+      }).join('') : '') +
+        '<button class="card maycard" data-act="add" data-maybe="1">' + ic('bag', 24) + '<span><b>In a shop now?</b>Snap it and see what it would make with what you own.</span></button></section>';
+      return;
+    }
+    var missing = Object.keys(KNAME).filter(function (k) { return !mine.some(function (i) { return i.kind === k; }) && S.settings.none.indexOf(k) < 0; });
+    v.innerHTML = head + '<div class="empty skel" style="height:300px;margin-top:14px"></div></section>';
+    ghostsReady(8).then(function () {
+      if (tab !== 'shop' || sSeg !== 'buys') return;
+      var buys = D2.buys, g0 = buys[0];
+      var shops = (S.settings.shops && S.settings.shops.length ? S.settings.shops : ['ms', 'next']).filter(function (s) { return SHOPS[s]; }).slice(0, 3);
+      var hero = g0 ? '<div class="shero"><button class="sh-top" data-act="buy" data-i="0">' + (GH[g0.item.id] ? '<span class="gimg"><img src="' + esc(GH[g0.item.id].img) + '" alt=""></span>' : swatch(g0.item, 76)) +
+        '<span class="sh-t"><span class="lab">No. 1 buy' + (g0.claude ? ' · ' + AI() + '’s pick' : '') + '</span><b>' + esc(g0.item.name) + '</b><span>' + esc(g0.why) + '</span></span><span class="sh-n"><b>+' + g0.adds + '</b><span>looks</span></span></button>' +
+        '<div class="looks3">' + g0.examples.slice(0, 3).map(function (e) { return '<button data-act="trybuy" data-i="0" data-k="' + esc(Brain.key(e.outfit)) + '">' + (GH[g0.item.id] ? flat(e.outfit, 128, 'mf') : chipOutfit(e.outfit, g0.item)) + '</button>'; }).join('') + '</div>' +
+        '<div class="acts">' + shops.map(function (s, n) { return '<a class="btn ' + (n ? 'ghost' : 'lite') + '" href="' + SHOPS[s][1] + encodeURIComponent('mens ' + g0.item.name) + '" target="_blank" rel="noopener">' + esc(SHOPS[s][0]) + '</a>'; }).join('') + '</div></div>' : '';
+      var rows = buys.slice(1, 10).map(function (g, i) {
+        return '<button class="rk" data-act="buy" data-i="' + (i + 1) + '"><span class="no">' + (i + 2) + '</span>' + (GH[g.item.id] ? '<span class="gimg sm"><img src="' + esc(GH[g.item.id].img) + '" alt=""></span>' : swatch(g.item, 48)) + '<span class="rk-t"><b>' + esc(g.item.name) + '</b><span>' + esc(g.why) + '</span></span><em>+' + g.adds + '</em></button>';
+      }).join('');
+      v.innerHTML = head + (hero || '<div class="empty">No buys to suggest right now. Ask ' + AI() + ' below, or add more of your clothes first.</div>') + rows +
+        (buys.length >= 2 ? '<p class="note">The top ' + Math.min(4, buys.length) + ' together would take you from <b>' + D2.nowN + '</b> good outfits to <b>' + D2.all + '</b>.</p>' : '') +
+        (missing.length ? '<div class="card" style="margin-top:14px"><span class="lab">Not added yet</span><p style="margin:6px 0 10px;font-size:14px;line-height:1.45">Turnout doesn’t know your ' + missing.map(function (k) { return KNAME[k]; }).join(', ') + ', so it won’t suggest any in case you already own them.</p><div class="pills">' + missing.map(function (k) { return '<button data-act="nonekind" data-k="' + k + '">I don’t own ' + KNAME[k] + '</button>'; }).join('') + '</div></div>' : '') +
+        '<div class="cl-row"><button class="btn sec" data-act="style">' + ic('claude', 18) + 'Ask ' + AI() + ' what to buy</button><button class="btn sec" data-act="paste">Paste reply</button></div></section>';
+    });
+  }
+  function tryBuy(i, k) {   // open a look a buy makes in the outfit view, so you can play with it
+    var g = shopData().buys[i]; if (!g) return;
+    var e = g.examples.filter(function (x) { return Brain.key(x.outfit) === k; })[0] || g.examples[0]; if (!e) return;
+    ghostFor(g.item).then(function () { dress({ first: e.outfit }); });
+  }
+
   document.addEventListener('click', function (e) {
     var t = e.target.closest('[data-act],[data-go],.tab'); if (!t) return;
     if (t.classList.contains('tab')) { tab = t.dataset.tab; selMode = false; logMode = false; sel = []; return route(); }
@@ -2449,12 +2861,12 @@ var Engine = (function () {
         plinth.innerHTML = flat(nx.outfit, Math.min(300, Math.round(window.innerHeight * 0.36))) + '<div class="rate"><button data-act="drate" data-v="love" data-i="' + D.idx + '" aria-label="Love this">' + ic('love', 20) + '</button><button data-act="drate" data-v="nope" data-i="' + D.idx + '" aria-label="Not me">' + ic('nope', 20) + '</button></div><div class="cap"><span>' + (D.idx + 1) + ' of ' + D.list.length + '</span><span>' + esc(nx.reasons[0] || '') + '</span></div>';
         dressSwitch($('#sheet .panel')); break;
       }
-      case 'dmore': D.offset += 5; D.first = null; D.idx = 0; dressList(); if (!D.list.length) { D.offset = 0; dressList(); } dressDraw(); break;
-      case 'dwear': wearIt(D.date, D.list[D.idx].outfit, D.occasion, D.ev, D.kind || ''); closeSheet(); toast(D.log ? 'Logged' : 'Logged. Enjoy it.'); if (D.log) tab = 'log'; logMode = false; route(); break;
-      case 'dplan': { var back = D.back; planIt(D.ev ? 'ev:' + D.ev.id : D.date, D.list[D.idx].outfit); toast(D.ev ? 'Planned for ' + D.ev.title : 'Planned for ' + fmt(D.date)); if (back === 'plan') planSheet(); else { closeSheet(); route(); } break; }
-      case 'dsave': { var lk = { id: 'l' + Date.now().toString(36), outfit: outfitOf(D.list[D.idx].outfit), name: title(D.list[D.idx].outfit), at: new Date().toISOString() }; S.looks.push(lk); save(); send('look', lk); toast('Saved to Looks'); break; }
+      case 'dmore': D.idx++; if (D.idx >= D.list.length) { D.offset += 5; D.first = null; D.idx = 0; dressList(); if (!D.list.length) { D.offset = 0; dressList(); } } dressDraw(); break;
+      case 'dwear': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } } wearIt(D.date, D.list[D.idx].outfit, D.occasion, D.ev, D.kind || ''); closeSheet(); toast(D.log ? 'Logged' : 'Logged. Enjoy it.'); if (D.log) tab = 'log'; logMode = false; route(); break;
+      case 'dplan': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } var back = D.back; planIt(D.ev ? 'ev:' + D.ev.id : D.date, D.list[D.idx].outfit); toast(D.ev ? 'Planned for ' + D.ev.title : 'Planned for ' + fmt(D.date)); if (back === 'plan') planSheet(); else { closeSheet(); route(); } break; }
+      case 'dsave': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } var lk = { id: 'l' + Date.now().toString(36), outfit: outfitOf(D.list[D.idx].outfit), name: title(D.list[D.idx].outfit), at: new Date().toISOString() }; S.looks.push(lk); save(); send('look', lk); toast('Saved to Looks'); break; }
       case 'filter': wFilter = t.dataset.k; route(); break;
-      case 'wseg': wSeg = t.dataset.k; selMode = false; sel = []; route(); window.scrollTo(0, 0); break;
+      case 'wseg': if (t.dataset.k === 'shop') { tab = 'shop'; sSeg = 'buys'; route(); break; } wSeg = t.dataset.k; selMode = false; sel = []; route(); window.scrollTo(0, 0); break;
       case 'buy': buySheet(+t.dataset.i); break;
       case 'maybe': maybeSheet(t.dataset.id); break;
       case 'wish': wishSheet(); break;
@@ -2468,7 +2880,7 @@ var Engine = (function () {
       case 'notforme': { var nf = S.custom[t.dataset.id]; if (nf) { nf.archived = true; save(); buildItems(); send('item', { item: nf }); } S.wish = S.wish.filter(function (w) { return w.ref !== t.dataset.id; }); send('wish', { list: S.wish }); SHOP = null; closeSheet(); route(); toast('Gone'); break; }
       case 'wishadd': { var gb = shopData().buys[+t.dataset.i]; if (!S.wish.some(function (w) { return w.ref === gb.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: gb.item.id, name: gb.item.name, kind: gb.item.kind, colour: gb.item.colour, hex: gb.item.hex, why: '+' + gb.adds + ' outfits. ' + gb.why, at: todayIso() }); save(); send('wish', { list: S.wish }); } t.innerHTML = ic('gift', 18) + 'On wish list'; toast('On the wish list'); break; }
       case 'wishmaybe': { var mm = shopData().maybes.filter(function (x) { return x.item.id === t.dataset.id; })[0]; if (mm && !S.wish.some(function (w) { return w.ref === mm.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: mm.item.id, name: mm.item.name, kind: mm.item.kind, colour: mm.item.colour, hex: mm.item.hex, why: '+' + mm.adds + ' outfits with what you own', link: mm.item.link || '', price: mm.item.price || '', at: todayIso() }); save(); send('wish', { list: S.wish }); } toast('On the wish list'); break; }
-      case 'wishdel': S.wish.splice(+t.dataset.i, 1); save(); send('wish', { list: S.wish }); wishSheet(); break;
+      case 'wishdel': S.wish.splice(+t.dataset.i, 1); save(); send('wish', { list: S.wish }); if (tab === 'shop' && !$('#sheet.open')) route(); else wishSheet(); break;
       case 'wash': { var wid = t.dataset.id, wv = !W[wid].wash; S.custom[wid] = Object.assign({}, S.custom[wid] || {}, { wash: wv }); if (!S.custom[wid].kind) S.custom[wid].id = wid; save(); buildItems(); resolveImages(); send('wash', { ids: [wid], v: wv }); SHOP = null; itemSheet(wid, false); toast(wv ? 'In the wash. Turnout will leave it out.' : 'Back in the wardrobe'); break; }
       case 'allclean': { var ids = ITEMS.filter(function (i) { return i.wash; }).map(function (i) { return i.id; }); ids.forEach(function (x) { S.custom[x] = Object.assign({}, S.custom[x], { wash: false }); }); ITEMS.filter(function (i) { return i.dirty; }).forEach(function (i) { (S.settings.clean || (S.settings.clean = {}))[i.id] = todayIso(); }); send('settings', S.settings); save(); buildItems(); resolveImages(); send('wash', { ids: ids, v: false }); SHOP = null; route(); toast('All clean'); break; }
       case 'logphoto': { var mi = $('#mph'); if (mi) mi.click(); break; }
@@ -2483,6 +2895,14 @@ var Engine = (function () {
       case 'edit': addSheet(t.dataset.id); break;
       case 'add': addSheet(null, t.dataset.maybe ? { maybe: true } : null); break;
       case 'pickphoto': keepForm(); $('#photo').click(); break;
+      case 'pickcam': keepForm(); $('#photocam').click(); break;
+      case 'fstep': keepForm(); F.step = +t.dataset.v; formDraw(); break;
+      case 'ftype': keepForm(); setKind(SUBKIND[t.dataset.v] || F.kind, t.dataset.v); formDraw(); break;
+      case 'fcolour': keepForm(); F.hex = t.dataset.hex; F.colour = t.dataset.name; formDraw(); break;
+      case 'rail': railPick(t.dataset.s, t.dataset.id); break;
+      case 'layersw': layerSwitch(); break;
+      case 'sseg': sSeg = t.dataset.k; route(); break;
+      case 'trybuy': tryBuy(+t.dataset.i, t.dataset.k); break;
       case 'pickopen': keepForm(); $('#openphoto').click(); break;
       case 'dropopen': keepForm(); F.openCut = null; F.openImg = null; F.open = ''; F.dropOpen = true; formDraw(); break;
       case 'fset': { if (t.dataset.f === 'kocc') { KF = t.dataset.v; $$('.pills[data-f="kocc"] button').forEach(function (b3) { b3.classList.toggle('on', b3 === t); }); break; }
