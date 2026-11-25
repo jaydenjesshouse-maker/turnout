@@ -274,6 +274,21 @@ a.btn{text-decoration:none;color:inherit}
 .pick .swt{box-shadow:inset 0 0 0 1px rgba(245,241,234,.3)}
 .bal th{letter-spacing:0}
 
+/* ---- v1.3: style with Claude ---- */
+.card.cl{display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--cream);flex-wrap:wrap}
+.card.cl span[style*="ash"]{color:#B9B3A8 !important}
+.cl-m{width:40px;height:40px;border-radius:12px;background:#E7D9B8;color:var(--ink);display:grid;place-items:center;flex:none}
+.cl-b{display:flex;gap:8px;width:100%}
+.cl-b .btn{flex:1;justify-content:center;height:42px;padding:0 14px}
+.card.cl .btn.pri{background:var(--cream);color:var(--ink)}
+.cl-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.cl-row .btn{height:44px;padding:0 14px 0 12px;font-size:15px}
+.stp{display:flex;gap:12px;align-items:flex-start;margin-top:12px;font-size:15px;line-height:1.45}
+.stp>b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--cream);display:grid;place-items:center;font-family:var(--mono);font-weight:500;font-size:14px}
+.vd.cl{background:#E7D9B8;color:#17181C}
+.row.rr{grid-template-columns:62px 1fr;cursor:default}
+.form textarea{width:100%;border:0;border-radius:16px;background:var(--paper);padding:12px 14px;font-family:var(--mono);font-size:13px;resize:vertical}
+
 </style>
 </head>
 <body>
@@ -288,7 +303,7 @@ a.btn{text-decoration:none;color:inherit}
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
 /* ===== PASTE YOUR APPS SCRIPT /exec LINK BETWEEN THE QUOTES ===== */
-window.TURNOUT = { exec: "https://script.google.com/macros/s/AKfycbyc31BmZJBGj80D2Uh4zmMcyCJIz_hVSXv1-llrPk3TJtJsKCfuZnIYLSAYdIQMB2wY/exec" };
+window.TURNOUT = { exec: "PASTE_YOUR_APPS_SCRIPT_LINK_HERE" };
 </script>
 <script>
 /* ============================================================
@@ -914,6 +929,7 @@ var Engine = (function () {
     link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
     copy: '<rect x="8" y="8" width="12.5" height="12.5" rx="2.5"/><path d="M8 13.5H6a2.5 2.5 0 0 1-2.5-2.5V6A2.5 2.5 0 0 1 6 3.5h5A2.5 2.5 0 0 1 13.5 6v2" /><path d="M8 13h12.5V10.5A2.5 2.5 0 0 0 18 8h-7.5A2.5 2.5 0 0 0 8 10.5z" fill="currentColor" stroke="none"/>',
     arrow: '<path d="M9.5 5l7 7-7 7"/>',
+    claude: '<path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4M6 6l2.8 2.8M15.2 15.2 18 18M6 18l2.8-2.8M15.2 8.8 18 6"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/>',
     back: '<path d="M14.5 5L7.5 12l7 7"/>',
     camera: '<path d="M3.5 9.5A2.5 2.5 0 0 1 6 7h2l1.5-2.5h5L16 7h2a2.5 2.5 0 0 1 2.5 2.5V12h-17z" fill="currentColor" stroke="none"/><path d="M3.5 12v5.5A2.5 2.5 0 0 0 6 20h12a2.5 2.5 0 0 0 2.5-2.5V12"/><circle cx="12" cy="13.5" r="3.2"/>'
   };
@@ -923,7 +939,7 @@ var Engine = (function () {
 
   /* ---------- state ---------- */
   var LS = 'turnout-v1', KEY = 'turnout-key';
-  var DEF = { custom: {}, deleted: [], wear: [], ratings: {}, looks: [], plan: {}, myplan: {}, notes: { pairs: [], avoid: [], items: {} }, events: [], evOver: {}, wish: [], photos: {}, roundSeen: {},
+  var DEF = { custom: {}, deleted: [], wear: [], ratings: {}, looks: [], plan: {}, myplan: {}, notes: { pairs: [], avoid: [], items: {} }, events: [], evOver: {}, wish: [], photos: {}, roundSeen: {}, ideas: [], codes: null,
     settings: { workdays: [1, 2, 3, 4, 5], knit: 74, trousers: 104, overlap: 9, none: [], sizes: { tops: '', trousers: '', shoes: '' }, calendars: 'Jayden, Together', message: '' }, queue: [], synced: 0, wx: null };
   var S;
   try { S = Object.assign({}, DEF, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { S = Object.assign({}, DEF); }
@@ -978,24 +994,26 @@ var Engine = (function () {
   function send(a, d) {        // saved now, sent when there's signal
     S.queue.push({ a: a, d: d, at: Date.now() }); save(); flush();
   }
-  var flushing = false;
-  function flush() {
-    if (flushing || !EXEC || !key || !S.queue.length) return;
-    flushing = true;
-    var job = S.queue[0];
-    api(job.a, job.d).then(function (r) {
-      flushing = false;
-      if (r && r.ok) { S.queue.shift(); save(); flush(); }
-    });
+  var flushP = null;
+  function flush() {      // sends what's waiting, in order; resolves when the queue is empty or the signal drops
+    if (!EXEC || !key) return Promise.resolve();
+    if (flushP) return flushP;
+    var next = function () {
+      if (!S.queue.length) return Promise.resolve();
+      var job = S.queue[0];
+      return api(job.a, job.d).then(function (r) { if (r && (r.ok || r.why !== 'key')) { S.queue.shift(); save(); return next(); } });   // no reply = no signal, try later; a refusal won't get better, so drop it
+    };
+    flushP = next().then(function () { flushP = null; }, function () { flushP = null; });
+    return flushP;
   }
   function sync(force) {
     if (!EXEC || !key) return Promise.resolve();
-    flush();
-    return api('state', { since: force ? 0 : S.synced }).then(function (r) {
+    return flush().then(function () { return api('state', { since: force ? 0 : S.synced }); }).then(function (r) {
       if (!r) return;
       if (r.ok === false && r.why === 'key') { try { localStorage.removeItem(KEY); } catch (e) {} key = ''; route(); return; }
       if (!r.ok) return;
-      ['wear', 'looks', 'events', 'wish'].forEach(function (k) { if (Array.isArray(r[k])) S[k] = r[k]; });
+      if (S.queue.length) return;   // changes still waiting to send: keep what's on this phone until they're in
+      ['wear', 'looks', 'events', 'wish', 'ideas'].forEach(function (k) { if (Array.isArray(r[k])) S[k] = r[k]; });
       if (r.photos && typeof r.photos === 'object') S.photos = r.photos;
       ['ratings', 'plan', 'myplan', 'evOver'].forEach(function (k) { if (r[k] && typeof r[k] === 'object') S[k] = r[k]; });
       if (r.notes) S.notes = Object.assign({ pairs: [], avoid: [], items: {} }, r.notes);
@@ -1164,6 +1182,7 @@ var Engine = (function () {
         : '<button class="btn pri" data-act="wear">' + ic('worn', 18) + 'Wore this</button><button class="btn sec" data-act="another">' + ic('dress', 18) + 'Another</button><button class="btn sec" data-act="dress">' + ic('swap', 18) + 'Swap a piece</button>') + '</div>' +
       (tLook ? '<button class="card dk" data-act="night" data-ev="' + esc(tonight.id) + '" style="display:grid;grid-template-columns:70px 1fr;gap:12px;align-items:center;width:100%;text-align:left"><div style="height:84px;display:flex;justify-content:center">' + flat(tLook.outfit, 84, 'mf') + '</div><div><span class="lab" style="opacity:.7">Tonight' + (tonight.start ? ' · ' + esc(tonight.start) : '') + '</span><b style="display:block;font-size:17px;margin-top:3px">' + esc(tonight.title) + '</b><span style="font-size:14px;opacity:.8">' + esc(title(tLook.outfit)) + '</span></div></button>' : '') +
       roundCard(date) +
+      '<div class="card cl"><span class="cl-m">' + ic('claude', 22) + '</span><span style="flex:1"><b style="display:block;font-size:16px">Style with Claude</b><span style="font-size:14px;color:var(--ash)">Share your wardrobe, get looks and buys back</span></span><span class="cl-b"><button class="btn pri" data-act="style">Share</button><button class="btn sec" data-act="paste">Paste</button></span></div>' +
       '<button class="card" data-act="plan" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">' + ic('week', 24) + '<span style="flex:1"><b style="display:block;font-size:16px">Plan my week</b><span style="font-size:14px;color:var(--ash)">' + (ahead.length ? ahead.length + ' day' + (ahead.length > 1 ? 's' : '') + ' planned' : 'Optional. Lay out the days ahead, or ask Claude') + '</span></span>' + ic('back', 18).replace('<svg', '<svg style="transform:rotate(180deg)"') + '</button>' +
       (next ? '<button class="card" data-act="night" data-ev="' + esc(next.id) + '" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">' + ic(next.kind === 'trip' ? 'trip' : 'party', 22) + '<span><span class="lab">Coming up</span><b style="display:block;font-size:16px;margin-top:2px">' + esc(next.title) + ' · ' + daysTo(next.date) + '</b></span></button>' : '') +
       (recent.length ? '<div class="sec-h"><span class="lab">Lately</span><button data-go="log">Your log</button></div><div class="minis">' + recent.map(function (w, i) { return miniHtml(dayName(w.date) + ' ' + dObj(w.date).getDate(), title(outfitOf(w)), outfitOf(w), 'data-act="logrow" data-k="' + esc(w.date + '|' + (w.event || '')) + '"'); }).join('') + '</div>' : '') +
@@ -1263,8 +1282,8 @@ var Engine = (function () {
       '<p class="note">Tap a day to change it. ' + (kept ? kept + ' kept' + (fromC ? ', ' + fromC + ' from Claude' : '') + '.' : fromC ? fromC + ' from Claude.' : 'Nothing is kept until you say so.') + '</p>' +
       '<div style="margin-top:6px">' + rows + '</div>' + (ns ? '<div class="sec-h"><span class="lab">Nights out</span></div>' + ns : '') +
       '<div class="acts"><button class="btn pri wide" data-act="keepweek">' + ic('worn', 18) + 'Keep this week</button></div>' +
-      '<div class="acts"><button class="btn sec" data-act="askclaude">' + ic('dress', 18) + 'Ask Claude to style it</button>' + (kept || fromC ? '<button class="btn sec" data-act="clearweek">Clear</button>' : '') + '</div>' +
-      '<p class="note">Claude replies within about two hours, and its picks show here and on Today.</p>');
+      '<div class="acts"><button class="btn sec" data-act="style">' + ic('claude', 18) + 'Style with Claude</button>' + (kept || fromC ? '<button class="btn sec" data-act="clearweek">Clear</button>' : '') + '</div>' +
+      '<p class="note">Style with Claude shares your wardrobe with Claude in a chat. Paste its reply back and its picks show here and on Today.</p>');
     planSheet.from = from; planSheet.plan = plan;
   }
 
@@ -1299,14 +1318,16 @@ var Engine = (function () {
   }
 
   /* ---- Shop: what to buy, and the Maybes you're weighing up ---- */
-  function shopKey() { return ITEMS.map(function (i) { return i.id + (i.wash ? 'w' : '') + (i.maybe ? 'm' : ''); }).join(',') + '|' + S.settings.none.join(',') + '|' + Object.keys(S.ratings).length; }
+  function shopKey() { return JSON.stringify(S.ideas || []).length + ':' + ITEMS.map(function (i) { return i.id + (i.wash ? 'w' : '') + (i.maybe ? 'm' : ''); }).join(',') + '|' + S.settings.none.join(',') + '|' + Object.keys(S.ratings).length; }
   function shopData() {
     var k = shopKey(); if (SHOP && SHOP.k === k) return SHOP;
     var b = base(), owned2 = ITEMS.filter(function (i) { return !i.maybe; }), before = Brain.goodSet(owned2.filter(Brain.usable), b);
     var buys = Brain.gaps(ITEMS, b, { none: S.settings.none }), best = buys.length ? buys[0].adds : 0;
+    var ideas = (S.ideas || []).map(function (c) { var a = Brain.adds(owned2, c, b, before); return { item: c, adds: a.adds, by: a.by, examples: a.examples, goes: a.goes, now: a.now, why: c.why || Brain.reason(owned2, c), claude: true }; });
+    buys = ideas.concat(buys.filter(function (g) { return !ideas.some(function (x) { return Brain.near(x.item, g.item); }); }));
     var maybes = ITEMS.filter(function (i) { return i.maybe; }).map(function (m) { var a = Brain.adds(owned2, m, b, before); return Object.assign({ item: m }, a, { why: Brain.reason(owned2, m), verdict: verdict(m, a, owned2, best) }); });
     var top4 = buys.slice(0, 4).map(function (x) { return x.item; });
-    SHOP = { k: k, maybes: maybes, buys: buys, now: Brain.goodSet(owned2.filter(Brain.usable), b), all: top4.length ? Brain.together(owned2, top4, b) : 0 };
+    SHOP = { k: k, maybes: maybes, buys: buys, nIdeas: (S.ideas || []).length, now: Brain.goodSet(owned2.filter(Brain.usable), b), all: top4.length ? Brain.together(owned2, top4, b) : 0 };
     SHOP.nowN = Object.keys(SHOP.now).length;
     return SHOP;
   }
@@ -1340,14 +1361,15 @@ var Engine = (function () {
       var mb = D2.maybes.map(function (m) {
         return '<button class="mb" data-act="maybe" data-id="' + m.item.id + '"><img src="' + esc(tileOf(m.item)) + '" alt=""><span><span class="vd ' + m.verdict.k + '">' + esc(m.verdict.t) + '</span><b>' + esc(m.item.name) + '</b><span>' + esc(m.item.colour) + (m.item.brand ? ' · ' + esc(m.item.brand) : '') + (m.item.price ? ' · £' + esc(m.item.price) : '') + '</span></span><span class="n"><b>+' + m.adds + '</b><span>outfits</span></span></button>';
       }).join('');
-      var rows = D2.buys.slice(0, 8).map(function (g, i) {
+      var rows = D2.buys.slice(0, 8 + D2.nIdeas).map(function (g, i) {
         var top = i === 0;
-        return '<button class="br' + (top ? ' open' : '') + '" data-act="buy" data-i="' + i + '">' + swatch(g.item) + '<span class="br-t"><b>' + esc(g.item.name) + '</b><span>' + esc(g.why) + '</span></span><span class="n"><b>+' + g.adds + '</b><span>outfits</span></span></button>' +
+        return '<button class="br' + (top ? ' open' : '') + '" data-act="buy" data-i="' + i + '">' + swatch(g.item) + '<span class="br-t">' + (g.claude ? '<span class="vd cl">Claude’s pick</span>' : '') + '<b>' + esc(g.item.name) + '</b><span>' + esc(g.why) + '</span></span><span class="n"><b>+' + g.adds + '</b><span>outfits</span></span></button>' +
           (top ? '<div class="br-x">' + g.examples.slice(0, 3).map(function (e) { return chipOutfit(e.outfit, g.item); }).join('') + '</div>' : '');
       }).join('');
       v.innerHTML = head +
         (missing.length ? '<div class="card" style="margin-top:14px"><span class="lab">Not added yet</span><p style="margin:6px 0 10px;font-size:14px;line-height:1.45">Turnout doesn’t know your ' + missing.map(function (k) { return KNAME[k]; }).join(', ') + ', so it won’t suggest any in case you already own them. Add them, or tell it you have none:</p><div class="pills">' + missing.map(function (k) { return '<button data-act="nonekind" data-k="' + k + '">No ' + KNAME[k] + '</button>'; }).join('') + '</div></div>' : '') +
         (mb ? '<div class="sec-h"><span class="lab">Your Maybes</span><button data-act="add" data-maybe="1">Add one</button></div>' + mb : '<button class="card" data-act="add" data-maybe="1" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">' + ic('bag', 22) + '<span><b style="display:block">Found something in a shop?</b><span style="font-size:14px;color:var(--ash)">Add it as a Maybe and see what it does for your wardrobe.</span></span></button>') +
+        '<div class="cl-row"><button class="btn sec" data-act="style">' + ic('claude', 18) + 'Ask Claude what to buy</button><button class="btn sec" data-act="paste">Paste reply</button></div>' +
         (rows ? '<div class="sec-h"><span class="lab">Best buys</span></div><p class="note" style="margin-top:0">' + (D2.buys.length >= 2 ? 'The top ' + Math.min(4, D2.buys.length) + ' together would take you from <b>' + D2.nowN + '</b> good outfits to <b>' + D2.all + '</b>.' : 'From ' + D2.nowN + ' good outfits now.') + '</p>' + rows : '<div class="empty">Nothing obvious to buy. Your wardrobe’s working hard.</div>') +
         '</section>';
     }, 30);
@@ -1381,13 +1403,14 @@ var Engine = (function () {
     var g = shopData().buys[i]; if (!g) return; var it = g.item;
     var q = encodeURIComponent('mens ' + it.name);
     var occ = ['work', 'out', 'party', 'weekend'].filter(function (k) { return g.by[k]; }).map(function (k) { return '<span><b>' + g.by[k] + '</b>' + Brain.OCC[k].label + '</span>'; }).join('');
-    var p = openSheet('<div class="sh-h on1"><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button><span class="chip">' + (i + 1) + ' of ' + Math.min(8, shopData().buys.length) + '</span></div>' +
+    var p = openSheet('<div class="sh-h on1"><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button><span class="chip">' + (g.claude ? 'Claude’s pick' : (i + 1) + ' of ' + shopData().buys.length) + '</span></div>' +
       '<div class="on1"><span class="kick">' + ic('bag', 14) + 'Your next buy</span><h1 class="mono">' + esc(it.name) + '</h1><div class="bigN"><b>+' + g.adds + '</b><span>new outfits with what you own</span></div></div>' +
       '<div class="on2"><p class="why" style="margin-top:22px"><b>Why:</b> ' + esc(g.why) + '</p>' +
       '<div class="occn">' + occ + '</div>' +
       '<div class="sec-h"><span class="lab">Outfits it makes</span></div>' + g.examples.map(function (e) { return chipOutfit(e.outfit, it); }).join('') +
       '<div class="acts"><a class="btn pri" href="https://www.marksandspencer.com/search?searchTerm=' + q + '" target="_blank" rel="noopener">' + ic('bag', 18) + 'Search M&amp;S</a><a class="btn sec" href="https://www.next.co.uk/search?w=' + q + '" target="_blank" rel="noopener">Search Next</a></div>' +
       '<div class="acts"><button class="btn sec" data-act="copyprompt" data-name="' + esc(it.name.toLowerCase()) + '">' + ic('copy', 18) + 'Copy Gemini prompt</button><button class="btn sec" data-act="wishadd" data-i="' + i + '">' + ic('gift', 18) + (S.wish.some(function (w) { return w.ref === it.id; }) ? 'On wish list' : 'Wish list') + '</button></div>' +
+      (g.claude ? '<div class="acts"><button class="btn sec" data-act="ideadel" data-id="' + esc(it.id) + '">Not for me</button></div>' : '') +
       '<div class="acts"><button class="btn pri wide" data-act="foundone" data-i="' + i + '">' + ic('add', 18) + 'I’ve found one: add it as a Maybe</button></div>' +
       '<p class="note">Copy the prompt, save the shop’s photo, and run both through Gemini with one of your studio shots as the reference.</p></div>', { full: true, cls: 'field-sheet' });
     p.style.setProperty('--c1', it.hex); p.style.setProperty('--c2', '#F5F1EA'); p.style.setProperty('--split', '330px');
@@ -1474,10 +1497,197 @@ var Engine = (function () {
     function grid(list, act) { return '<div class="minis" style="flex-wrap:wrap;overflow:visible;margin:0;padding:0">' + list.join('') + '</div>'; }
     v.innerHTML = '<section class="scr"><div class="bar">' + word() + '<button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 20) + '</button></div>' +
       '<h2 class="mono" style="margin-top:14px">Looks</h2>' +
-      '<div class="sec-h"><span class="lab">Saved</span></div>' + (saved.length ? grid(saved.map(function (l) { return miniHtml(l.name || title(l.outfit), fmt(l.at.slice(0, 10)), outfitOf(l.outfit), 'data-act="look" data-id="' + l.id + '"'); })) : '<p class="note">Save a look from Dress me and it lives here.</p>') +
+      '<div class="cl-row"><button class="btn pri" data-act="style">' + ic('claude', 18) + 'Style with Claude</button><button class="btn sec" data-act="paste">Paste reply</button></div>' +
+      '<div class="sec-h"><span class="lab">Saved</span></div>' + (saved.length ? grid(saved.map(function (l) { return miniHtml(l.name || title(l.outfit), l.from === 'claude' ? 'From Claude' : fmt(l.at.slice(0, 10)), outfitOf(l.outfit), 'data-act="look" data-id="' + l.id + '"'); })) : '<p class="note">Save a look from Dress me and it lives here.</p>') +
       '<div class="sec-h"><span class="lab">Loved</span></div>' + (loved.length ? grid(loved.map(function (o, i) { return miniHtml(title(o), '', o, 'data-act="loved" data-i="' + i + '"', 'love'); })) : '<p class="note">Tap the heart on any outfit you love. Turnout leans towards them.</p>') +
       '</section>';
     looks.loved = loved; looks.recent = recent;
+  }
+
+
+  /* ============ Style with Claude: share the wardrobe, paste the reply back ============ */
+  var PFX = { knit: 'K', tee: 'T', shirt: 'S', overshirt: 'O', coat: 'C', trousers: 'B', shoes: 'F' };
+  var KORDER = ['knit', 'tee', 'shirt', 'overshirt', 'coat', 'trousers', 'shoes'];
+  var SECT = { knit: 'Knitwear', tee: 'Tees', shirt: 'Shirts', overshirt: 'Overshirts and shackets', coat: 'Jackets and coats', trousers: 'Trousers', shoes: 'Shoes' };
+  function makeCodes() {
+    var map = {}, back = {}, n = {};
+    var list = ITEMS.slice().sort(function (a, b) { return KORDER.indexOf(a.kind) - KORDER.indexOf(b.kind) || (a.maybe ? 1 : 0) - (b.maybe ? 1 : 0) || String(a.added || '').localeCompare(String(b.added || '')) || a.id.localeCompare(b.id); });
+    list.forEach(function (it) { var p = it.maybe ? 'M' : (PFX[it.kind] || 'X'); n[p] = (n[p] || 0) + 1; map[it.id] = p + n[p]; back[p + n[p]] = it.id; });
+    var nts = nights(todayIso(), 42);
+    nts.forEach(function (e, i) { back['N' + (i + 1)] = 'ev:' + e.id; });
+    return { map: map, back: back, list: list, nights: nts, at: Date.now() };
+  }
+  function dshort(d) { return dayName(d) + ' ' + dObj(d).getDate() + ' ' + MONTHS[dObj(d).getMonth()].slice(0, 3); }
+  function wxFor(d) { var w = S.wx && S.wx.days && S.wx.days[d]; return w ? Math.round(w.min) + ' to ' + Math.round(w.max) + '°C' : ''; }
+  function briefText(cd) {
+    var m = cd.map;
+    var line = function (it) { return m[it.id] + ' ' + (it.colour + ' ' + it.name).toLowerCase() + (it.brand ? ' (' + it.brand + ')' : '') + ' · smart ' + it.smart + ' · warm ' + it.warmth + (it.pattern && it.pattern !== 'plain' ? ' · ' + it.pattern : '') + (it.wash ? ' · IN THE WASH' : '') + (it.maybe ? ' · MAYBE, not bought' + (it.price ? ' £' + it.price : '') : ''); };
+    var o2c = function (o) { return ['top', 'shirt', 'over', 'bottom', 'coat', 'shoes'].filter(function (s) { return o[s] && m[o[s]]; }).map(function (s) { return m[o[s]]; }).join('+'); };
+    var worn = S.wear.slice().sort(function (a, b) { return b.date.localeCompare(a.date); }).filter(function (w) { return Brain.daysBetween(w.date, todayIso()) <= 28; }).slice(0, 20).map(function (w) { return dshort(w.date) + ' ' + o2c(w) + (w.event ? ' (night out)' : ''); });
+    var rated = function (v) { return Object.keys(S.ratings).filter(function (k) { return S.ratings[k] === v; }).map(function (k) { return k.split('+').map(function (id) { return m[id]; }).filter(Boolean).join('+'); }).filter(function (x) { return x.indexOf('+') > 0; }); };
+    var wd = S.settings.workdays.map(function (d) { return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]; }).join(' ');
+    var days = [];
+    for (var i = 0; i < 7; i++) { var d = addDays(todayIso(), i), w = wxFor(d); days.push(d + ' ' + dshort(d) + ' · ' + dayInfo(d).occasion + (w ? ' · ' + w : '') + (S.myplan[d] ? ' · he planned ' + o2c(S.myplan[d]) : '')); }
+    var t = ['TURNOUT · Style me',
+      'Jayden, 24, Corby. Smart-casual office; his go-to is chinos and a knit. Work days: ' + wd + '. Today is ' + dshort(todayIso()) + '.',
+      'The picture shows every piece with its code. Use the codes.', '', 'WARDROBE'].concat(cd.list.map(line));
+    t.push('', 'NEXT 7 DAYS'); t = t.concat(days);
+    if (cd.nights.length) { t.push('', 'NIGHTS OUT'); cd.nights.forEach(function (e, i) { t.push('N' + (i + 1) + ' ' + dshort(e.date) + (e.start ? ' ' + e.start : '') + ' · ' + e.title + ' · ' + e.kind + (e.crowd ? ' · with ' + e.crowd : '')); }); }
+    if (worn.length) { t.push('', 'WORN LATELY (newest first)'); t = t.concat(worn); }
+    var lv = rated('love'), np = rated('nope');
+    if (lv.length || np.length) t.push('');
+    if (lv.length) t.push('LOVES ' + lv.join(', '));
+    if (np.length) t.push('NOT ME ' + np.join(', '));
+    t.push('', 'Look at the photos and style me: looks for each occasion, the week, any nights out, and the few buys that would do the most with what I own (judge any Maybes too). Talk me through it, then end with one line I can paste into Turnout: TURNOUT followed by compact JSON, using the codes:',
+      'TURNOUT{"looks":[{"name":"short title","top":"K1","shirt":"S1","over":"O1","bottom":"B1","coat":"C1","shoes":"F1","for":"work|out|party|weekend","note":"under 14 words"}],"days":[{"date":"YYYY-MM-DD","top":"K1","bottom":"B1","note":"..."}],"nights":[{"night":"N1","top":"K1","bottom":"B1","note":"..."}],"avoid":[["K1","B2"]],"buys":[{"name":"White oxford shirt","type":"jumper|sweatshirt|hoodie|quarterzip|tee|football|polo|shirt|overshirt|shacket|jacket|coat|trousers|chinos|jeans|joggers|shoes|trainers|boots","colour":"White","hex":"#F2F1EC","why":"one line"}]}',
+      'Every outfit needs a top (or a shirt on its own) and a bottom; leave out slots you don\'t use. Only use codes from the list, never anything IN THE WASH. Leave out any section you have nothing for.');
+    return t.join('\n');
+  }
+  function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
+  function roundRect(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
+  function fitText(x, t, a, b, w) { if (x.measureText(t).width > w) { while (t.length > 3 && x.measureText(t + '…').width > w) t = t.slice(0, -1); t += '…'; } x.fillText(t, a, b); }
+  function sheetImage(cd) {
+    var COLS = 4, TW = 270, TH = 330, PAD = 30, G = 14, W2 = PAD * 2 + COLS * TW + (COLS - 1) * G;
+    var MONO = '"IBM Plex Mono", ui-monospace, Menlo, monospace', SANS = '-apple-system, "Helvetica Neue", system-ui, sans-serif';
+    var groups = [];
+    KORDER.forEach(function (k) { var xs = cd.list.filter(function (i) { return i.kind === k && !i.maybe; }); if (xs.length) groups.push([SECT[k], xs]); });
+    var mb = cd.list.filter(function (i) { return i.maybe; }); if (mb.length) groups.push(['Maybes, still in the shop', mb]);
+    var H = 130 + groups.reduce(function (h, g) { return h + 64 + Math.ceil(g[1].length / COLS) * (TH + G); }, 0) + PAD;
+    var c = document.createElement('canvas'); c.width = W2; c.height = H; var x = c.getContext('2d');
+    var ims = {};
+    return Promise.all(cd.list.map(function (it) { return loadImg(tileOf(it)).then(function (im) { ims[it.id] = im; }); })).then(function () {
+      x.fillStyle = '#EFEAE1'; x.fillRect(0, 0, W2, H);
+      x.fillStyle = '#17181C'; x.font = '600 44px ' + MONO; x.fillText('turnout', PAD, 72);
+      x.font = '24px ' + MONO; x.fillStyle = '#5B5852'; x.fillText(cd.list.filter(function (i) { return !i.maybe; }).length + ' pieces · ' + dshort(todayIso()), PAD, 108);
+      var y = 130;
+      groups.forEach(function (g) {
+        x.fillStyle = '#17181C'; x.font = '600 26px ' + MONO; x.fillText(g[0].toUpperCase(), PAD, y + 40); y += 64;
+        g[1].forEach(function (it, i) {
+          var cx = PAD + (i % COLS) * (TW + G), cy = y + Math.floor(i / COLS) * (TH + G), im = ims[it.id];
+          x.fillStyle = '#F5F1EA'; roundRect(x, cx, cy, TW, TH, 18); x.fill();
+          if (im) { var s = Math.min((TW - 20) / im.width, (TW - 30) / im.height), w = im.width * s, h = im.height * s; x.globalAlpha = it.wash ? 0.4 : 1; x.drawImage(im, cx + (TW - w) / 2, cy + 14 + (TW - 30 - h) / 2, w, h); x.globalAlpha = 1; }
+          else { x.fillStyle = it.hex; roundRect(x, cx + 50, cy + 50, TW - 100, TW - 110, 14); x.fill(); }
+          x.fillStyle = '#17181C'; roundRect(x, cx + 10, cy + 10, 76, 40, 12); x.fill();
+          x.fillStyle = '#F5F1EA'; x.font = '600 26px ' + MONO; x.textAlign = 'center'; x.fillText(cd.map[it.id], cx + 48, cy + 39); x.textAlign = 'left';
+          if (it.wash) { x.fillStyle = '#17181C'; x.font = '700 17px ' + SANS; x.fillText('IN THE WASH', cx + 98, cy + 36); }
+          x.fillStyle = '#17181C'; x.font = '600 21px ' + SANS; fitText(x, it.colour + ' ' + it.name.toLowerCase(), cx + 14, cy + TW + 16, TW - 28);
+          x.fillStyle = '#5B5852'; x.font = '18px ' + SANS; fitText(x, (it.brand ? it.brand + ' · ' : '') + 'smart ' + it.smart + ' · warm ' + it.warmth, cx + 14, cy + TW + 44, TW - 28);
+        });
+        y += Math.ceil(g[1].length / COLS) * (TH + G);
+      });
+      return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/jpeg', 0.86); });
+    });
+  }
+
+  var STY = null;
+  function styleSheet() {
+    var cd = makeCodes(); S.codes = { back: cd.back, at: cd.at }; save();
+    STY = { cd: cd, text: briefText(cd), blob: null, url: '' };
+    openSheet('<div class="sh-h"><span class="lab">Style with Claude</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">Share your wardrobe</h2>' +
+      '<div class="stp"><b>1</b><span>Tap <b>Share to Claude</b> and pick the Claude app. Your wardrobe goes as one picture, every piece labelled, with notes on what you’ve worn and what’s coming up.</span></div>' +
+      '<div class="stp"><b>2</b><span>Chat it through: a week, a night out, what to buy. Push back as much as you like.</span></div>' +
+      '<div class="stp"><b>3</b><span>When you’re happy, copy Claude’s line that starts <b>TURNOUT</b>, come back and tap <b>Paste reply</b>.</span></div>' +
+      '<div class="preview" id="styPrev" style="min-height:160px"><span class="skel" style="display:block;width:100%;height:140px;border-radius:14px"></span></div>' +
+      '<div class="acts"><button class="btn pri wide" data-act="styshare" id="styGo" disabled>' + ic('claude', 18) + 'Share to Claude</button></div>' +
+      '<div class="acts"><button class="btn sec" data-act="stycopy">' + ic('copy', 18) + 'Copy the notes</button><button class="btn sec" data-act="stysave">Save the picture</button></div>' +
+      '<p class="note">If the notes don’t arrive with the picture, tap Copy the notes and paste them into the chat.</p>');
+    sheetImage(cd).then(function (b) {
+      if (!b) return;
+      STY.blob = b; STY.url = URL.createObjectURL(b);
+      var pv = $('#styPrev'); if (pv) pv.innerHTML = '<img src="' + STY.url + '" alt="Your wardrobe as one picture" style="max-height:260px;border-radius:12px">';
+      var g = $('#styGo'); if (g) g.disabled = false;
+    });
+  }
+  function styShare() {
+    if (!STY || !STY.blob) return;
+    var f = new File([STY.blob], 'turnout-wardrobe.jpg', { type: 'image/jpeg' });
+    try { navigator.clipboard.writeText(STY.text).catch(function () {}); } catch (e) {}
+    if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      navigator.share({ files: [f], text: STY.text }).catch(function (e) { if (e && e.name !== 'AbortError') toast('Couldn’t share. Save the picture instead.'); });
+    } else stySave();
+  }
+  function stySave() { if (!STY || !STY.url) return; var a = document.createElement('a'); a.href = STY.url; a.download = 'turnout-wardrobe.jpg'; document.body.appendChild(a); a.click(); a.remove(); toast('Picture saved. Copy the notes too.'); }
+
+  /* ---- paste Claude's reply ---- */
+  function pasteSheet(prefill) {
+    openSheet('<div class="sh-h"><span class="lab">From Claude</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">Paste the reply</h2><p class="note">Paste Claude’s line that starts TURNOUT. The whole reply is fine too.</p>' +
+      '<div class="form"><textarea id="pasteBox" rows="6" placeholder="TURNOUT{…}">' + esc(prefill || '') + '</textarea></div>' +
+      '<div class="acts"><button class="btn pri wide" data-act="pastego">Read it</button></div>');
+  }
+  function tryPaste() {
+    var go = function (t) { if (t && parseReply(t)) readReply(t); else pasteSheet(''); };
+    try { navigator.clipboard.readText().then(go, function () { go(''); }); } catch (e) { go(''); }
+  }
+  var BRIEF_END = 'Leave out any section you have nothing for.';
+  function parseReply(t) {
+    t = String(t || '').replace(/[“”]/g, '"');
+    if (t.indexOf('TURNOUT · Style me') >= 0) t = t.slice(t.lastIndexOf(BRIEF_END) + BRIEF_END.length);   // our own notes, not Claude's reply
+    var i = t.search(/TURNOUT\s*\{/); if (i < 0) return null;
+    var s = t.slice(t.indexOf('{', i)), depth = 0, end = -1, q = false, bs = false;
+    for (var k = 0; k < s.length; k++) {
+      var ch = s[k];
+      if (q) { if (bs) bs = false; else if (ch === '\\') bs = true; else if (ch === '"') q = false; continue; }
+      if (ch === '"') q = true; else if (ch === '{') depth++; else if (ch === '}') { depth--; if (!depth) { end = k; break; } }
+    }
+    if (end < 0) return null;
+    try { return JSON.parse(s.slice(0, end + 1)); } catch (e) { return null; }
+  }
+  var SUBKIND = { jumper: 'knit', sweatshirt: 'knit', hoodie: 'knit', quarterzip: 'knit', tee: 'tee', football: 'tee', polo: 'tee', shirt: 'shirt', overshirt: 'overshirt', shacket: 'overshirt', jacket: 'coat', coat: 'coat', trousers: 'trousers', chinos: 'trousers', jeans: 'trousers', joggers: 'trousers', shoes: 'shoes', trainers: 'shoes', boots: 'shoes' };
+  var SLOTS6 = ['top', 'shirt', 'over', 'bottom', 'coat', 'shoes'];
+  function resolveReply(j) {
+    var back = (S.codes && S.codes.back) || makeCodes().back, bad = [];
+    var id = function (c) { if (!c) return null; c = String(c).trim(); var r = back[c.toUpperCase()] || (W[c] ? c : null); if (!r || !W[r]) { bad.push(c); return null; } return r; };
+    var outfit = function (x) {
+      var o = {}; SLOTS6.forEach(function (s) { var v = id(x[s]); if (v) o[s] = v; });
+      if (o.top && Brain.SLOT[W[o.top].kind] === 'shirt' && !o.shirt) { o.shirt = o.top; delete o.top; }
+      var fits = SLOTS6.every(function (s) { return !o[s] || Brain.SLOT[W[o[s]].kind] === s; });
+      var clean = SLOTS6.every(function (s) { return !o[s] || !W[o[s]].wash; });
+      return fits && clean && o.bottom && (o.top || o.shirt) ? o : null;
+    };
+    var looks = (j.looks || []).slice(0, 30).map(function (l) { var o = outfit(l); return o ? { outfit: o, name: String(l.name || '').slice(0, 60) || title(o), note: String(l.note || '').slice(0, 140), occ: Brain.OCC[l['for']] ? l['for'] : 'work' } : null; }).filter(Boolean);
+    var days = (j.days || []).slice(0, 14).map(function (d) { var o = outfit(d); return o && /^\d{4}-\d\d-\d\d$/.test(d.date || '') && d.date >= todayIso() ? { date: d.date, outfit: o, note: String(d.note || '').slice(0, 140) } : null; }).filter(Boolean);
+    var nts = (j.nights || []).slice(0, 12).map(function (n) { var k = back[String(n.night || '').toUpperCase()], o = outfit(n); if (!k) return null; var ev = S.events.filter(function (e) { return 'ev:' + e.id === k; })[0]; return o && ev ? { key: k, outfit: o, note: String(n.note || '').slice(0, 140), title: ev.title } : null; }).filter(Boolean);
+    var avoid = (j.avoid || []).slice(0, 20).map(function (p) { var a = id(p && p[0]), b = id(p && p[1]); return a && b ? [a, b] : null; }).filter(Boolean);
+    var buys = (j.buys || []).slice(0, 8).map(function (b, i) {
+      var sub = String(b.type || '').toLowerCase().replace(/[^a-z]/g, ''), kind = SUBKIND[sub];
+      if (!kind || !/^#[0-9a-f]{6}$/i.test(b.hex || '')) return null;
+      var d = SUBDEF[sub] || [3, 3];
+      return { id: 'c-' + Date.now().toString(36) + i, kind: kind, sub: sub, name: String(b.name || NAMES[sub]).slice(0, 60), colour: String(b.colour || '').slice(0, 30), hex: b.hex, smart: Math.max(1, Math.min(5, +b.smart || d[0])), warmth: Math.max(1, Math.min(5, +b.warmth || d[1])), pattern: 'plain', texture: sub === 'jeans' ? 'denim' : '', neck: kind === 'shirt' || sub === 'polo' ? 'collar' : sub === 'hoodie' ? 'hood' : sub === 'quarterzip' ? 'zip' : kind === 'knit' ? 'crew' : '', why: String(b.why || '').slice(0, 140) };
+    }).filter(Boolean);
+    return { looks: looks, days: days, nights: nts, avoid: avoid, buys: buys, bad: bad.filter(function (x, i, a) { return a.indexOf(x) === i; }) };
+  }
+  var RP = null;
+  function plural(n, w) { return n ? n + ' ' + w + (n > 1 ? 's' : '') : ''; }
+  function readReply(t) {
+    var j = parseReply(t);
+    if (!j) { pasteSheet(t); toast('Couldn’t find the TURNOUT line'); return; }
+    RP = resolveReply(j);
+    if (!(RP.looks.length + RP.days.length + RP.nights.length + RP.buys.length)) { pasteSheet(t); toast('Nothing in there Turnout can use'); return; }
+    var row = function (o, a, b) { return '<div class="row rr"><div class="pl">' + flat(o, 62, 'mf') + '</div><div class="t"><span class="occ">' + esc(a) + '</span><b>' + esc(b) + '</b></div></div>'; };
+    openSheet('<div class="sh-h"><span class="lab">From Claude</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">' + [plural(RP.looks.length, 'look'), plural(RP.days.length, 'day'), plural(RP.nights.length, 'night'), plural(RP.buys.length, 'buy')].filter(Boolean).join(' · ') + '</h2>' +
+      (RP.bad.length ? '<p class="note" style="color:#6A2A1E">Skipped what Turnout couldn’t match: ' + esc(RP.bad.join(', ')) + '. Share your wardrobe again if you’ve added pieces since.</p>' : '') +
+      (RP.looks.length ? '<div class="sec-h"><span class="lab">Looks, into Looks</span></div>' + RP.looks.map(function (l) { return row(l.outfit, Brain.OCC[l.occ].label, l.name); }).join('') : '') +
+      (RP.days.length ? '<div class="sec-h"><span class="lab">Your week</span></div>' + RP.days.map(function (d) { return row(d.outfit, fmt(d.date) + (S.myplan[d.date] ? ' · replaces your plan' : ''), d.note || title(d.outfit)); }).join('') : '') +
+      (RP.nights.length ? '<div class="sec-h"><span class="lab">Nights out</span></div>' + RP.nights.map(function (d) { return row(d.outfit, d.title, d.note || title(d.outfit)); }).join('') : '') +
+      (RP.buys.length ? '<div class="sec-h"><span class="lab">Buys, into Shop</span></div>' + RP.buys.map(function (b) { return '<div class="br" style="cursor:default">' + swatch(b) + '<span class="br-t"><b>' + esc(b.name) + '</b><span>' + esc(b.why) + '</span></span></div>'; }).join('') : '') +
+      '<div class="acts"><button class="btn pri wide" data-act="replyadd">' + ic('worn', 18) + 'Add it all</button></div>');
+  }
+  function replyAdd() {
+    var r = RP; if (!r) return;
+    var at = new Date().toISOString();
+    r.looks.forEach(function (l, i) { var lk = { id: 'c' + Date.now().toString(36) + i, outfit: l.outfit, name: l.name, note: l.note, occ: l.occ, from: 'claude', at: at }; S.looks.push(lk); send('look', lk); });
+    r.days.forEach(function (d) { delete S.myplan[d.date]; S.plan[d.date] = Object.assign({}, d.outfit, { note: d.note }); });
+    r.nights.forEach(function (d) { delete S.myplan[d.key]; S.plan[d.key] = Object.assign({}, d.outfit, { note: d.note }); });
+    var pairs = (S.notes.pairs || []).slice();
+    r.looks.concat(r.days).concat(r.nights).forEach(function (x) { var a = x.outfit.top || x.outfit.shirt, b = x.outfit.bottom; if (!pairs.some(function (p) { return p[0] === a && p[1] === b; })) pairs.push([a, b, 6, x.note || 'Claude put these together.']); });
+    S.notes.pairs = pairs.slice(-60); S.notes.avoid = (S.notes.avoid || []).concat(r.avoid).slice(-60);
+    if (r.buys.length) S.ideas = r.buys.concat((S.ideas || []).filter(function (x) { return !r.buys.some(function (y) { return Brain.near(x, y); }); })).slice(0, 8);
+    save(); SHOP = null;
+    send('claude', { days: r.days.map(function (d) { return Object.assign({ date: d.date, note: d.note }, d.outfit); }), nights: r.nights.map(function (d) { return Object.assign({ key: d.key, note: d.note }, d.outfit); }), pairs: S.notes.pairs, avoid: S.notes.avoid, ideas: S.ideas });
+    RP = null; closeSheet(); buzz(); toast('Added. Claude’s picks are in.'); route();
   }
 
   /* ============ sheets ============ */
@@ -1495,7 +1705,7 @@ var Engine = (function () {
   var D = null;
   function dress(opts) {
     D = Object.assign({ date: todayIso(), occasion: null, crowd: null, ev: null, pin: [], pool: [], lock: {}, first: null, idx: 0, offset: 0, log: false, back: null }, opts || {});
-    if (D.log && D.pool.length) { var bySlot = {}; D.pool.forEach(function (id) { var it = W[id]; if (!it) return; var s = it.kind === 'knit' ? 'top' : it.kind === 'trousers' ? 'bottom' : it.kind; (bySlot[s] = bySlot[s] || []).push(id); }); if (Object.keys(bySlot).every(function (s) { return bySlot[s].length === 1; }) && bySlot.bottom && (bySlot.top || bySlot.shirt)) { D.first = {}; Object.keys(bySlot).forEach(function (s) { D.first[s] = bySlot[s][0]; }); } }
+    if (D.log && D.pool.length) { var bySlot = {}; D.pool.forEach(function (id) { var it = W[id]; if (!it) return; var s = Brain.SLOT[it.kind] || it.kind; (bySlot[s] = bySlot[s] || []).push(id); }); if (Object.keys(bySlot).every(function (s) { return bySlot[s].length === 1; }) && bySlot.bottom && (bySlot.top || bySlot.shirt)) { D.first = {}; Object.keys(bySlot).forEach(function (s) { D.first[s] = bySlot[s][0]; }); } }
     if (!D.occasion) { var di = dayInfo(D.date); D.occasion = di.occasion; if (!D.first && !D.pin.length && !D.pool.length) { var p = weekPlan(D.date, 1)[0]; if (p.pick) D.first = p.pick.outfit; } }
     dressList(); dressDraw();
   }
@@ -1658,7 +1868,7 @@ var Engine = (function () {
     var st = S.settings;
     openSheet('<div class="sh-h"><span class="lab">Settings</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div><div class="form">' +
       '<div class="kv"><span>Connected</span><span>' + (S.synced ? 'Synced ' + new Date(S.synced).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Not yet') + (S.queue.length ? ' · ' + S.queue.length + ' waiting' : '') + '</span></div>' +
-      '<div class="acts"><button class="btn sec" data-act="syncnow">Sync now</button><button class="btn sec" data-act="plannow">Check for Claude’s plan</button></div>' +
+      '<div class="acts"><button class="btn sec" data-act="syncnow">Sync now</button><button class="btn sec" data-act="style">Style with Claude</button></div>' +
       '<label>Work days</label>' + pills('workdays', [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']], '').replace(/data-v="(\d)" class=""/g, function (m, d) { return 'data-v="' + d + '" class="' + (st.workdays.indexOf(+d) >= 0 ? 'on' : '') + '"'; }) +
       '<p class="note">Work days start on Work; other days start on Weekend. You can always switch on Today.</p>' +
       '<label for="sk">Knit length (cm)</label><input type="number" id="sk" value="' + st.knit + '">' +
@@ -1711,7 +1921,14 @@ var Engine = (function () {
       case 'planday': { var pd = planSheet.plan.filter(function (x) { return x.date === t.dataset.date; })[0]; dress({ date: pd.date, occasion: pd.occasion, first: pd.pick ? pd.pick.outfit : null, back: 'plan' }); break; }
       case 'keepweek': planSheet.plan.forEach(function (d) { if (d.pick && !d.worn && !S.myplan[d.date]) S.myplan[d.date] = outfitOf(d.pick.outfit); }); save(); send('planmany', { plans: planSheet.plan.filter(function (d) { return S.myplan[d.date]; }).map(function (d) { return { date: d.date, outfit: S.myplan[d.date] }; }) }); toast('Week kept'); planSheet(); break;
       case 'clearweek': planSheet.plan.forEach(function (d) { delete S.myplan[d.date]; delete S.plan[d.date]; }); save(); send('clearplan', { from: planSheet.from, days: 7 }); toast('Cleared'); planSheet(); break;
-      case 'askclaude': toast('Sending…'); api('brief', { from: planSheet.from }).then(function (r) { toast(r && r.ok ? 'Sent to Claude. Back within about two hours.' : 'Couldn’t send it. Try again in a bit.'); }); break;
+      case 'style': styleSheet(); break;
+      case 'styshare': styShare(); break;
+      case 'stysave': stySave(); break;
+      case 'stycopy': if (STY) copyText(STY.text); break;
+      case 'paste': tryPaste(); break;
+      case 'pastego': { var pb = $('#pasteBox'); readReply(pb ? pb.value : ''); break; }
+      case 'replyadd': replyAdd(); break;
+      case 'ideadel': S.ideas = (S.ideas || []).filter(function (x) { return x.id !== t.dataset.id; }); save(); send('claude', { ideas: S.ideas }); SHOP = null; closeSheet(); route(); toast('Gone'); break;
       case 'logadd': selMode = true; sel = []; tab = 'wardrobe'; logMode = true; route(); toast('Pick what you wore'); break;
       case 'logrow': logSheet(t.dataset.k); break;
       case 'wearagain': { var kk = t.dataset.k.split('|'), wr = S.wear.filter(function (x) { return x.date === kk[0] && (x.event || '') === kk[1]; })[0]; if (wr) { wearIt(todayIso(), outfitOf(wr), wr.occasion || 'work'); closeSheet(); tab = 'today'; toast('Logged for today'); route(); } break; }
@@ -1777,7 +1994,7 @@ var Engine = (function () {
       case 'loved': dress({ first: looks.loved[+t.dataset.i] }); break;
       case 'crowd': { var e2 = S.events.filter(function (x) { return x.id === t.dataset.ev; })[0]; var curC = evInfo(e2).crowd; var nxC = CROWDS[(CROWDS.indexOf(curC) + 1) % CROWDS.length]; S.evOver[e2.id] = Object.assign({}, S.evOver[e2.id], { crowd: nxC }); save(); send('event', { id: e2.id, crowd: nxC }); route(); break; }
       case 'syncnow': sync(true).then(function () { toast('Up to date'); settings(); }); break;
-      case 'plannow': api('checkplan').then(function (r) { toast(r && r.found ? 'Claude’s plan is in' : 'No new plan yet'); return sync(true); }); break;
+
       case 'briefnow': api('brief').then(function (r) { toast(r && r.ok ? 'Sent. Claude replies within the hour.' : 'Couldn’t send it'); }); break;
       case 'ssave': {
         var st = S.settings, gv = function (id) { return document.getElementById(id).value; };
