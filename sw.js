@@ -1,7 +1,7 @@
 /* Turnout: keeps a copy of the app and your clothes' photos on the phone,
    so it opens instantly and works on a bad signal. Checks GitHub for newer
    copies each time. The Apps Script and the weather are never cached. */
-var C = "turnout-v1-3";
+var C = "turnout-v1-4";
 self.addEventListener("install", function (e) { self.skipWaiting(); });
 self.addEventListener("activate", function (e) { e.waitUntil(self.clients.claim()); });
 self.addEventListener("fetch", function (e) {
