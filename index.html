@@ -524,6 +524,8 @@ details.more>*:last-child{margin-bottom:14px}
   .cardlook{width:min(420px,calc(33.3% - 8px))}
 }
 
+.pgs{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.pgs::-webkit-scrollbar{display:none}.pgs img{flex:none;height:240px;width:auto;border-radius:12px;scroll-snap-align:start}
+
 </style>
 </head>
 <body>
@@ -1367,7 +1369,7 @@ var Engine = (function () {
     var next = function () {
       if (!S.queue.length) return Promise.resolve();
       var job = S.queue[0];
-      return api(job.a, job.d).then(function (r) { if (r && (r.ok || r.why !== 'key')) { S.queue.shift(); save(); return next(); } });   // no reply = no signal, try later; a refusal won't get better, so drop it
+      return api(job.a, job.d).then(function (r) { if (r && (r.ok || r.why !== 'key')) { if (!r.ok) { S.failed = (S.failed || []).concat([{ a: job.a, why: r.why || '', at: Date.now() }]).slice(-20); } S.queue.shift(); save(); return next(); } });   // no reply = no signal, try later; a refusal won't get better, so drop it
     };
     flushP = next().then(function () { flushP = null; }, function () { flushP = null; });
     return flushP;
@@ -1378,6 +1380,7 @@ var Engine = (function () {
       if (!r) return;
       if (r.ok === false && r.why === 'key') { try { localStorage.removeItem(KEY); } catch (e) {} key = ''; route(); return; }
       if (!r.ok) return;
+      S.syncOk = Date.now();
       S.isOwner = r.me !== false;
       if (S.queue.length) return;   // changes still waiting to send: keep what's on this phone until they're in
       ['wear', 'looks', 'events', 'wish', 'ideas'].forEach(function (k) { if (Array.isArray(r[k])) S[k] = r[k]; });
@@ -1873,36 +1876,42 @@ var Engine = (function () {
   function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
   function roundRect(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
   function fitText(x, t, a, b, w) { if (x.measureText(t).width > w) { while (t.length > 3 && x.measureText(t + '…').width > w) t = t.slice(0, -1); t += '…'; } x.fillText(t, a, b); }
-  function sheetImage(cd) {
-    var COLS = 4, TW = 270, TH = 330, PAD = 30, G = 14, W2 = PAD * 2 + COLS * TW + (COLS - 1) * G;
+  /* The wardrobe as pictures for the AI: 12 pieces a page, each page sized so the AI sees it close to full size
+     (chat apps shrink anything much bigger than about 1,500 pixels, which would blur a single tall sheet) */
+  var PER_PAGE = 12;
+  function sheetImage(cd) { return sheetPages(cd).then(function (bs) { return bs[0]; }); }
+  function sheetPages(cd) {
+    var COLS = 3, TW = 300, IH = 262, TH = 350, PAD = 24, G = 14, HEAD = 100;
+    var W2 = PAD * 2 + COLS * TW + (COLS - 1) * G;
     var MONO = '"IBM Plex Mono", ui-monospace, Menlo, monospace', SANS = '-apple-system, "Helvetica Neue", system-ui, sans-serif';
-    var groups = [];
-    KORDER.forEach(function (k) { var xs = cd.list.filter(function (i) { return i.kind === k && !i.maybe; }); if (xs.length) groups.push([SECT[k], xs]); });
-    var mb = cd.list.filter(function (i) { return i.maybe; }); if (mb.length) groups.push(['Maybes, still in the shop', mb]);
-    var H = 130 + groups.reduce(function (h, g) { return h + 64 + Math.ceil(g[1].length / COLS) * (TH + G); }, 0) + PAD;
-    var c = document.createElement('canvas'); c.width = W2; c.height = H; var x = c.getContext('2d');
+    var list = [];
+    KORDER.forEach(function (k) { cd.list.filter(function (i) { return i.kind === k && !i.maybe; }).forEach(function (i) { list.push(i); }); });
+    cd.list.filter(function (i) { return i.maybe; }).forEach(function (i) { list.push(i); });
+    var pages = []; for (var p = 0; p < list.length; p += PER_PAGE) pages.push(list.slice(p, p + PER_PAGE));
+    var nOwn = list.filter(function (i) { return !i.maybe; }).length;
     var ims = {};
-    return Promise.all(cd.list.map(function (it) { return loadImg(tileOf(it)).then(function (im) { ims[it.id] = im; }); })).then(function () {
-      x.fillStyle = '#EFEAE1'; x.fillRect(0, 0, W2, H);
-      x.fillStyle = '#17181C'; x.font = '600 44px ' + MONO; x.fillText('turnout', PAD, 72);
-      x.font = '24px ' + MONO; x.fillStyle = '#5B5852'; x.fillText(cd.list.filter(function (i) { return !i.maybe; }).length + ' pieces · ' + dshort(todayIso()), PAD, 108);
-      var y = 130;
-      groups.forEach(function (g) {
-        x.fillStyle = '#17181C'; x.font = '600 26px ' + MONO; x.fillText(g[0].toUpperCase(), PAD, y + 40); y += 64;
-        g[1].forEach(function (it, i) {
-          var cx = PAD + (i % COLS) * (TW + G), cy = y + Math.floor(i / COLS) * (TH + G), im = ims[it.id];
+    return Promise.all(list.map(function (it) { return loadImg(tileOf(it)).then(function (im) { ims[it.id] = im; }).catch(function () {}); })).then(function () {
+      return Promise.all(pages.map(function (pg, pi) {
+        var rows = Math.ceil(pg.length / COLS), H = HEAD + rows * (TH + G) + PAD - G;
+        var c = document.createElement('canvas'); c.width = W2; c.height = H; var x = c.getContext('2d');
+        x.fillStyle = '#EFEAE1'; x.fillRect(0, 0, W2, H);
+        x.fillStyle = '#17181C'; x.font = "600 38px " + MONO; x.fillText("turnout", PAD, 56);
+        x.font = '22px ' + MONO; x.fillStyle = '#5B5852'; x.fillText(nOwn + ' pieces · ' + dshort(todayIso()), PAD, 86);
+        if (pages.length > 1) { x.textAlign = 'right'; x.fillStyle = '#17181C'; x.font = '600 24px ' + MONO; x.fillText('Page ' + (pi + 1) + ' of ' + pages.length, W2 - PAD, 56); x.textAlign = 'left'; }
+        pg.forEach(function (it, i) {
+          var cx = PAD + (i % COLS) * (TW + G), cy = HEAD + Math.floor(i / COLS) * (TH + G), im = ims[it.id];
           x.fillStyle = '#F5F1EA'; roundRect(x, cx, cy, TW, TH, 18); x.fill();
-          if (im) { var s = Math.min((TW - 20) / im.width, (TW - 30) / im.height), w = im.width * s, h = im.height * s; x.globalAlpha = it.wash ? 0.4 : 1; x.drawImage(im, cx + (TW - w) / 2, cy + 14 + (TW - 30 - h) / 2, w, h); x.globalAlpha = 1; }
-          else { x.fillStyle = it.hex; roundRect(x, cx + 50, cy + 50, TW - 100, TW - 110, 14); x.fill(); }
+          if (im) { var s = Math.min((TW - 24) / im.width, (IH - 30) / im.height), w = im.width * s, h = im.height * s; x.globalAlpha = it.wash ? 0.4 : 1; x.drawImage(im, cx + (TW - w) / 2, cy + 18 + (IH - 30 - h) / 2, w, h); x.globalAlpha = 1; }
+          else { x.fillStyle = it.hex; roundRect(x, cx + 60, cy + 50, TW - 120, IH - 100, 14); x.fill(); }
           x.fillStyle = '#17181C'; roundRect(x, cx + 10, cy + 10, 76, 40, 12); x.fill();
           x.fillStyle = '#F5F1EA'; x.font = '600 26px ' + MONO; x.textAlign = 'center'; x.fillText(cd.map[it.id], cx + 48, cy + 39); x.textAlign = 'left';
-          if (it.wash) { x.fillStyle = '#17181C'; x.font = '700 17px ' + SANS; x.fillText('IN THE WASH', cx + 98, cy + 36); }
-          x.fillStyle = '#17181C'; x.font = '600 21px ' + SANS; fitText(x, it.colour + ' ' + it.name.toLowerCase(), cx + 14, cy + TW + 16, TW - 28);
-          x.fillStyle = '#5B5852'; x.font = '18px ' + SANS; fitText(x, (it.brand ? it.brand + ' · ' : '') + 'smart ' + it.smart + ' · warm ' + it.warmth, cx + 14, cy + TW + 44, TW - 28);
+          var tag = it.maybe ? 'MAYBE' : it.wash ? 'IN THE WASH' : '';
+          if (tag) { x.fillStyle = '#17181C'; x.font = '700 16px ' + SANS; x.fillText(tag, cx + 98, cy + 36); }
+          x.fillStyle = '#17181C'; x.font = '600 22px ' + SANS; fitText(x, it.colour + ' ' + it.name.toLowerCase(), cx + 14, cy + IH + 28, TW - 28);
+          x.fillStyle = '#5B5852'; x.font = '18px ' + SANS; fitText(x, (it.brand ? it.brand + ' · ' : '') + 'smart ' + it.smart + ' · warm ' + it.warmth, cx + 14, cy + IH + 58, TW - 28);
         });
-        y += Math.ceil(g[1].length / COLS) * (TH + G);
-      });
-      return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/jpeg', 0.86); });
+        return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/jpeg', 0.88); });
+      }));
     });
   }
 
@@ -1912,17 +1921,17 @@ var Engine = (function () {
     STY = { cd: cd, text: briefText(cd, opts), blob: null, url: '' };
     openSheet('<div class="sh-h"><span class="lab">Style with ' + AI() + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
       '<h2 class="mono">' + (opts && opts.focus && kindOf(opts.focus) ? 'More ' + esc(kindOf(opts.focus).name.toLowerCase()) + ' looks' : 'Share your wardrobe') + '</h2>' +
-      '<div class="stp"><b>1</b><span>Tap <b>Share to ' + AI() + '</b> and pick the ' + AI() + ' app. Your wardrobe goes as one picture, every piece labelled, with notes on what you’ve worn and what’s coming up.</span></div>' +
+      '<div class="stp"><b>1</b><span>Tap <b>Share to ' + AI() + '</b> and pick the ' + AI() + ' app. Your wardrobe goes as pictures, 12 pieces each so nothing’s blurry, every piece labelled, with notes on what you’ve worn and what’s coming up.</span></div>' +
       '<div class="stp"><b>2</b><span>Chat it through and push back as much as you like. The notes already say what to ask for.</span></div>' +
       '<div class="stp"><b>3</b><span>When you’re happy, copy ' + AI() + '’s lines that start <b>TURNOUT</b> (the whole reply is fine), come back and tap <b>Paste reply</b>.</span></div>' +
       '<div class="preview" id="styPrev" style="min-height:160px"><span class="skel" style="display:block;width:100%;height:140px;border-radius:14px"></span></div>' +
       '<div class="acts"><button class="btn pri wide" data-act="styshare" id="styGo" disabled>' + ic('claude', 18) + 'Share to ' + AI() + '</button></div>' +
       '<div class="acts"><button class="btn sec" data-act="stycopy">' + ic('copy', 18) + 'Copy the notes</button><button class="btn sec" data-act="stysave">Save the picture</button></div>' +
       '<p class="note">If the notes don’t arrive with the picture, tap Copy the notes and paste them into the chat.</p>');
-    sheetImage(cd).then(function (b) {
-      if (!b) return;
-      STY.blob = b; STY.url = URL.createObjectURL(b);
-      var pv = $('#styPrev'); if (pv) pv.innerHTML = '<img src="' + STY.url + '" alt="Your wardrobe as one picture" style="max-height:260px;border-radius:12px">';
+    sheetPages(cd).then(function (bs) {
+      bs = (bs || []).filter(Boolean); if (!bs.length) return;
+      STY.blobs = bs; STY.blob = bs[0]; STY.urls = bs.map(function (b) { return URL.createObjectURL(b); }); STY.url = STY.urls[0];
+      var pv = $('#styPrev'); if (pv) pv.innerHTML = '<div class="pgs">' + STY.urls.map(function (u2, n) { return '<img src="' + u2 + '" alt="Wardrobe page ' + (n + 1) + '">'; }).join('') + '</div>' + (bs.length > 1 ? '<p class="note" style="text-align:center">' + bs.length + ' pictures, ' + PER_PAGE + ' pieces each, so every piece stays sharp.</p>' : '');
       var g = $('#styGo'); if (g) g.disabled = false;
     });
   }
@@ -1930,13 +1939,13 @@ var Engine = (function () {
   function styShare() {
     if (!STY || !STY.blob) return;
     markSeen();
-    var f = new File([STY.blob], 'turnout-wardrobe.jpg', { type: 'image/jpeg' });
+    var fs = (STY.blobs || [STY.blob]).map(function (b, n, all) { return new File([b], 'turnout-wardrobe' + (all.length > 1 ? '-' + (n + 1) : '') + '.jpg', { type: 'image/jpeg' }); });
     try { navigator.clipboard.writeText(STY.text).catch(function () {}); } catch (e) {}
-    if (navigator.canShare && navigator.canShare({ files: [f] })) {
-      navigator.share({ files: [f], text: STY.text }).catch(function (e) { if (e && e.name !== 'AbortError') toast('Couldn’t share. Save the picture instead.'); });
+    if (navigator.canShare && navigator.canShare({ files: fs })) {
+      navigator.share({ files: fs, text: STY.text }).catch(function (e) { if (e && e.name !== 'AbortError') toast('Couldn’t share. Save the picture instead.'); });
     } else stySave();
   }
-  function stySave() { if (!STY || !STY.url) return; var a = document.createElement('a'); a.href = STY.url; a.download = 'turnout-wardrobe.jpg'; document.body.appendChild(a); a.click(); a.remove(); toast('Picture saved. Copy the notes too.'); }
+  function stySave() { if (!STY || !STY.url) return; (STY.urls || [STY.url]).forEach(function (u2, n, all) { setTimeout(function () { var a = document.createElement('a'); a.href = u2; a.download = 'turnout-wardrobe' + (all.length > 1 ? '-' + (n + 1) : '') + '.jpg'; document.body.appendChild(a); a.click(); a.remove(); }, n * 400); }); toast((STY.urls || []).length > 1 ? 'Pictures saved. Copy the notes too.' : 'Picture saved. Copy the notes too.'); }
 
   /* ---- paste Claude's reply ---- */
   function pasteSheet(prefill) {
@@ -2217,7 +2226,18 @@ var Engine = (function () {
     if (S.settings.fit2) return false;
     S.settings.fit2 = true; if (+S.settings.trousers === 104) S.settings.trousers = 98; return true;
   }
-  var VERSION = '1.9.2';
+  var SCRIPT_WANT = '1.9.3';
+  function scriptCheck() {
+    var el = $('#scriptv'); if (!el) return;
+    api('ping').then(function (r) {
+      el = $('#scriptv'); if (!el) return;
+      if (!r) el.textContent = 'Couldn’t reach your Apps Script just now.';
+      else if (!r.ok && r.why === 'unknown') el.innerHTML = '<b>Your Apps Script is out of date.</b> Paste the new Code.gs and deploy a new version.';
+      else if (r.ok && r.v && r.v >= SCRIPT_WANT) el.textContent = 'Apps Script ' + r.v + ', up to date.';
+      else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
+    });
+  }
+  var VERSION = '1.9.4';
   var WHATS_NEW = [
     ['Play with an outfit', 'Open any outfit and change it piece by piece: a row for the layer, top, trousers and shoes. Switch the layer off and on, pinch or double-tap to zoom, and swipe the top or trousers to try the next one.'],
     ['Adding in three steps', 'Photo, what is it, when would you wear it. Turnout guesses the type and colour from the photo, so it’s usually just Next, Next, Add. Name, brand and length fold away.'],
@@ -2268,7 +2288,7 @@ var Engine = (function () {
   }
   function maybeIntro() {
     if (!EXEC || !key || $('#sheet').classList.contains('open')) return;
-    if (!S.settings.onboarded) return setupFlow(0);
+    if (!S.settings.onboarded) { if (!S.syncOk) return; return setupFlow(0); }
     if (S.seenVersion !== VERSION) whatsNew();
   }
 
@@ -2514,11 +2534,11 @@ var Engine = (function () {
       (S.isOwner !== false ? '<label for="sc">Calendars to read for nights out</label><input type="text" id="sc" value="' + esc(st.calendars || '') + '">' : '<input type="hidden" id="sc" value="">') +
       (st.none.length ? '<label>Told Turnout you own none of</label><div class="pills">' + st.none.map(function (k) { return '<button data-act="unnone" data-k="' + k + '" class="on" style="display:inline-flex;align-items:center;gap:6px">' + KNAME[k] + ic('close', 12) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="acts"><button class="btn sec" data-act="prompts">' + ic('copy', 18) + 'Gemini prompts</button><button class="btn sec" data-act="syncnow">Sync now</button></div>' +
-      '<p class="note">' + (S.synced ? 'Synced ' + new Date(S.synced).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Not synced yet') + (S.queue.length ? ' · ' + S.queue.length + ' waiting to send' : '') + '</p></div>' +
+      '<p class="note">' + '<span id="scriptv">Checking your Apps Script…</span><br>' + ((S.failed || []).length ? '<b>' + S.failed.length + ' change' + (S.failed.length > 1 ? 's' : '') + ' didn’t save</b> (' + esc(S.failed[S.failed.length - 1].a) + ': ' + esc(S.failed[S.failed.length - 1].why || 'refused') + '). <button class="ul" data-act="clearfailed">Clear</button><br>' : '') + (S.synced ? 'Synced ' + new Date(S.synced).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Not synced yet') + (S.queue.length ? ' · ' + S.queue.length + ' waiting to send' : '') + '</p></div>' +
       '<div class="acts sticky"><button class="btn pri wide" data-act="ssave">Save settings</button></div>' +
       '<div class="acts"><button class="btn sec" data-act="whatsnew">What’s new</button><button class="btn sec" data-act="setupagain">Run setup again</button></div>' +
       '<div class="acts"><button class="btn sec wide" data-act="signout">Forget this phone’s key</button></div></div>', { full: true });
-    famList();
+    famList(); scriptCheck();
   }
 
   /* ---- first open ---- */
@@ -2952,6 +2972,7 @@ var Engine = (function () {
       case 'edit': addSheet(t.dataset.id); break;
       case 'add': addSheet(null, t.dataset.maybe ? { maybe: true } : null); break;
       case 'pickphoto': keepForm(); $('#photo').click(); break;
+      case 'clearfailed': S.failed = []; save(); settings(); break;
       case 'pickcam': keepForm(); $('#photocam').click(); break;
       case 'fstep': keepForm(); F.step = +t.dataset.v; formDraw(); break;
       case 'ftype': keepForm(); setKind(SUBKIND[t.dataset.v] || F.kind, t.dataset.v); formDraw(); break;
@@ -2974,7 +2995,7 @@ var Engine = (function () {
 
       case 'briefnow': api('brief').then(function (r) { toast(r && r.ok ? 'Sent. ' + AI() + ' replies within the hour.' : 'Couldn’t send it'); }); break;
       case 'whatsnew': whatsNew(); break;
-      case 'invite': { var nm = ($('#invname').value || '').trim(); if (!nm) { toast('Add their name'); break; } toast('Making a code…'); api('invite', { name: nm }).then(function (r) { if (!r || !r.ok) { toast('Couldn’t make one. Check your signal.'); return; } $('#invname').value = ''; famList(); shareInvite(nm, r.code); }); break; }
+      case 'invite': { var nm = ($('#invname').value || '').trim(); if (!nm) { toast('Add their name'); break; } toast('Making a code…'); api('invite', { name: nm }).then(function (r) { if (!r || !r.ok) { toast(!r ? 'Couldn’t reach your Apps Script. Check your signal and try again.' : r.why === 'owner' ? 'Only the main account can invite people.' : r.why === 'unknown' ? 'Your Apps Script needs updating: paste the new Code.gs and deploy a new version.' : 'Couldn’t make one: ' + r.why); return; } $('#invname').value = ''; famList(); shareInvite(nm, r.code); }); break; }
       case 'invshare': shareInvite(t.dataset.name, t.dataset.code); break;
       case 'revoke': if (t.dataset.sure) { api('revoke', { uid: t.dataset.uid }).then(function () { famList(); toast(t.dataset.name + ' removed'); }); } else { t.dataset.sure = 1; t.classList.add('sure'); toast('Tap again to remove ' + t.dataset.name); setTimeout(function () { delete t.dataset.sure; t.classList.remove('sure'); }, 3000); } break;
       case 'setupagain': OB.d = null; setupFlow(0); break;
