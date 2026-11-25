@@ -525,6 +525,17 @@ details.more>*:last-child{margin-bottom:14px}
 }
 
 .pgs{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.pgs::-webkit-scrollbar{display:none}.pgs img{flex:none;height:240px;width:auto;border-radius:12px;scroll-snap-align:start}
+/* adding lots at once */
+.bkbar{height:6px;border-radius:3px;background:var(--line);margin-top:14px;overflow:hidden}.bkbar i{display:block;height:100%;width:0;background:var(--ink);transition:width .25s}
+.bkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-top:16px}
+.bk{aspect-ratio:1;border-radius:14px;background:var(--plinth);display:grid;place-items:center;overflow:hidden}
+.bk img{width:100%;height:100%;object-fit:contain;padding:4px}.bk.bad{color:var(--ash);box-shadow:inset 0 0 0 1.5px var(--line2);background:none}
+.bkrev{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px 10px;margin-top:16px}
+.bkr{display:flex;flex-direction:column;gap:6px}
+.bkimg{aspect-ratio:1;border-radius:16px;background:var(--plinth);overflow:hidden;width:100%}
+.bkimg img{width:100%;height:100%;object-fit:contain;padding:8%}
+.bksel{width:100%;height:40px;border-radius:12px;border:0;background:var(--paper);color:var(--ink);font:600 15px var(--ui);padding:0 10px;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ash) 50%),linear-gradient(135deg,var(--ash) 50%,transparent 50%);background-position:calc(100% - 16px) 17px,calc(100% - 11px) 17px;background-size:5px 5px;background-repeat:no-repeat}
+.bkc{font-size:13px;color:var(--ash);padding:0 4px}
 
 </style>
 </head>
@@ -1171,8 +1182,15 @@ var Engine = (function () {
           for (j = 0; j < H; j++) { push(0, j, -1); push(W - 1, j, -1); }
           while (q.length) { var k = q.pop(), xx = k % W, y = (k / W) | 0; if (xx > 0) push(xx - 1, y, k); if (xx < W - 1) push(xx + 1, y, k); if (y > 0) push(xx, y - 1, k); if (y < H - 1) push(xx, y + 1, k); }
           // if holes appear in the middle of the piece, it's too close to the background colour to cut safely
-          var hx0 = Math.round(W * 0.35), hx1 = Math.round(W * 0.65), hy0 = Math.round(H * 0.35), hy1 = Math.round(H * 0.65), holes = 0, tot = 0;
-          for (var yh = hy0; yh < hy1; yh += 2) for (var xh = hx0; xh < hx1; xh += 2) { tot++; if (seen[yh * W + xh]) holes++; }
+          // look for holes in a band near the top of the piece itself (chest of a top, hips of trousers), so the
+          // natural gap between trouser legs or a pair of shoes isn't mistaken for a leak
+          var bx0 = W, bx1 = 0, by0 = H, by1 = 0, holes = 0, tot = 0;
+          for (var yb = 0; yb < H; yb += 2) for (var xb = 0; xb < W; xb += 2) if (!seen[yb * W + xb]) { if (xb < bx0) bx0 = xb; if (xb > bx1) bx1 = xb; if (yb < by0) by0 = yb; if (yb > by1) by1 = yb; }
+          if (bx1 > bx0 && (by1 - by0) / (bx1 - bx0) > 0.75) {
+            var bw0 = bx1 - bx0, bh0 = by1 - by0, hx0 = Math.round(bx0 + bw0 * 0.35), hx1 = Math.round(bx0 + bw0 * 0.65), hy0 = Math.round(by0 + bh0 * 0.12), hy1 = Math.round(by0 + bh0 * 0.26);
+            for (var yh = hy0; yh < hy1; yh += 2) for (var xh = hx0; xh < hx1; xh += 2) { tot++; if (seen[yh * W + xh]) holes++; }
+          }
+          if (!tot) tot = 1;
           if (corner >= 40 && holes / tot > 0.04) return rej(new Error('That one’s too close to its background to cut out here. On your iPhone, hold the piece in Photos, tap Share and Save Image, then choose that.'));
           for (i = 0; i < W * H; i++) if (seen[i]) d[i * 4 + 3] = 0;
           // soften the edge by one pixel
@@ -1369,10 +1387,19 @@ var Engine = (function () {
     var next = function () {
       if (!S.queue.length) return Promise.resolve();
       var job = S.queue[0];
-      return api(job.a, job.d).then(function (r) { if (r && (r.ok || r.why !== 'key')) { if (!r.ok) { S.failed = (S.failed || []).concat([{ a: job.a, why: r.why || '', at: Date.now() }]).slice(-20); } S.queue.shift(); save(); return next(); } });   // no reply = no signal, try later; a refusal won't get better, so drop it
+      return withImages(job.d).then(function (d) { return api(job.a, d); }).then(function (r) { if (r && (r.ok || r.why !== 'key')) { if (!r.ok) { S.failed = (S.failed || []).concat([{ a: job.a, why: r.why || '', at: Date.now() }]).slice(-20); } S.queue.shift(); save(); return next(); } });   // no reply = no signal, try later; a refusal won't get better, so drop it
     };
     flushP = next().then(function () { flushP = null; }, function () { flushP = null; });
     return flushP;
+  }
+  function withImages(d) {   // a queued piece carries a pointer to its photo; fetch the photo only as it's sent
+    if (!d || (!d.imgRef && !d.openRef)) return Promise.resolve(d);
+    var o = Object.assign({}, d); delete o.imgRef; delete o.openRef;
+    return Promise.all([d.imgRef ? imgGet(d.imgRef) : null, d.openRef ? imgGet(d.openRef) : null]).then(function (r) {
+      if (r[0]) { o.cut = r[0].cut; o.tile = r[0].tile || ''; }
+      if (r[1]) o.openCut = r[1].cut;
+      return o;
+    });
   }
   function sync(force) {
     if (!EXEC || !key) return Promise.resolve();
@@ -2237,7 +2264,7 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.4';
+  var VERSION = '1.9.5';
   var WHATS_NEW = [
     ['Play with an outfit', 'Open any outfit and change it piece by piece: a row for the layer, top, trousers and shoes. Switch the layer off and on, pinch or double-tap to zoom, and swipe the top or trousers to try the next one.'],
     ['Adding in three steps', 'Photo, what is it, when would you wear it. Turnout guesses the type and colour from the photo, so it’s usually just Next, Next, Add. Name, brand and length fold away.'],
@@ -2462,10 +2489,17 @@ var Engine = (function () {
     if (g('flink') != null) F.link = /^https?:\/\//.test(g('flink').trim()) ? g('flink').trim() : '';
     if (g('fprice') != null) F.price = g('fprice').replace(/[^0-9.]/g, '');
   }
+  var UPN = 0;
   function formSave() {
     keepForm();
     if (F.isNew && !F.cut) return toast('Choose a photo first.');
-    var id = F.id || ('up:' + Date.now().toString(36));
+    var id = formSaveCore();
+    if (F.isNew && F.maybe) { tab = 'shop'; sSeg = 'maybes'; closeSheet(); route(); toast('Weighing it up…'); setTimeout(function () { maybeSheet(id); }, 120); return; }
+    if (BULK && !F.isNew) { toast('Saved'); route(); bulkReview(); return; }
+    closeSheet(); toast(F.isNew ? 'Added to your wardrobe' : 'Saved'); route();
+  }
+  function formSaveCore() {
+    var id = F.id || ('up:' + Date.now().toString(36) + (UPN++).toString(36));
     var it = { id: id, kind: F.kind, sub: F.sub || '', closure: F.kind === 'overshirt' || F.kind === 'coat' ? (F.closure || (F.sub === 'jacket' ? 'zip' : 'buttons')) : '', maybe: !!F.maybe, wash: !!F.wash, link: F.link || '', price: F.price || '', name: F.name || NAMES[F.sub] || 'Piece', colour: F.colour || nearestColour(F.hex), brand: F.brand, hex: F.hex, pattern: F.pattern, texture: F.texture || '', smart: +F.smart, warmth: +F.warmth, neck: F.neck || '', length: +F.length || Engine.REAL[F.kind], added: F.added || todayIso(), archived: !!F.archived };
     if (F.isNew) { it.img = id; it.tile = ''; imgPut(id, { cut: F.cut, tile: F.tileData }); }
     else { it.img = F.img; it.tile = F.tile; it.own = F.own; }
@@ -2476,11 +2510,10 @@ var Engine = (function () {
     var keepSrc = F.isNew ? F.cut : (W[id] && W[id].src), keepTile = F.isNew ? F.tileData : (W[id] && W[id].tileSrc);
     var keepOpen = it.open === 'up' ? (F.openCut || (W[id] && W[id].openSrc)) : null;
     S.custom[id] = it; save(); buildItems(); if (keepSrc) { W[id].src = keepSrc; W[id].tileSrc = keepTile; } if (keepOpen) { W[id].openSrc = keepOpen; W[id].openImg = keepOpen; }
-    var msg = F.isNew ? { item: it, cut: F.cut, tile: F.tileData } : { item: it }; if (F.openCut) msg.openCut = F.openCut;
+    var msg = F.isNew ? { item: it, imgRef: id } : { item: it }; if (F.openCut) msg.openRef = id + ':open';
     send('item', msg);
     Engine.forget(); SHOP = null;
-    if (F.isNew && F.maybe) { tab = 'shop'; sSeg = 'maybes'; closeSheet(); route(); toast('Weighing it up…'); setTimeout(function () { maybeSheet(id); }, 120); return; }
-    closeSheet(); toast(F.isNew ? 'Added to your wardrobe' : 'Saved'); route();
+    return id;
   }
 
   /* ---- settings ---- */
@@ -2804,7 +2837,8 @@ var Engine = (function () {
       '<h2 class="mono hq">' + (F.maybe ? 'Found it<br>in a shop?' : 'Got a photo<br>of it?') + '</h2>' +
       '<div class="big2"><button class="bt dk" data-act="pickphoto"><span class="ico">' + ic('claude', 22) + '</span><span><b>' + (F.maybe ? 'The shop’s photo' : 'Gemini studio shot') + '</b><span>' + (F.maybe ? 'Save it from the shop’s site or app. The background comes off by itself.' : 'Best look. The background comes off by itself.') + '</span></span></button>' +
       '<button class="bt lt2" data-act="pickcam"><span class="ico">' + ic('camera', 22) + '</span><span><b>' + (F.maybe ? 'Photo it in the shop' : 'Quick phone photo') + '</b><span>' + (F.maybe ? 'Hold it up against a plain wall.' : 'Lay it flat on the bed or floor in daylight. Fine for now.') + '</span></span></button></div>' +
-      '<input type="file" accept="image/*" id="photo" hidden><input type="file" accept="image/*" capture="environment" id="photocam" hidden>' +
+      (F.maybe ? '' : '<button class="bt lt2" data-act="pickmany" style="margin-top:10px"><span class="ico">' + ic('looks', 22) + '</span><span><b>Add lots at once</b><span>Pick up to 60 studio shots. Turnout cuts out and guesses each one, then you check them.</span></span></button>') +
+      '<input type="file" accept="image/*" id="photo" hidden><input type="file" accept="image/*" capture="environment" id="photocam" hidden><input type="file" accept="image/*" multiple id="photomany" hidden>' +
       '<div class="fold"><b>Need the studio shot first?</b><span>Copy the Gemini prompt for:</span><div class="pills">' + [['jumper', 'Jumper'], ['hoodie', 'Hoodie'], ['quarterzip', 'Quarter zip'], ['tee', 'T-shirt'], ['polo', 'Polo'], ['shirt', 'Shirt'], ['cardigan', 'Cardigan'], ['overshirt', 'Overshirt'], ['jacket', 'Jacket'], ['coat', 'Coat'], ['chinos', 'Chinos'], ['jeans', 'Jeans'], ['shorts', 'Shorts'], ['trainers', 'Trainers'], ['shoes', 'Shoes'], ['boots', 'Boots']].map(function (t) { return '<button type="button" data-act="copyprompt" data-sub="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div></div>' +
       '<p class="note" style="margin-top:14px">' + (F.maybe ? 'Already yours? <button class="ul" data-act="fset" data-f="maybe" data-v="0">Add it to your wardrobe</button>' : 'In a shop? <button class="ul" data-act="fset" data-f="maybe" data-v="1">Add a Maybe</button> to see what it would make.') + '</p>';
     else if (st === 2) html = stepHead(2) +
@@ -2824,13 +2858,70 @@ var Engine = (function () {
       toast('Cutting it out…');
       Engine.cutout(f).then(function (r) {
         F.cut = r.cut; F.tileData = r.tile; F.cutPreview = r.cut; F.hex = r.hex; F.detHex = r.hex; F.colour = '';
-        return guessType(r.cut).then(function (sub) { F.guess = sub; setKind(SUBKIND[sub] || 'knit', sub); F.step = 2; formDraw(); });
+        return guessType(r.cut).then(function (sub) { var rgb0 = Brain.rgb(r.hex); if (sub === 'chinos' && rgb0[2] > rgb0[0] + 18 && rgb0[2] >= rgb0[1]) sub = 'jeans'; F.guess = sub; setKind(SUBKIND[sub] || 'knit', sub); F.step = 2; formDraw(); });
       }).catch(function (e) { toast('Couldn’t cut that one out'); var pv = $('.big2'); if (pv) pv.insertAdjacentHTML('afterend', '<p class="note" style="color:var(--ink)">' + esc((e && e.message) || 'That photo didn’t work.') + ' Try one with more space around the piece, on a plain background.</p>'); });
     };
     ['photo', 'photocam'].forEach(function (k) { var ph = $('#' + k); if (ph) ph.addEventListener('change', function () { onPhoto(ph); }); });
+    var pm = $('#photomany'); if (pm) pm.addEventListener('change', function () { var fl = [].slice.call(pm.files || []); if (fl.length) bulkAdd(fl.slice(0, 80)); });
     var op = $('#openphoto'); if (op) op.addEventListener('change', function () {
       var f = op.files && op.files[0]; if (!f) return; toast('Cutting it out…');
       Engine.cutout(f).then(function (r) { F.openCut = r.cut; F.dropOpen = false; keepForm(); formDraw(); }).catch(function () { toast('Couldn’t cut that one out'); });
+    });
+  }
+
+  /* ---- adding lots at once ---- */
+  var BULK = null;
+  function bulkAdd(files) {
+    BULK = { n: files.length, done: 0, ids: [], bad: 0 };
+    openSheet('<div class="sh-h"><span class="lab">Adding your clothes</span><span></span></div>' +
+      '<h2 class="mono hq" id="bkT">Cutting out 1 of ' + files.length + '</h2><div class="bkbar"><i id="bkB"></i></div>' +
+      '<p class="note">Keep Turnout open while it works, about 2 seconds a photo.</p><div class="bkgrid" id="bkG"></div>', { full: true });
+    var i = 0;
+    var next = function () {
+      if (i >= files.length) return bulkFinish();
+      var f = files[i++];
+      var t = $('#bkT'); if (t) t.textContent = 'Cutting out ' + i + ' of ' + files.length;
+      return Engine.cutout(f).then(function (r) {
+        return guessType(r.cut).then(function (sub) {
+          F = { kind: 'knit', sub: 'jumper', name: '', colour: '', brand: '', hex: r.hex, pattern: 'plain', texture: '', smart: 3, warmth: 3, neck: '', maybe: false, link: '', price: '', isNew: true, cut: r.cut, tileData: r.tile };
+          var rgb = Brain.rgb(r.hex); if (sub === 'chinos' && rgb[2] > rgb[0] + 18 && rgb[2] >= rgb[1]) sub = 'jeans';   // blue trousers are nearly always denim
+          setKind(SUBKIND[sub] || 'knit', sub); F.colour = nearestColour(r.hex);
+          var id = formSaveCore(); BULK.ids.push(id);
+          var g = $('#bkG'); if (g) g.insertAdjacentHTML('beforeend', '<span class="bk"><img src="' + esc(r.tile || r.cut) + '" alt=""></span>');
+        });
+      }).catch(function () { BULK.bad++; var g = $('#bkG'); if (g) g.insertAdjacentHTML('beforeend', '<span class="bk bad">' + ic('close', 18) + '</span>'); })
+        .then(function () { BULK.done++; var b = $('#bkB'); if (b) b.style.width = Math.round(BULK.done / BULK.n * 100) + '%'; return next(); });
+    };
+    next();
+  }
+  function bulkFinish() {
+    buildItems(); Engine.forget(); SHOP = null;
+    resolveImages().then(function () { route(); bulkReview(); });
+  }
+  function typeSelect(it) {
+    return '<select class="bksel" data-id="' + it.id + '" aria-label="What it is">' + TYPES.map(function (g) { return '<optgroup label="' + g[0] + '">' + g[1].map(function (t) { return '<option value="' + t[0] + '"' + (it.sub === t[0] ? ' selected' : '') + '>' + esc(t[1]) + '</option>'; }).join('') + '</optgroup>'; }).join('') + '</select>';
+  }
+  function bulkReview() {
+    if (!BULK) return;
+    var items = BULK.ids.map(function (id) { return W[id]; }).filter(Boolean);
+    var p = openSheet('<div class="sh-h"><span class="lab">Check them</span><button class="iconbtn" data-act="bulkdone" aria-label="Done">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono hq">' + items.length + ' added' + (BULK.bad ? ', ' + BULK.bad + ' didn’t cut out' : '') + '</h2>' +
+      '<p class="note">Turnout guessed what each one is. Fix any that are wrong here (cardigans, quarter zips and hoodies usually need a tap). Tap a photo to change anything else, or to add an open shot for a layer.' + (BULK.bad ? ' For the ones that didn’t cut out, try them again one at a time with more space around the piece.' : '') + '</p>' +
+      '<div class="bkrev">' + items.map(function (it) {
+        return '<div class="bkr"><button class="bkimg" data-act="edit1" data-id="' + it.id + '"><img src="' + esc(tileOf(it)) + '" alt=""></button>' + typeSelect(it) + '<span class="bkc">' + esc(it.colour) + '</span></div>';
+      }).join('') + '</div>' +
+      '<div class="acts sticky"><button class="btn pri wide" data-act="bulkdone">' + ic('worn', 18) + 'Done</button></div>', { full: true });
+    $$('.bksel', p).forEach(function (s) {
+      s.addEventListener('change', function () {
+        var id = s.dataset.id, cur = S.custom[id]; if (!cur) return;
+        F = Object.assign({}, cur, { isNew: true }); var oldName = cur.name;
+        setKind(SUBKIND[s.value] || cur.kind, s.value);
+        var it = Object.assign({}, cur, { kind: F.kind, sub: F.sub, smart: F.smart, warmth: F.warmth, length: F.length, neck: F.neck, texture: F.texture, closure: F.kind === 'overshirt' || F.kind === 'coat' ? (F.sub === 'jacket' ? 'zip' : 'buttons') : '' });
+        if (!oldName || oldName === NAMES[cur.sub] || oldName === 'Piece') it.name = NAMES[F.sub] || typeName(F.sub);
+        var keep = W[id] && { src: W[id].src, tileSrc: W[id].tileSrc };
+        S.custom[id] = it; save(); buildItems(); if (keep) { W[id].src = keep.src; W[id].tileSrc = keep.tileSrc; }
+        send('item', { item: it }); Engine.forget(); SHOP = null;
+      });
     });
   }
 
@@ -2970,9 +3061,12 @@ var Engine = (function () {
       case 'around': dress({ pin: [t.dataset.id] }); break;
       case 'pairwith': dress({ pin: [t.dataset.a, t.dataset.b] }); break;
       case 'edit': addSheet(t.dataset.id); break;
+      case 'edit1': addSheet(t.dataset.id); break;
       case 'add': addSheet(null, t.dataset.maybe ? { maybe: true } : null); break;
       case 'pickphoto': keepForm(); $('#photo').click(); break;
       case 'clearfailed': S.failed = []; save(); settings(); break;
+      case 'pickmany': $('#photomany').click(); break;
+      case 'bulkdone': BULK = null; closeSheet(); route(); break;
       case 'pickcam': keepForm(); $('#photocam').click(); break;
       case 'fstep': keepForm(); F.step = +t.dataset.v; formDraw(); break;
       case 'ftype': keepForm(); setKind(SUBKIND[t.dataset.v] || F.kind, t.dataset.v); formDraw(); break;
