@@ -66,6 +66,8 @@ h2.mono{font-size:clamp(28px,8.5vw,38px)}
 .rate button.on{background:var(--ink);color:var(--cream)}
 .why{margin:14px 2px 0;font-size:15px;line-height:1.4}
 .acts{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.acts>.btn{flex:1 1 calc(50% - 5px);white-space:nowrap;justify-content:center}   /* two to a row, equal widths; a third fills the next row */
+.acts>.btn.wide{flex-basis:100%}
 .btn{height:50px;border-radius:25px;display:inline-flex;align-items:center;gap:8px;padding:0 20px 0 16px;font-weight:600;font-size:16px;white-space:nowrap}
 .btn.pri{background:var(--ink);color:var(--cream)}
 .btn.sec{box-shadow:inset 0 0 0 1.5px currentColor}
@@ -108,7 +110,7 @@ h2.mono{font-size:clamp(28px,8.5vw,38px)}
 .seg button.on{background:var(--ink);color:var(--cream);box-shadow:none}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;margin-top:16px}
 .tile{text-align:left;position:relative}
-.tile img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;background:var(--paper)}
+.tile img{width:100%;aspect-ratio:1;object-fit:contain;padding:9%;border-radius:16px;background:var(--plinth)}
 .tile b{display:block;font-weight:600;font-size:14px;padding-top:6px}.tile span{color:var(--ash);font-size:13px}
 .tile .tick{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:14px;background:rgba(245,241,234,.9);display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px var(--ink)}
 .tile.sel .tick{background:var(--ink);color:var(--cream)}
@@ -151,7 +153,7 @@ h2.mono{font-size:clamp(28px,8.5vw,38px)}
 .pieces{display:grid;grid-template-columns:1fr;gap:8px;margin-top:14px}
 .pc{display:grid;grid-template-columns:44px 1fr auto auto;gap:8px;align-items:center;padding:6px;border-radius:16px;background:rgba(245,241,234,.14);font-size:13px;font-weight:600;min-width:0}
 .on2 .pc{background:var(--tint)}
-.pc img{width:44px;height:44px;border-radius:10px;object-fit:cover}
+.pc img{width:44px;height:44px;border-radius:10px;object-fit:contain;padding:3px;background:var(--plinth)}
 .pc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pc button{width:32px;height:32px;border-radius:16px;display:grid;place-items:center}
 .pc button.on{background:currentColor}.pc button.on svg{color:var(--c2)}
@@ -164,7 +166,7 @@ h2.mono{font-size:clamp(28px,8.5vw,38px)}
 .pills button{padding:9px 13px;border-radius:17px;font-size:14px;font-weight:600;box-shadow:inset 0 0 0 1px var(--line2)}
 .pills button.on{background:var(--ink);color:var(--cream);box-shadow:none}
 .preview{border-radius:22px;background:var(--plinth);display:grid;place-items:center;padding:16px;min-height:220px}
-.preview img{max-height:260px;width:auto}
+.preview img{max-height:260px;max-width:100%;width:auto;object-fit:contain}
 .swatchrow{display:flex;gap:10px;align-items:center}
 .swatchrow input[type=color]{width:48px;height:48px;border:0;border-radius:14px;padding:0;background:none}
 .note{font-size:14px;line-height:1.45;color:var(--ash);margin:10px 0 0}
@@ -173,7 +175,7 @@ h2.mono{font-size:clamp(28px,8.5vw,38px)}
 .kv span:last-child{color:var(--ash);text-align:right}
 .pair{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
 .pair button{text-align:left;font-size:12px}
-.pair img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
+.pair img{width:100%;aspect-ratio:1;object-fit:contain;padding:8%;border-radius:12px;background:var(--plinth)}
 .toggle{display:inline-flex;border-radius:16px;background:var(--paper);padding:3px}
 .toggle button{padding:6px 12px;border-radius:13px;font-size:13px;font-weight:600}
 .toggle button.on{background:var(--ink);color:var(--cream)}
@@ -308,7 +310,7 @@ a.btn{text-decoration:none;color:inherit}
 .card.ev{background:var(--ink);color:var(--cream)}.card.ev .lab{color:#B9C0CF}.card.ev .btn.sec{color:var(--cream)}
 .evm{display:flex;gap:10px;margin-top:10px}.evm button{width:84px;height:96px;border-radius:14px;background:var(--plinth);display:flex;justify-content:center;align-items:flex-start;overflow:hidden}.evm img{height:88px;width:auto;margin-top:4px}
 .card.cl .sub{display:block;font-size:14px;line-height:1.4;color:#B9B3A8;margin-top:3px}
-.card.clean .cleanrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.card.clean .cleanrow img{width:52px;height:52px;border-radius:12px;object-fit:cover}
+.card.clean .cleanrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.card.clean .cleanrow img{width:52px;height:52px;border-radius:12px;object-fit:contain;padding:3px;background:var(--plinth)}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .mini2{text-align:left;font-size:12px;line-height:15px;position:relative}
 .mini2 .pl{height:128px;border-radius:16px;background:var(--linen);display:flex;justify-content:center;align-items:flex-start;overflow:hidden;position:relative}
@@ -398,7 +400,7 @@ a.btn{text-decoration:none;color:inherit}
 .rl{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:3px 2px;margin:0 -2px;scrollbar-width:none}
 .rl::-webkit-scrollbar{display:none}
 .rt{flex:none;width:62px;height:62px;border-radius:16px;overflow:hidden;background:var(--plinth);position:relative;scroll-snap-align:start}
-.rt img{width:100%;height:100%;object-fit:cover;display:block}
+.rt img{width:100%;height:100%;object-fit:contain;padding:5px;display:block}
 .rt img.gh,.rt.buyt img{object-fit:contain;padding:5px}
 .rt.sel{box-shadow:0 0 0 2.5px var(--ink)}
 .rt.none{display:grid;place-items:center;background:none;box-shadow:inset 0 0 0 1.5px var(--line2);font-size:12px;color:var(--ash);font-weight:600}
@@ -457,7 +459,7 @@ details.more>*:last-child{margin-bottom:14px}
 .looks3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
 .looks3 button{background:var(--plinth);border-radius:15px;height:140px;display:flex;justify-content:center;align-items:center;overflow:hidden}
 .looks3 img{height:128px;width:auto}
-.looks3 .oc{transform:scale(.8)}
+.looks3 .oc{display:flex;flex-direction:column;align-items:center;gap:0}.looks3 .oc span{display:none}.looks3 .oc-b{display:flex;flex-direction:column;width:54px;height:auto;border-radius:10px;overflow:hidden}.looks3 .oc-b i{display:block;flex:none;height:44px}.looks3 .oc-b i:last-child{height:62px}
 .shero .acts{margin-top:12px}.shero .acts .btn{flex:1;height:42px;font-size:14px}
 .shero .btn.lite{background:var(--cream);color:var(--ink)}
 .shero .btn.ghost{box-shadow:inset 0 0 0 1.5px rgba(245,241,234,.45);color:var(--cream)}
@@ -468,6 +470,59 @@ details.more>*:last-child{margin-bottom:14px}
 .rk em{font-style:normal;font-family:var(--mono);font-size:16px;letter-spacing:-.03em}
 .maycard{display:flex;gap:12px;align-items:center;width:100%;text-align:left;margin-top:14px;font-size:14px;line-height:1.35}
 .maycard b{display:block;font-size:15px}
+
+/* ============ iPad and wide screens (iPad Pro 13" is 1032 wide upright, 1376 on its side) ============ */
+@media (min-width:900px){
+  .scr,.panel>*{max-width:none;margin-left:0;margin-right:0}
+  .scr{max-width:960px;margin:0 auto;padding-left:40px;padding-right:40px;padding-bottom:120px}
+  #todayScr{box-shadow:0 0 0 100vmax var(--paper);clip-path:inset(0 -100vmax)}
+  .tabbar{left:50%;right:auto;width:560px;transform:translateX(-50%);bottom:calc(18px + var(--sb))}
+  .tab{width:90px;font-size:12px}
+  #toast{bottom:calc(104px + var(--sb))}
+  .selbar{left:50%;right:auto;width:560px;transform:translateX(-50%);bottom:calc(98px + var(--sb))}
+  h2.mono{font-size:46px}
+  /* Today: bigger cards, two in view */
+  .kwords,.deck,.occs{margin-left:-40px;margin-right:-40px;padding-left:40px;padding-right:40px;scroll-padding:0 40px}
+  .kwords button{font-size:34px}
+  .cardlook{width:min(460px,calc(50% - 6px))}
+  .cl-f{height:440px}.cl-f img{height:400px}
+  .scr>.acts,.scr>.card{max-width:640px}
+  /* grids */
+  .grid{grid-template-columns:repeat(5,1fr);gap:22px 16px}
+  .g3{grid-template-columns:repeat(5,1fr);gap:14px}
+  .mini2 .pl{height:200px}.mini2 .pl img{height:180px}
+  .mini2{font-size:13.5px;line-height:17px}
+  .pair{grid-template-columns:repeat(3,1fr)}
+  /* sheets become centred cards */
+  .sheet:not(.full) .panel{left:50%;right:auto;width:680px;bottom:24px;max-height:calc(100% - var(--st) - 48px);border-radius:28px;transform:translate(-50%,110%)}
+  .sheet.open:not(.full) .panel{transform:translate(-50%,0)}
+  .sheet.full .panel{padding-left:max(40px,calc((100% - 1180px)/2));padding-right:max(40px,calc((100% - 1180px)/2))}
+  /* the outfit view: picture left, rails right */
+  .panel.studio{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:36px;align-content:start}
+  .panel.studio>*{grid-column:1/-1}
+  .panel.studio>.stage{grid-column:1;grid-row:4/span 8;position:sticky;top:calc(var(--st) + 16px);align-self:start;margin-top:16px}
+  .panel.studio>#rails,.panel.studio>.acts,.panel.studio>.note,.panel.studio>.occs:not(:nth-child(2)){grid-column:2}
+  .panel.studio .st-t{font-size:40px}
+  .panel.studio .rt{width:76px;height:76px;border-radius:18px}
+  .panel.studio .rl{flex-wrap:wrap;overflow:visible}
+  /* Shop: buys in two columns under the hero */
+  .shero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:18px;align-items:center;padding:18px}
+  .shero .sh-top{grid-row:1;grid-column:1}
+  .shero .looks3{grid-column:2;grid-row:1/span 2;margin-top:0}
+  .shero .acts{grid-column:1;grid-row:2}
+  .looks3 button{height:230px}.looks3 img{height:214px}
+  .rk{width:calc(50% - 10px);display:inline-flex;vertical-align:top;margin-right:16px}
+  .rk:nth-of-type(odd){margin-right:0}
+  .scr>.empty{max-width:640px}
+  /* add a piece and edit: wider type grid */
+  .form.step .tgrid{grid-template-columns:repeat(4,1fr)}
+}
+@media (min-width:1200px){
+  .grid{grid-template-columns:repeat(6,1fr)}
+  .g3{grid-template-columns:repeat(6,1fr)}
+  .scr{max-width:1180px}
+  .cardlook{width:min(420px,calc(33.3% - 8px))}
+}
 
 </style>
 </head>
@@ -1292,7 +1347,9 @@ var Engine = (function () {
     if (/^img\//.test(s) && !t.dataset.again) { t.dataset.again = 1; t.src = s.slice(4); return; }
     t.style.visibility = 'hidden';
   }, true);
-  function tileOf(it) { return it.tileSrc || it.tile || it.src || it.img; }
+  function WIDE() { return window.innerWidth >= 900; }
+  function DECKH() { return WIDE() ? 400 : 226; }
+  function tileOf(it) { return it.tileSrc || it.src || it.img || it.tile; }   // the cut-out, shown whole on a plinth, never a cropped tile
 
   /* ---------- talking to the script ---------- */
   function api(a, d) {
@@ -2059,7 +2116,7 @@ var Engine = (function () {
     var card = function (d, i) {
       var o = d.outfit, c = cols(o), rt = S.ratings[Brain.core(o)];
       var lab = d.worn ? 'Worn today' : (d.app ? 'Turnout’s pick' : '' + AI() + '’s look') + ' · ' + (worn ? i : i + 1) + ' of ' + (worn ? deck.length - 1 : deck.length);
-      return '<div class="cardlook' + (d.worn ? ' wornc' : '') + '" data-i="' + i + '" style="--a:' + c[0] + ';--b:' + c[1] + '"><div class="cl-f">' + (i < 3 ? flat(o, 226, 'flat in') : '<img class="flat lazy" data-i="' + i + '" alt="">') +
+      return '<div class="cardlook' + (d.worn ? ' wornc' : '') + '" data-i="' + i + '" style="--a:' + c[0] + ';--b:' + c[1] + '"><div class="cl-f">' + (i < 3 ? flat(o, DECKH(), 'flat in') : '<img class="flat lazy" data-i="' + i + '" alt="">') +
         (d.worn ? '<span class="wtag">' + ic('worn', 16) + 'Worn today</span>' : '<div class="rate"><button data-act="rate2" data-v="love" data-i="' + i + '" class="' + (rt === 'love' ? 'on' : '') + '" aria-label="Love this">' + ic('love', 20) + '</button><button data-act="rate2" data-v="nope" data-i="' + i + '" class="' + (rt === 'nope' ? 'on' : '') + '" aria-label="Not me">' + ic('nope', 20) + '</button></div>') + '</div>' +
         '<div class="cl-t"><span class="lab">' + lab + '</span><b>' + esc(d.look && d.look.name ? d.look.name : title(o)) + '</b><p>' + esc(d.note || names(o).join(' · ')) + '</p></div></div>';
     };
@@ -2067,7 +2124,7 @@ var Engine = (function () {
       '<div class="deck" id="deck">' + deck.map(card).join('') + '</div>' +
       '<div class="dots2" id="dots">' + deck.map(function (x, i) { return '<i class="' + (i === T.idx ? 'on' : '') + '"></i>'; }).join('') + '<span>' + (deck.length > 1 ? 'swipe for more' : '') + '</span></div>' +
       '<div class="acts"><button class="btn pri wide" data-act="wear2" id="wearBtn"></button></div>' +
-      '<div class="acts" style="margin-top:8px"><button class="btn sec" data-act="swap2">' + ic('swap', 18) + 'Swap a piece</button><button class="btn sec" data-act="morekind">' + ic('claude', 18) + 'More ' + esc(k.name.toLowerCase()) + ' looks</button></div>';
+      '<div class="acts" style="margin-top:8px"><button class="btn sec" data-act="swap2">' + ic('swap', 18) + 'Swap a piece</button><button class="btn sec" data-act="morekind">' + ic('claude', 18) + 'More looks</button></div>';
     v.innerHTML = '<section class="scr" id="todayScr" style="background:var(--paper)">' +
       '<div class="bar">' + word() + '<span style="display:flex;gap:8px;align-items:center">' + (wx ? '<span class="chip">' + ic(wx.icon, 16) + esc(wx.text) + '</span>' : '') + '<button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 20) + '</button></span></div>' +
       eveningCard(date, worn) +
@@ -2085,7 +2142,7 @@ var Engine = (function () {
       var w0 = function () { var c = dk.querySelector('.cardlook'); return c ? c.offsetWidth + 12 : 1; };
       if (T.idx) dk.scrollLeft = T.idx * w0();
       $$('.cardlook', dk).forEach(function (c, j) { c.classList.toggle('cur', j === T.idx); });
-      var lazy = function () { $$('img.lazy', dk).forEach(function (im) { var i = +im.dataset.i; if (Math.abs(i - T.idx) <= 2) { var nw = document.createElement('div'); nw.innerHTML = flat(deck[i].outfit, 226, 'flat in'); im.replaceWith(nw.firstChild); } }); };
+      var lazy = function () { $$('img.lazy', dk).forEach(function (im) { var i = +im.dataset.i; if (Math.abs(i - T.idx) <= 2) { var nw = document.createElement('div'); nw.innerHTML = flat(deck[i].outfit, DECKH(), 'flat in'); im.replaceWith(nw.firstChild); } }); };
       dk.addEventListener('scroll', function () {
         var i = Math.round(dk.scrollLeft / w0()); if (i === T.idx) return; T.idx = Math.max(0, Math.min(deck.length - 1, i));
         $$('#dots i').forEach(function (d, j) { d.classList.toggle('on', j === T.idx); }); $$('.cardlook', dk).forEach(function (c, j) { c.classList.toggle('cur', j === T.idx); }); lazy(); acts();
@@ -2160,7 +2217,7 @@ var Engine = (function () {
     if (S.settings.fit2) return false;
     S.settings.fit2 = true; if (+S.settings.trousers === 104) S.settings.trousers = 98; return true;
   }
-  var VERSION = '1.9.0';
+  var VERSION = '1.9.2';
   var WHATS_NEW = [
     ['Play with an outfit', 'Open any outfit and change it piece by piece: a row for the layer, top, trousers and shoes. Switch the layer off and on, pinch or double-tap to zoom, and swipe the top or trousers to try the next one.'],
     ['Adding in three steps', 'Photo, what is it, when would you wear it. Turnout guesses the type and colour from the photo, so it’s usually just Next, Next, Add. Name, brand and length fold away.'],
@@ -2260,7 +2317,7 @@ var Engine = (function () {
       '<div class="pieces" id="pcs"></div>' +
       (D.ev ? '<div class="occs" style="margin-top:12px"><span class="lab" style="align-self:center;flex:none">Who’s going</span>' + CROWDS.map(function (c) { return '<button data-act="dcrowd" data-c="' + c + '" class="' + (D.crowd === c ? 'on' : '') + '">' + CROWDNAME[c] + '</button>'; }).join('') + '</div><p class="note" style="color:inherit;opacity:.75">Turnout won’t repeat a look in front of the same people.</p>' : '') +
       (D.log ? '<div class="occs" style="margin-top:12px">' + [[todayIso(), 'Today'], [addDays(todayIso(), -1), 'Yesterday'], [addDays(todayIso(), -2), dayName(addDays(todayIso(), -2))]].map(function (x) { return '<button data-act="dwhen" data-d="' + x[0] + '" class="' + (D.date === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>' : '') +
-      '<div class="acts">' + (!D.log && (D.date > todayIso() || D.ev) ? '<button class="btn pri" data-act="dplan">' + ic('worn', 18) + 'Plan this</button>' : '<button class="btn pri" data-act="dwear">' + ic('worn', 18) + (D.log ? 'Log it' : 'Wore this') + '</button>') +
+      '<div class="acts">' + (!D.log && (D.date > todayIso() || D.ev) ? '<button class="btn pri wide" data-act="dplan">' + ic('worn', 18) + 'Plan this</button>' : '<button class="btn pri wide" data-act="dwear">' + ic('worn', 18) + (D.log ? 'Log it' : 'Wore this') + '</button>') +
       '<button class="btn sec" data-act="dsave">' + ic('looks', 18) + 'Save look</button><button class="btn sec" data-act="dmore">' + ic('dress', 18) + 'More</button></div>' +
       ((D.pin.length || D.pool.length) ? '<p class="note" style="color:inherit;opacity:.75">' + (D.pin.length ? 'Built around ' + D.pin.map(function (id) { return W[id] ? W[id].name.toLowerCase() + ' in ' + W[id].colour.toLowerCase() : ''; }).join(', ') : 'Made from your ' + D.pool.length + ' picks') + '.</p>' : '') + '</div>';
     var p = openSheet('<div class="on1"><div class="sh-h"><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button><span class="word">' + esc(head) + '</span><span class="chip">' + (D.c.temp != null ? Math.round(D.c.temp) + '°' : '–') + '</span></div><div class="occs">' + occs + '</div></div>' + body, { full: true, cls: 'field-sheet' });
@@ -2517,7 +2574,7 @@ var Engine = (function () {
           x.putImageData(d, 0, 0); res(c.toDataURL('image/webp', 0.86));
         } catch (e) { rej(e); }
       };
-      im.onerror = function () { rej(new Error('template')); };
+      im.onerror = function () { if (/^img\//.test(src) && !im.dataset.again) { im.dataset.again = 1; im.src = src.slice(4); return; } rej(new Error('template')); };
       im.src = src;
     });
   }
@@ -2560,7 +2617,7 @@ var Engine = (function () {
         '<div id="rails"></div>' +
         (D.ev ? '<div class="occs" style="margin-top:12px"><span class="lab" style="align-self:center;flex:none">Who’s going</span>' + CROWDS.map(function (c) { return '<button data-act="dcrowd" data-c="' + c + '" class="' + (D.crowd === c ? 'on' : '') + '">' + CROWDNAME[c] + '</button>'; }).join('') + '</div>' : '') +
         (D.log ? '<div class="occs" style="margin-top:12px">' + [[todayIso(), 'Today'], [addDays(todayIso(), -1), 'Yesterday'], [addDays(todayIso(), -2), dayName(addDays(todayIso(), -2))]].map(function (x) { return '<button data-act="dwhen" data-d="' + x[0] + '" class="' + (D.date === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>' : '') +
-        '<div class="acts">' + (!D.log && (D.date > todayIso() || D.ev) ? '<button class="btn pri" data-act="dplan">' + ic('worn', 18) + 'Plan this</button>' : '<button class="btn pri" data-act="dwear">' + ic('worn', 18) + (D.log ? 'Log it' : 'Wore this') + '</button>') +
+        '<div class="acts">' + (!D.log && (D.date > todayIso() || D.ev) ? '<button class="btn pri wide" data-act="dplan">' + ic('worn', 18) + 'Plan this</button>' : '<button class="btn pri wide" data-act="dwear">' + ic('worn', 18) + (D.log ? 'Log it' : 'Wore this') + '</button>') +
         '<button class="btn sec" data-act="dsave">' + ic('looks', 18) + 'Save look</button><button class="btn sec" data-act="dmore">' + ic('dress', 18) + 'Next idea</button></div>' +
         ((D.pin.length || D.pool.length) ? '<p class="note">' + (D.pin.length ? 'Built around ' + D.pin.map(function (id) { return W[id] ? W[id].name.toLowerCase() + ' in ' + W[id].colour.toLowerCase() : ''; }).join(', ') : 'Made from your ' + D.pool.length + ' picks') + '.</p>' : '');
     }
@@ -2579,7 +2636,7 @@ var Engine = (function () {
     var o = curO(), t = $('#dmT'); if (t) t.textContent = title(o);
     railsDraw(scroll);
     var stg = $('#stg'); if (!stg) return;
-    var h = Math.max(260, Math.min(420, Math.round(window.innerHeight * 0.46))); stg.style.height = (h + 16) + 'px';
+    var h = WIDE() ? Math.max(420, Math.min(820, Math.round(window.innerHeight * 0.66))) : Math.max(260, Math.min(420, Math.round(window.innerHeight * 0.46))); stg.style.height = (h + 16) + 'px';
     var img = $('img.fit', stg); img.style.opacity = 0.35;
     Engine.render(o, W, h, { overlap: S.settings.overlap, dotted: Object.keys(o).map(function (k) { return o[k]; }).filter(function (id) { return W[id] && W[id].maybe; }) }).then(function (r) {
       img.src = r.url; img.style.height = h + 'px'; img.style.width = r.w + 'px'; img.style.opacity = 1;
