@@ -58,7 +58,7 @@
   {
    "id": "ombre",
    "kind": "knit",
-   "name": "Ombr\u00e9 crew",
+   "name": "Ombré crew",
    "colour": "Navy to oatmeal",
    "brand": "",
    "hex": "#D2C7B4",
@@ -288,6 +288,26 @@
    "own": "img/joggers-own.jpg",
    "length": 104,
    "added": "2026-11-25"
+  },
+  {
+   "id": "cardigan",
+   "kind": "overshirt",
+   "sub": "cardigan",
+   "name": "Collared cardigan",
+   "colour": "Peach and grey",
+   "brand": "M&S",
+   "hex": "#D0BDA8",
+   "pattern": "ombre",
+   "texture": "knit",
+   "smart": 3,
+   "warmth": 3,
+   "neck": "collar",
+   "img": "img/cardigan.webp",
+   "tile": "img/cardigan-tile.jpg",
+   "length": 76,
+   "added": "2026-11-25",
+   "closure": "buttons",
+   "open": "img/cardigan-open.webp"
   }
  ]
 }
