@@ -1232,7 +1232,12 @@ var Engine = (function () {
           var t = document.createElement('canvas'), S = 480; t.width = S; t.height = S; var tx = t.getContext('2d');
           tx.fillStyle = corner < 40 ? '#ECE7DE' : 'rgb(' + br + ',' + bgc + ',' + bb + ')'; tx.fillRect(0, 0, S, S);   // a lifted-out PNG has no background: use the plinth, not black
           var ts = Math.min(S * 0.82 / o.width, S * 0.82 / o.height); tx.drawImage(o, (S - o.width * ts) / 2, (S - o.height * ts) / 2, o.width * ts, o.height * ts);
-          res({ cut: o.toDataURL('image/webp', 0.86), tile: t.toDataURL('image/jpeg', 0.84), hex: hex });
+          var cut = o.toDataURL('image/webp', 0.86);
+          if (cut.indexOf('data:image/png') === 0 && Math.max(o.width, o.height) > 680) {   // iPhones can't save WebP, and a full-size PNG is heavy to send: shrink it a little
+            var k2 = 680 / Math.max(o.width, o.height), o2 = document.createElement('canvas'); o2.width = Math.round(o.width * k2); o2.height = Math.round(o.height * k2);
+            var x2 = o2.getContext('2d'); x2.imageSmoothingQuality = 'high'; x2.drawImage(o, 0, 0, o2.width, o2.height); cut = o2.toDataURL('image/png');
+          }
+          res({ cut: cut, tile: t.toDataURL('image/jpeg', 0.8), hex: hex });
         };
         im.onerror = function () { rej(new Error('That file isn’t a picture I can read.')); };
         im.src = fr.result;
@@ -1353,7 +1358,7 @@ var Engine = (function () {
   function imgGet(k) {
     if (MEMIMG[k]) return Promise.resolve(MEMIMG[k]);
     var once = function () { return db().then(function (d) { if (!d) return null; return new Promise(function (res) { try { var q = d.transaction('img').objectStore('img').get(k); q.onsuccess = function () { res(q.result || null); }; q.onerror = function () { res(null); }; } catch (e) { idb = null; res(undefined); } }); }); };
-    return once().then(function (v) { return v === undefined ? once() : v; }).then(function (v) { return v || null; }).catch(function () { return null; });
+    return once().then(function (v) { return v === undefined ? once() : v; }).then(function (v) { if (v) MEMIMG[k] = v; return v || null; }).catch(function () { return null; });
   }
 
   function buildItems() {
@@ -1366,6 +1371,8 @@ var Engine = (function () {
       if (it.kind === 'trousers' && +it.length === 104 && S.settings.trousers !== 104) it.length = S.settings.trousers;
       it.openImg = it.openSrc || (it.open && it.open !== 'up' ? it.open : null);
     });
+    var oldW = W;   // photos already loaded stay with their piece through a rebuild, so they never flick back to "No photo"
+    out.forEach(function (i) { var o = oldW[i.id]; if (!o || (o.img || '') !== (i.img || '')) return; if (o.src && !i.src) { i.src = o.src; i.tileSrc = o.tileSrc; } if (o.openSrc && i.open === 'up') { i.openSrc = o.openSrc; i.openImg = o.openSrc; } });
     ITEMS = out.filter(function (i) { return !i.archived; }); W = {}; out.forEach(function (i) { W[i.id] = i; });
     if (typeof GH !== 'undefined') { Object.keys(GH).forEach(function (k) { if (!W[k]) W[k] = GH[k]; }); }
     markDirty();
@@ -1407,8 +1414,11 @@ var Engine = (function () {
   /* ---------- talking to the script ---------- */
   function api(a, d) {
     if (!EXEC || !key) return Promise.resolve(null);
-    return fetch(EXEC, { method: 'POST', body: JSON.stringify({ k: key, a: a, d: d || {} }), redirect: 'follow' })
-      .then(function (r) { return r.json(); }).catch(function () { return null; });
+    var body = JSON.stringify({ k: key, a: a, d: d || {} });
+    var fail = function (why) { S.lastErr = { at: Date.now(), a: a, why: String(why).slice(0, 160), kb: Math.round(body.length / 1024) }; return null; };
+    return fetch(EXEC, { method: 'POST', body: body, redirect: 'follow' })
+      .then(function (r) { return r.text().then(function (t) { try { return JSON.parse(t); } catch (e) { return fail('HTTP ' + r.status + ': ' + t.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140)); } }); })
+      .catch(function (e) { return fail(navigator.onLine === false ? 'offline' : (e && e.message) || 'no reply'); });
   }
   function send(a, d) {        // saved now, sent when there's signal
     S.queue.push({ a: a, d: d, at: Date.now() }); save(); flush();
@@ -1417,10 +1427,21 @@ var Engine = (function () {
   function flush() {      // sends what's waiting, in order; resolves when the queue is empty or the signal drops
     if (!EXEC || !key) return Promise.resolve();
     if (flushP) return flushP;
+    var miss = 0;
     var next = function () {
       if (!S.queue.length) return Promise.resolve();
+      if (navigator.onLine === false) return Promise.resolve();
       var job = S.queue[0];
-      return withImages(job.d).then(function (d) { return api(job.a, d); }).then(function (r) { if (r && (r.ok || r.why !== 'key')) { if (!r.ok) { S.failed = (S.failed || []).concat([{ a: job.a, why: r.why || '', at: Date.now() }]).slice(-20); } S.queue.shift(); save(); return next(); } });   // no reply = no signal, try later; a refusal won't get better, so drop it
+      return withImages(job.d).then(function (d) { return api(job.a, d); }).then(function (r) {
+        if (r && r.why === 'busy') r = null;           // the script was busy: try again, don't drop it
+        if (r && (r.ok || r.why !== 'key')) { miss = 0; if (!r.ok) { S.failed = (S.failed || []).concat([{ a: job.a, why: r.why || '', at: Date.now() }]).slice(-20); } S.queue.shift(); save(); return next(); }   // a refusal won't get better, so it's dropped (and shown in Settings)
+        if (r) return;                                   // the key was refused: stop
+        // no reply. One stuck change mustn't hold up everything behind it: after three goes it moves to the back
+        job.tries = (job.tries || 0) + 1; miss++;
+        if (job.tries >= 8) { S.failed = (S.failed || []).concat([{ a: job.a, why: 'couldn’t send after 8 tries (' + ((S.lastErr && S.lastErr.why) || 'no reply') + ')', at: Date.now() }]).slice(-20); S.queue.shift(); save(); return next(); }
+        if (job.tries % 3 === 0 && S.queue.length > 1 && miss < 2) { S.queue.push(S.queue.shift()); save(); return next(); }
+        save();
+      });
     };
     flushP = next().then(function () { flushP = null; }, function () { flushP = null; });
     return flushP;
@@ -2287,7 +2308,7 @@ var Engine = (function () {
     if (S.settings.fit2) return false;
     S.settings.fit2 = true; if (+S.settings.trousers === 104) S.settings.trousers = 98; return true;
   }
-  var SCRIPT_WANT = '1.9.8';
+  var SCRIPT_WANT = '1.9.11';
   function scriptCheck() {
     var el = $('#scriptv'); if (!el) return;
     api('ping').then(function (r) {
@@ -2298,7 +2319,7 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.9';
+  var VERSION = '1.9.11';
   var WHATS_NEW = [
     ['Clearer layers', 'When a look has two layers on top, like a cardigan and a jacket, the jacket is laid alongside the outfit instead of over everything, so every piece is easy to see.'],
     ['Delete pieces', 'Edit a piece and tap Delete twice, or pick several in Wardrobe with the tick button and delete them together.'],
@@ -2616,7 +2637,7 @@ var Engine = (function () {
       (S.isOwner !== false ? '<label for="sc">Calendars to read for nights out</label><input type="text" id="sc" value="' + esc(st.calendars || '') + '">' : '<input type="hidden" id="sc" value="">') +
       (st.none.length ? '<label>Told Turnout you own none of</label><div class="pills">' + st.none.map(function (k) { return '<button data-act="unnone" data-k="' + k + '" class="on" style="display:inline-flex;align-items:center;gap:6px">' + KNAME[k] + ic('close', 12) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="acts"><button class="btn sec" data-act="prompts">' + ic('copy', 18) + 'Gemini prompts</button><button class="btn sec" data-act="syncnow">Sync now</button></div>' +
-      '<p class="note">' + '<span id="scriptv">Checking your Apps Script…</span><br>' + ((S.failed || []).length ? '<b>' + S.failed.length + ' change' + (S.failed.length > 1 ? 's' : '') + ' didn’t save</b> (' + esc(S.failed[S.failed.length - 1].a) + ': ' + esc(S.failed[S.failed.length - 1].why || 'refused') + '). <button class="ul" data-act="clearfailed">Clear</button><br>' : '') + (S.synced ? 'Synced ' + new Date(S.synced).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Not synced yet') + (S.queue.length ? ' · ' + S.queue.length + ' waiting to send' : '') + '</p></div>' +
+      '<p class="note">' + '<span id="scriptv">Checking your Apps Script…</span><br>' + (S.queue.length && S.lastErr && Date.now() - S.lastErr.at < 864e5 ? 'Last send problem: ' + esc(S.lastErr.a) + ' (' + S.lastErr.kb + ' KB), ' + esc(S.lastErr.why) + '<br>' : '') + ((S.failed || []).length ? '<b>' + S.failed.length + ' change' + (S.failed.length > 1 ? 's' : '') + ' didn’t save</b> (' + esc(S.failed[S.failed.length - 1].a) + ': ' + esc(S.failed[S.failed.length - 1].why || 'refused') + '). <button class="ul" data-act="clearfailed">Clear</button><br>' : '') + (S.synced ? 'Synced ' + new Date(S.synced).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Not synced yet') + (S.queue.length ? ' · ' + S.queue.length + ' waiting to send' : '') + '</p></div>' +
       '<div class="acts sticky"><button class="btn pri wide" data-act="ssave">Save settings</button></div>' +
       '<div class="acts"><button class="btn sec" data-act="whatsnew">What’s new</button><button class="btn sec" data-act="setupagain">Run setup again</button></div>' +
       '<div class="acts"><button class="btn sec wide" data-act="signout">Forget this phone’s key</button></div></div>', { full: true });
@@ -3196,6 +3217,7 @@ var Engine = (function () {
   /* ============ start ============ */
   function start() {
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
+    setInterval(function () { if (S.queue.length && !document.hidden) flush(); }, 20000);   // keep sending while there's a backlog
     var cached = null; try { cached = JSON.parse(localStorage.getItem('turnout-seed') || 'null'); } catch (e) {}
     var fresh = fetch('wardrobe.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).catch(function () { return null; });
     if (S.isOwner === false) { cached = []; fresh = Promise.resolve({ items: [] }); }
