@@ -543,6 +543,7 @@ details.more>*:last-child{margin-bottom:14px}
 @media (prefers-color-scheme:dark){.btn.danger{color:#E2827C;box-shadow:inset 0 0 0 1.5px #E2827C}}
 
 .seg.sub{margin-top:8px}.seg.sub button{height:34px;padding:0 13px;font-size:14px;background:var(--paper);border:0}.seg.sub button.on{background:var(--ink);color:var(--cream)}
+.cl-f[data-act]{cursor:pointer}
 
 </style>
 </head>
@@ -596,8 +597,15 @@ var Brain = (function () {
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
   /* How well two pieces sit together, 0 to 1 */
+  var HM = {}, HMn = 0;   // colour pairs are scored again and again: remember them
   function harmony(a, b) {
     if (!a || !b) return 0.75;
+    var hk = a.hex + (a.pattern || '') + (a.texture || '') + (a.kind || '') + '|' + b.hex + (b.pattern || '') + (b.texture || '') + (b.kind || '');
+    if (hk in HM) return HM[hk];
+    if (++HMn > 60000) { HM = {}; HMn = 0; }
+    return (HM[hk] = harmony0(a, b));
+  }
+  function harmony0(a, b) {
     var A = hsl(a.hex), B = hsl(b.hex), h;
     var nA = neutral(A), nB = neutral(B);
     if (nA && nB) h = 0.8;
@@ -768,19 +776,20 @@ var Brain = (function () {
       combos = pinOver ? withOver : combos.concat(withOver);
     }
 
+    var coatFor = {}, shoeFor = {};
     var out = combos.map(function (c) {
       var top = W[c.top] || W[c.shirt], bot = W[c.bottom];
       // best coat when it's cold (or if one's pinned/locked)
       var coatPinned = coats.some(function (x) { return pin.indexOf(x.id) >= 0 || lock.coat === x.id; });
       if (coats.length && (coatPinned || (ctx.temp != null && ctx.temp < 10 && !ctx.indoors))) {
-        c.coat = coats.slice().sort(function (a, b) { return harmony(b, top) - harmony(a, top); })[0].id;
+        c.coat = coatFor[top.id] || (coatFor[top.id] = coats.slice().sort(function (a, b) { return harmony(b, top) - harmony(a, top); })[0].id);
       }
       // shoes that suit the trousers and the occasion
       if (shoes.length) {
         var occ = OCC[ctx.occasion] || OCC.work;
-        c.shoes = shoes.slice().sort(function (a, b) {
+        c.shoes = shoeFor[bot.id] || (shoeFor[bot.id] = shoes.slice().sort(function (a, b) {
           return (harmony(b, bot) * 10 - Math.abs((+b.smart || 3) - occ.smart) * 3) - (harmony(a, bot) * 10 - Math.abs((+a.smart || 3) - occ.smart) * 3);
-        })[0].id;
+        })[0].id);
       }
       var r = score(c, ctx, W);
       return { outfit: c, score: r.score, reasons: r.reasons };
@@ -850,26 +859,36 @@ var Brain = (function () {
     C('g-derby', 'shoes', 'shoes', 'Black leather derby shoes', 'Black', '#1B1B1C', 5, 2)
   ];
   var GOODAT = 72, OCCS = ['work', 'out', 'party', 'weekend'];
+  function gctx(oc, base) { return { date: '2099-01-01', occasion: oc, temp: 8, wear: [], ratings: base.ratings || {}, notes: base.notes || {} }; }
+  function gkey(oc, o) { return oc + ':' + core(o.outfit) + ':' + (o.outfit.shirt && o.outfit.top ? o.outfit.shirt : '') + ':' + (o.outfit.over || ''); }
+  var GS = { k: '', v: null };   // the last good set, so the same wardrobe isn't worked out twice
   function goodSet(list, base) {
+    var k = list.map(function (i) { return i.id + '/' + i.hex + '/' + i.smart + '/' + i.warmth; }).join(',') + '|' + JSON.stringify(base.ratings || {}).length + '|' + JSON.stringify(base.notes || {}).length;
+    if (GS.k === k) return GS.v;
     var s = {};
-    OCCS.forEach(function (oc) { generate(list, { date: '2099-01-01', occasion: oc, temp: 8, wear: [], ratings: base.ratings || {}, notes: base.notes || {} }).forEach(function (o) { if (o.score >= GOODAT) s[oc + ':' + core(o.outfit) + ':' + (o.outfit.shirt && o.outfit.top ? o.outfit.shirt : '') + ':' + (o.outfit.over || '')] = 1; }); });
+    OCCS.forEach(function (oc) { generate(list, gctx(oc, base)).forEach(function (o) { if (o.score >= GOODAT) s[gkey(oc, o)] = 1; }); });
+    GS = { k: k, v: s };
     return s;
   }
   function count(s) { return Object.keys(s).length; }
   /* What one piece (owned or not) adds: new good outfits, by occasion, with examples */
   function adds(items, cand, base, before) {
     var owned = items.filter(usable), now = before || goodSet(owned, base);
-    var c2 = Object.assign({}, cand, { maybe: false, wash: false }), after = goodSet(owned.concat([c2]), base);
-    var neu = Object.keys(after).filter(function (k) { return !now[k]; }), by = {};
-    neu.forEach(function (k) { var oc = k.split(':')[0]; by[oc] = (by[oc] || 0) + 1; });
+    var c2 = Object.assign({}, cand, { maybe: false, wash: false }), list = owned.filter(function (o) { return o.id !== c2.id; }).concat([c2]);
+    // only outfits that use the new piece can be new, so build just those (much faster with a big wardrobe)
+    var G = {}, neu = [], by = {};
+    OCCS.forEach(function (oc) {
+      G[oc] = generate(list, gctx(oc, base), { pin: [c2.id] });
+      G[oc].forEach(function (o) { if (o.score < GOODAT) return; var k = gkey(oc, o); if (!now[k] && neu.indexOf(k) < 0) { neu.push(k); by[oc] = (by[oc] || 0) + 1; } });
+    });
     var ex = [], seen = {};
     ['out', 'work', 'party', 'weekend'].forEach(function (oc) {
-      generate(owned.concat([c2]), { date: '2099-01-01', occasion: oc, temp: 8, wear: [], ratings: base.ratings || {}, notes: base.notes || {} }, { pin: [c2.id] }).slice(0, 3).forEach(function (o) {
+      G[oc].slice(0, 3).forEach(function (o) {
         var k = key(o.outfit); if (!seen[k] && o.score >= GOODAT - 6 && ex.length < 6) { seen[k] = 1; ex.push({ outfit: o.outfit, occasion: oc }); }
       });
     });
     var goes = owned.filter(function (o) { return o.id !== c2.id && SLOT[o.kind] !== SLOT[c2.kind] && harmony(o, c2) >= 0.78; }).length;
-    return { adds: neu.length, by: by, examples: ex, goes: goes, now: count(now), total: count(now) + neu.length };
+    return { adds: neu.length, by: by, examples: ex, goes: goes, now: count(now), total: count(now) + neu.length, keys: neu };
   }
   /* Why it's worth buying, in plain words */
   function reason(items, cand) {
@@ -900,10 +919,10 @@ var Brain = (function () {
   function gaps(items, base, opts) {
     opts = opts || {};
     var owned = items.filter(usable), kinds = {}; items.forEach(function (i) { if (!i.maybe) kinds[i.kind] = 1; });
-    var none = opts.none || [], now = goodSet(owned, base);
+    var none = opts.none || [], now = opts.now || goodSet(owned, base);
     var maybes = items.filter(function (i) { return i.maybe && !i.archived; }), names = {}; items.forEach(function (i) { names[String(i.name).toLowerCase() + '|' + String(i.colour).toLowerCase()] = 1; });
     return CATALOGUE.filter(function (c) { return !names[c.name.toLowerCase() + '|' + c.colour.toLowerCase()] && !maybes.some(function (m) { return near(m, c); }) && (kinds[c.kind] || none.indexOf(c.kind) >= 0); })
-      .map(function (c) { var a = adds(items, c, base, now); return { item: c, adds: a.adds, by: a.by, examples: a.examples, goes: a.goes, now: a.now, why: reason(items, c) }; })
+      .map(function (c) { var a = adds(items, c, base, now); return { item: c, adds: a.adds, by: a.by, examples: a.examples, goes: a.goes, now: a.now, keys: a.keys, why: reason(items, c) }; })
       .filter(function (x) { return x.adds > 0; })
       .sort(function (a, b) { return b.adds - a.adds; });
   }
@@ -946,7 +965,8 @@ var Engine = (function () {
   var geomMem = {}, imgMem = {}, outMem = {};
   /* finished flat-lays are kept on the phone, so swiping never waits twice */
   var FV = 1; try { FV = +(localStorage.getItem('turnout-flatv') || 1); } catch (e) {}
-  function ckey(k) { return '/flat/' + FV + '/' + encodeURIComponent(k); }
+  var EV = 'e3';   // bump when the drawing changes, so old saved flat-lays aren't reused
+  function ckey(k) { return '/flat/' + EV + '.' + FV + '/' + encodeURIComponent(k); }
   function cacheGet(k) {
     try { if (!window.caches) return Promise.resolve(null); } catch (x) { return Promise.resolve(null); }
     return caches.open('turnout-flats').then(function (c) { return c.match(ckey(k)); }).then(function (r) {
@@ -959,8 +979,11 @@ var Engine = (function () {
     caches.open('turnout-flats').then(function (c) { return c.put(ckey(k), new Response(blob, { headers: { 'content-type': blob.type, 'x-meta': JSON.stringify({ w: meta.w, h: meta.h, hem: meta.hem, waist: meta.waist }) } })); }).catch(function () {});
   }
 
+  // iPhones kill the page when too many big photos are decoded at once, so only the last few stay in memory
+  var imgOrder = [], IMG_KEEP = 18;
   function loadImg(src) {
-    if (imgMem[src]) return imgMem[src];
+    if (imgMem[src]) { var j = imgOrder.indexOf(src); if (j >= 0) imgOrder.splice(j, 1); imgOrder.push(src); return imgMem[src]; }
+    imgOrder.push(src); while (imgOrder.length > IMG_KEEP) delete imgMem[imgOrder.shift()];
     imgMem[src] = new Promise(function (res, rej) {
       var im = new Image(); im.decoding = 'async';
       im.onload = function () { res(im); }; im.onerror = function () { if (/^img\//.test(src) && !im.dataset.again) { im.dataset.again = 1; im.src = src.slice(4); return; } delete imgMem[src]; rej(new Error('image ' + src)); };   // photos uploaded next to index.html instead of into img/ still load
@@ -974,7 +997,7 @@ var Engine = (function () {
     var w = im.naturalWidth, h = im.naturalHeight, c = document.createElement('canvas');
     var sc = Math.min(1, 400 / Math.max(w, h)); c.width = Math.round(w * sc); c.height = Math.round(h * sc);
     var x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, c.width, c.height);
-    var d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height;
+    var d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height; c.width = 0; c.height = 0;
     var A = function (px, py) { return d[(py * W + px) * 4 + 3] > 128; };
     var minx = W, maxx = 0, miny = H, maxy = 0;
     for (var y = 0; y < H; y++) for (var xx = 0; xx < W; xx++) if (A(xx, y)) { if (xx < minx) minx = xx; if (xx > maxx) maxx = xx; if (y < miny) miny = y; if (y > maxy) maxy = y; }
@@ -986,18 +1009,22 @@ var Engine = (function () {
       var l = cx, r = cx; while (l > 0 && A(l - 1, yy)) l--; while (r < W - 1 && A(r + 1, yy)) r++; return [l, r];
     }
     var g = { bx: minx / sc, by: miny / sc, bw: (maxx - minx) / sc, bh: (maxy - miny) / sc };
-    if (kind === 'trousers') { var t = run(Math.round(miny + (maxy - miny) * 0.03)); g.cx = (t[0] + t[1]) / 2 / sc; g.len = g.bh; g.top = g.by; }
+    if (kind === 'trousers') {   // centre on the waistband, a little below its top edge (on shorts the very top row can miss the middle)
+      var wy = Math.round(miny + (maxy - miny) * 0.08), mid = Math.round((minx + maxx) / 2), t = A(mid, wy) ? run(wy) : [minx, maxx];
+      g.cx = (t[0] + t[1]) / 2 / sc; g.len = g.bh; g.top = g.by;
+    }
     else if (kind === 'shoes' || /-open$/.test(kind)) { g.cx = (minx + maxx) / 2 / sc; g.len = g.bh; g.top = g.by; }
     else { var hem = (kind === 'coat' || kind === 'overshirt' ? maxy : hi); var r2 = run(Math.round(hem - (maxy - miny) * 0.04)); g.cx = (r2[0] + r2[1]) / 2 / sc; g.top = g.by; g.len = (hem - miny) / sc; }
     return g;
   }
   function geom(item) {
-    var k = item.img + '|' + item.kind;
-    if (geomMem[k]) return geomMem[k];
-    geomMem[k] = loadImg(item.src || item.img).then(function (im) { return { im: im, g: measure(im, item.kind) }; });
-    geomMem[k].catch(function () { delete geomMem[k]; });
-    return geomMem[k];
+    var k = item.img + '|' + item.kind, src = item.src || item.img;
+    return loadImg(src).then(function (im) {
+      if (!geomMem[k]) geomMem[k] = measure(im, item.kind);   // only the measurements are kept, not the photo
+      return { im: im, g: geomMem[k] };
+    });
   }
+  function free() { for (var i = 0; i < arguments.length; i++) { var c = arguments[i]; if (c) { c.width = 0; c.height = 0; } } }   // hand canvas memory back straight away (Safari has a hard limit)
 
   /* A dotted line around a piece you don't own yet */
   function outline(ctx, im, dx, dy, dw, dh, DPR) {
@@ -1014,6 +1041,7 @@ var Engine = (function () {
     var dx2 = dots.getContext('2d'); dx2.fillStyle = '#000'; dx2.beginPath(); dx2.arc(g / 2, g / 2, g * 0.26, 0, Math.PI * 2); dx2.fill();
     ax.globalCompositeOperation = 'destination-in'; ax.fillStyle = ax.createPattern(dots, 'repeat'); ax.fillRect(0, 0, W, H);
     ctx.save(); ctx.globalAlpha = 0.8; ctx.drawImage(a, dx - pad, dy - pad); ctx.restore();
+    a.width = 0; a.height = 0; dots.width = 0; dots.height = 0;
   }
 
   /* Draw a whole outfit. h is the CSS height it'll be shown at. */
@@ -1022,10 +1050,19 @@ var Engine = (function () {
     var ids = ['coat', 'over', 'bottom', 'shoes', 'shirt', 'top'].map(function (s) { return outfit[s]; });
     var k = ids.join('|') + '@' + h + (opts.overlap || '') + '~' + (opts.dotted || []).join(',') + '^' + (opts.coat || 'beside');
     if (outMem[k]) return outMem[k];
-    outMem[k] = cacheGet(k).then(function (hit) { return hit || draw0(outfit, W, h, opts, k); });
-    outMem[k].catch(function () { delete outMem[k]; });
+    outOrder.push(k);
+    while (outOrder.length > OUT_KEEP) { (function (old) { var p = outMem[old]; delete outMem[old]; if (p) p.then(function (r) { setTimeout(function () { try { if (r && /^blob:/.test(r.url)) URL.revokeObjectURL(r.url); } catch (e) {} }, 60000); }).catch(function () {}); })(outOrder.shift()); }
+    outMem[k] = cacheGet(k).then(function (hit) {
+      if (hit) return hit;
+      // one drawing at a time: drawing several at once runs the phone out of memory
+      var run = QUEUE.then(function () { return draw0(outfit, W, h, opts, k); });
+      QUEUE = run.catch(function () {}).then(function () { return new Promise(function (r) { setTimeout(r, 16); }); });
+      return run;
+    });
+    outMem[k].catch(function () { delete outMem[k]; var j = outOrder.indexOf(k); if (j >= 0) outOrder.splice(j, 1); });
     return outMem[k];
   }
+  var QUEUE = Promise.resolve(), outOrder = [], OUT_KEEP = 80;
   function draw0(outfit, W, h, opts, k) {
     var parts = { top: W[outfit.top], shirt: W[outfit.shirt], over: W[outfit.over], bottom: W[outfit.bottom], coat: W[outfit.coat], shoes: W[outfit.shoes] };
     var dotted = opts.dotted || [];
@@ -1048,7 +1085,8 @@ var Engine = (function () {
       var topLen = lenOf(upper), botLen = lenOf(parts.bottom), ov = opts.overlap || OVERLAP;
       var shoeCm = parts.shoes ? 10 : 0;
       var coatLen = Math.max(parts.coat ? lenOf(parts.coat) : 0, parts.over ? lenOf(parts.over) : 0);
-      var totalCm = Math.max(topLen + botLen - ov + shoeCm, coatLen) + 6;
+      var legCm = (parts.bottom.sub === 'shorts' || botLen < 70) ? botLen + 14 : botLen;   // with shorts, the shoes sit a little below, like a styled flat-lay, not tucked under the hem
+      var totalCm = Math.max(topLen + legCm - ov + shoeCm, coatLen) + 6;
       var DPR = 2, PX = (h * DPR) / totalCm;            // pixels per cm
       var SCX = {};
       var scaleOf = function (s) { return SCX[s] || (s === 'shoes' ? (lenOf(parts.shoes) * PX) : (lenOf(parts[s]) * PX)) / G[s].g.len; };
@@ -1067,7 +1105,7 @@ var Engine = (function () {
         x.drawImage(sim, scx - sg0.cx * sideSc, top0 + 4 * PX - sg0.top * sideSc, sim.naturalWidth * sideSc, sim.naturalHeight * sideSc); x.restore();
         if (dotted.indexOf(sideCoat.it.id) >= 0) outline(x, sim, scx - sg0.cx * sideSc, top0 + 4 * PX - sg0.top * sideSc, sim.naturalWidth * sideSc, sim.naturalHeight * sideSc, DPR);
       }
-      var hemY = top0 + topLen * PX, waistY = hemY - ov * PX, botEnd = waistY + botLen * PX;
+      var hemY = top0 + topLen * PX, waistY = hemY - ov * PX, botEnd = waistY + botLen * PX, footY = waistY + legCm * PX;
       function draw(s, yTop, shadow) {
         var gg = G[s].g, sc = scaleOf(s), im = G[s].im, dx = cx - gg.cx * sc, dy = yTop - gg.top * sc, dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
         x.save();
@@ -1130,18 +1168,46 @@ var Engine = (function () {
         ox.globalCompositeOperation = 'source-over';
         x.save(); x.shadowColor = 'rgba(40,32,24,.30)'; x.shadowBlur = 14 * DPR; x.shadowOffsetY = 5 * DPR; x.drawImage(o, 0, 0); x.restore();
         if (dotted.indexOf(parts[s].id) >= 0) outline(x, o, 0, 0, cw, ch, DPR);
+        free(src, o);
       }
       draw('bottom', waistY, true);
       if (parts.shoes) {                                            // toes out, just under the hems
         var sg = G.shoes.g, ssc = scaleOf('shoes');
         x.save(); x.shadowColor = 'rgba(40,32,24,.22)'; x.shadowBlur = 10 * DPR; x.shadowOffsetY = 4 * DPR;
-        x.drawImage(G.shoes.im, cx - sg.cx * ssc, botEnd - 2 * PX - sg.top * ssc, G.shoes.im.naturalWidth * ssc, G.shoes.im.naturalHeight * ssc); x.restore();
+        x.drawImage(G.shoes.im, cx - sg.cx * ssc, footY - 2 * PX - sg.top * ssc, G.shoes.im.naturalWidth * ssc, G.shoes.im.naturalHeight * ssc); x.restore();
       }
       // under an open layer, only what would really show stays: inside its outline, or in the opening
       var outerS = parts.over ? 'over' : parts.coat ? 'coat' : null, mainX = x, innerCv = null;
       if (outerS) { innerCv = document.createElement('canvas'); innerCv.width = cw; innerCv.height = ch; x = innerCv.getContext('2d'); x.imageSmoothingQuality = 'high'; }
-      if (parts.shirt && parts.top) draw('shirt', top0 - 2 * PX, true);   // collar 2 cm above the knit, hem shows below
+      if (parts.shirt && parts.top) {   // a shirt under a knit only shows at the hem (and the collar, below): its sides and sleeves stay hidden
+        var kg = G.top.g, ksc = scaleOf('top'), kim = G.top.im, kdx = cx - kg.cx * ksc, kdy = top0 - kg.top * ksc;
+        var km = document.createElement('canvas'); km.width = cw; km.height = ch; var kmx = km.getContext('2d', { willReadFrequently: true });
+        kmx.drawImage(kim, kdx, kdy, kim.naturalWidth * ksc, kim.naturalHeight * ksc);
+        var hy = Math.max(0, Math.min(ch - 1, Math.round(hemY - 1.5 * PX))), row = kmx.getImageData(0, hy, cw, 1).data, hl = -1, hr = -1, mid = Math.round(cx);
+        for (var q = mid; q >= 0 && row[q * 4 + 3] > 60; q--) hl = q;
+        for (q = mid; q < cw && row[q * 4 + 3] > 60; q++) hr = q;
+        if (hl < 0 || hr < 0) { hl = cx - kg.bw * ksc * 0.4; hr = cx + kg.bw * ksc * 0.4; }
+        kmx.fillStyle = '#000'; kmx.fillRect(hl + 2 * DPR, hy, hr - hl - 4 * DPR, ch - hy);
+        var sc0 = document.createElement('canvas'); sc0.width = cw; sc0.height = ch; var scx0 = sc0.getContext('2d'); scx0.imageSmoothingQuality = 'high';
+        var sg1 = G.shirt.g, ss1 = scaleOf('shirt'), si1 = G.shirt.im;
+        scx0.drawImage(si1, cx - sg1.cx * ss1, (top0 - 2 * PX) - sg1.top * ss1, si1.naturalWidth * ss1, si1.naturalHeight * ss1);
+        scx0.globalCompositeOperation = 'destination-in'; scx0.drawImage(km, 0, 0);
+        x.save(); x.shadowColor = 'rgba(40,32,24,.26)'; x.shadowBlur = 16 * DPR; x.shadowOffsetY = 6 * DPR; x.drawImage(sc0, 0, 0); x.restore();
+        free(km, sc0);
+      }
       draw(parts.top ? 'top' : 'shirt', top0, true);
+      if (parts.shirt && parts.top) {   // the collar sits over the jumper's neckline, the way it does when you wear it
+        var sgc = G.shirt.g, ssc2 = scaleOf('shirt'), sim2 = G.shirt.im, sdx = cx - sgc.cx * ssc2, sdy = (top0 - 2 * PX) - sgc.top * ssc2;
+        var cr = document.createElement('canvas'); cr.width = cw; cr.height = ch; var crx = cr.getContext('2d'); crx.imageSmoothingQuality = 'high';
+        crx.drawImage(sim2, sdx, sdy, sim2.naturalWidth * ssc2, sim2.naturalHeight * ssc2);
+        var rx = sgc.bw * ssc2 * 0.15, ry = 7.5 * PX, ccy = top0 + 3 * PX;   // collar band and points: the top 12 cm or so of the shirt, centred
+        crx.globalCompositeOperation = 'destination-in';
+        crx.save(); crx.translate(cx, ccy); crx.scale(1, ry / rx);
+        var rg = crx.createRadialGradient(0, 0, 0, 0, 0, rx); rg.addColorStop(0, '#000'); rg.addColorStop(0.9, '#000'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+        crx.fillStyle = rg; crx.fillRect(-rx, -rx, rx * 2, rx * 2); crx.restore();
+        x.save(); x.shadowColor = 'rgba(40,32,24,.22)'; x.shadowBlur = 5 * DPR; x.shadowOffsetY = 2 * DPR; x.drawImage(cr, 0, 0); x.restore();
+        free(cr);
+      }
       if (outerS) {
         var og = openGeo(outerS, top0 - (outerS === 'coat' ? 1 : 0.5) * PX), m = document.createElement('canvas'); m.width = cw; m.height = ch;
         var mx = m.getContext('2d', { willReadFrequently: true }); mx.drawImage(og.im, og.dx, og.dy, og.dw, og.dh); mx.fillStyle = '#000';
@@ -1150,7 +1216,7 @@ var Engine = (function () {
           var bx0 = Math.max(0, Math.round(cx - og.bw * 0.3)), bx1 = Math.min(cw - 1, Math.round(cx + og.bw * 0.3));   // the body only, not the gaps by the sleeves
           for (var ry = 0; ry < ch; ry++) { var l = -1, r = -1, o = ry * cw * 4; for (var rx = bx0; rx <= bx1; rx++) if (dd[o + rx * 4 + 3] > 100) { if (l < 0) l = rx; r = rx; } if (l >= 0) mx.fillRect(l, ry, r - l + 1, 1); }
         } else { og.gap(mx); mx.fill(); } mx.clearRect(0, og.hem - 0.5 * PX, cw, ch);   // what's underneath shows only through the opening, never below the layer's hem
-        x.globalCompositeOperation = 'destination-in'; x.drawImage(m, 0, 0); x = mainX; x.drawImage(innerCv, 0, 0);
+        x.globalCompositeOperation = 'destination-in'; x.drawImage(m, 0, 0); x = mainX; x.drawImage(innerCv, 0, 0); free(m, innerCv);
       }
       if (parts.over) drawOpen('over', top0 - 0.5 * PX);
       if (parts.coat) drawOpen('coat', top0 - 1 * PX);
@@ -1161,7 +1227,7 @@ var Engine = (function () {
       }
       return new Promise(function (res) {
         var meta = { w: cw / DPR, h: h, hem: hemY / ch, waist: waistY / ch };
-        var done = function (url, b) { meta.url = url; if (b) cachePut(k, b, meta); res(meta); };
+        var done = function (url, b) { meta.url = url; if (b) cachePut(k, b, meta); free(cv); res(meta); };
         try { if (cv.toBlob) cv.toBlob(function (b) { done(b ? URL.createObjectURL(b) : cv.toDataURL(), b); }, 'image/webp', 0.86); else done(cv.toDataURL()); }
         catch (e) { done(cv.toDataURL()); }
       });
@@ -1553,14 +1619,22 @@ var Engine = (function () {
   var CROWDS = ['work', 'lads', 'family', 'jess', 'friends'], CROWDNAME = { work: 'Work', lads: 'The lads', family: 'Family', jess: 'Jess', friends: 'Friends' };
 
   /* ---------- drawing outfits ---------- */
+  var FGO = {}, FIO = null;
+  try { FIO = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; FIO.unobserve(e.target); var g = FGO[e.target.id]; delete FGO[e.target.id]; if (g) g(); }); }, { rootMargin: '300px' }) : null; } catch (e) { FIO = null; }
   function flat(outfit, h, cls) {
     var id = 'f' + Math.random().toString(36).slice(2, 9);
-    setTimeout(function () {
+    var go = function () {
+      if (!document.getElementById(id)) return;   // gone before its turn: skip the drawing
       Engine.render(outfit, W, h, { overlap: S.settings.overlap, dotted: Object.keys(outfit).map(function (k) { return outfit[k]; }).filter(function (id) { return W[id] && W[id].maybe; }) }).then(function (r) {
         var el = document.getElementById(id); if (!el) return;
         el.src = r.url; el.style.width = r.w + 'px'; el.dataset.hem = r.hem; el.classList.add('in');
         el.dispatchEvent(new CustomEvent('drawn', { bubbles: true, detail: r }));
       }).catch(function () {});
+    };
+    setTimeout(function () {   // only draw looks that are on screen (or nearly): a long list no longer draws everything at once
+      var el = document.getElementById(id); if (!el) return;
+      if (!FIO) return go();
+      FGO[id] = go; FIO.observe(el);
     }, 0);
     return '<img id="' + id + '" class="' + (cls || 'flat') + '" alt="" style="height:' + h + 'px">';
   }
@@ -1763,16 +1837,22 @@ var Engine = (function () {
 
   /* ---- Shop: what to buy, and the Maybes you're weighing up ---- */
   function shopKey() { return JSON.stringify(S.ideas || []).length + ':' + ITEMS.map(function (i) { return i.id + (i.wash ? 'w' : '') + (i.maybe ? 'm' : ''); }).join(',') + '|' + S.settings.none.join(',') + '|' + Object.keys(S.ratings).length; }
+  function shopReady() {   // best buys already worked out (this session or saved on the phone)
+    var k = shopKey(); if (SHOP && SHOP.k === k) return true;
+    try { var c = JSON.parse(localStorage.getItem('turnout-shop') || 'null'); if (c && c.k === k) { SHOP = c; return true; } } catch (e) {}
+    return false;
+  }
   function shopData() {
-    var k = shopKey(); if (SHOP && SHOP.k === k) return SHOP;
+    if (shopReady()) return SHOP; var k = shopKey();
     var b = base(), owned2 = ITEMS.filter(function (i) { return !i.maybe; }), before = Brain.goodSet(owned2.filter(Brain.usable), b);
-    var buys = Brain.gaps(ITEMS, b, { none: S.settings.none }), best = buys.length ? buys[0].adds : 0;
-    var ideas = (S.ideas || []).map(function (c) { var a = Brain.adds(owned2, c, b, before); return { item: c, adds: a.adds, by: a.by, examples: a.examples, goes: a.goes, now: a.now, why: c.why || Brain.reason(owned2, c), claude: true }; });
+    var buys = Brain.gaps(ITEMS, b, { none: S.settings.none, now: before }), best = buys.length ? buys[0].adds : 0;
+    var ideas = (S.ideas || []).map(function (c) { var a = Brain.adds(owned2, c, b, before); return { item: c, adds: a.adds, by: a.by, examples: a.examples, goes: a.goes, now: a.now, keys: a.keys, why: c.why || Brain.reason(owned2, c), claude: true }; });
     buys = ideas.concat(buys.filter(function (g) { return !ideas.some(function (x) { return Brain.near(x.item, g.item); }); }));
     var maybes = ITEMS.filter(function (i) { return i.maybe; }).map(function (m) { var a = Brain.adds(owned2, m, b, before); return Object.assign({ item: m }, a, { why: Brain.reason(owned2, m), verdict: verdict(m, a, owned2, best) }); });
-    var top4 = buys.slice(0, 4).map(function (x) { return x.item; });
-    SHOP = { k: k, maybes: maybes, buys: buys, nIdeas: (S.ideas || []).length, now: Brain.goodSet(owned2.filter(Brain.usable), b), all: top4.length ? Brain.together(owned2, top4, b) : 0 };
+    var u = {}; buys.slice(0, 4).forEach(function (x) { (x.keys || []).forEach(function (q) { u[q] = 1; }); });   // the top four's new outfits, added up
+    SHOP = { k: k, maybes: maybes, buys: buys, nIdeas: (S.ideas || []).length, now: before, all: Object.keys(before).length + Object.keys(u).length };
     SHOP.nowN = Object.keys(SHOP.now).length;
+    try { localStorage.setItem('turnout-shop', JSON.stringify(Object.assign({}, SHOP, { now: {}, buys: SHOP.buys.map(function (x) { return Object.assign({}, x, { keys: undefined }); }), maybes: SHOP.maybes.map(function (x) { return Object.assign({}, x, { keys: undefined }); }) }))); } catch (e) {}
     return SHOP;
   }
   function verdict(m, a, own, best) {
@@ -1983,7 +2063,7 @@ var Engine = (function () {
       'Every outfit needs a top (or a shirt on its own) and a bottom; leave out slots you don\'t use. Only use codes from the list and kind ids from KINDS OF DAY. Pieces IN THE WASH are fine for the bank. Leave out any section you have nothing for.');
     return t.join('\n');
   }
-  function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
+  function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { if (/^img\//.test(src) && !im.dataset.again) { im.dataset.again = 1; im.src = src.slice(4); return; } res(null); }; im.src = src; }); }   // photos uploaded next to index.html still load
   function roundRect(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
   function fitText(x, t, a, b, w) { if (x.measureText(t).width > w) { while (t.length > 3 && x.measureText(t + '…').width > w) t = t.slice(0, -1); t += '…'; } x.fillText(t, a, b); }
   /* The wardrobe as pictures for the AI: 12 pieces a page, each page sized so the AI sees it close to full size
@@ -2207,6 +2287,10 @@ var Engine = (function () {
       out.push({ outfit: o, look: l, score: r.score + (rt === 'love' ? 12 : 0) + (l.from === 'claude' ? 8 : 0), note: l.note || r.reasons.map(function (x) { return x.t || x; })[0] || '' });
     });
     out.sort(function (a, b) { return b.score - a.score; });
+    if (ctx.temp != null) {   // shorts only when it's warm enough
+      var fits = out.filter(function (d) { var b2 = W[d.outfit.bottom]; return !(b2 && (b2.sub === 'shorts' || /short/i.test(b2.name || '')) && ctx.temp < 14); });
+      if (fits.length >= 3) out = fits;
+    }
     if (out.length < 4) {
       Brain.generate(ITEMS, ctx).forEach(function (g) { if (out.length >= 8) return; var key2 = Brain.key(g.outfit); if (seen[key2]) return; seen[key2] = 1; out.push({ outfit: g.outfit, app: true, score: g.score, note: (g.reasons[0] && (g.reasons[0].t || g.reasons[0])) || '' }); });
     }
@@ -2235,7 +2319,7 @@ var Engine = (function () {
     var card = function (d, i) {
       var o = d.outfit, c = cols(o), rt = S.ratings[Brain.core(o)];
       var lab = d.worn ? 'Worn today' : (d.app ? 'Turnout’s pick' : '' + AI() + '’s look') + ' · ' + (worn ? i : i + 1) + ' of ' + (worn ? deck.length - 1 : deck.length);
-      return '<div class="cardlook' + (d.worn ? ' wornc' : '') + '" data-i="' + i + '" style="--a:' + c[0] + ';--b:' + c[1] + '"><div class="cl-f">' + (i < 3 ? flat(o, DECKH(), 'flat in') : '<img class="flat lazy" data-i="' + i + '" alt="">') +
+      return '<div class="cardlook' + (d.worn ? ' wornc' : '') + '" data-i="' + i + '" style="--a:' + c[0] + ';--b:' + c[1] + '"><div class="cl-f" data-act="opencard" data-i="' + i + '" role="button" aria-label="Open this outfit">' + (i < 3 ? flat(o, DECKH(), 'flat in') : '<img class="flat lazy" data-i="' + i + '" alt="">') +
         (d.worn ? '<span class="wtag">' + ic('worn', 16) + 'Worn today</span>' : '<div class="rate"><button data-act="rate2" data-v="love" data-i="' + i + '" class="' + (rt === 'love' ? 'on' : '') + '" aria-label="Love this">' + ic('love', 20) + '</button><button data-act="rate2" data-v="nope" data-i="' + i + '" class="' + (rt === 'nope' ? 'on' : '') + '" aria-label="Not me">' + ic('nope', 20) + '</button></div>') + '</div>' +
         '<div class="cl-t"><span class="lab">' + lab + '</span><b>' + esc(d.look && d.look.name ? d.look.name : title(o)) + '</b><p>' + esc(d.note || names(o).join(' · ')) + '</p></div></div>';
     };
@@ -2296,19 +2380,21 @@ var Engine = (function () {
     var cnt = function (k) { return all.filter(function (l) { return lookKinds(l).indexOf(k) >= 0; }).length; };
     var list = LK.kind === 'all' ? all : all.filter(function (l) { return lookKinds(l).indexOf(LK.kind) >= 0; });
     var weekAgo = new Date(Date.now() - 7 * 864e5).toISOString(), fresh = list.filter(function (l) { return l.from === 'claude' && String(l.at) >= weekAgo; });
+    var freshN = fresh.length; fresh = fresh.slice(0, 6);   // a taste of what's new; everything else (new ones included) is in the full list below
     var rest = list.filter(function (l) { return fresh.indexOf(l) < 0; });
     var mini = function (l) { var o = outfitOf(l.outfit), ks = lookKinds(l).map(kindOf).filter(Boolean), dirty = !lookOk(o);
       return '<button class="mini2' + (dirty ? ' dim' : '') + '" data-act="look" data-id="' + l.id + '"><div class="pl">' + flat(o, 112, 'mf') + (S.ratings[Brain.core(o)] === 'love' ? '<span class="nb lv">' + ic('love', 12) + '</span>' : '') + '</div><b>' + esc(l.name || title(o)) + '</b><span>' + esc(ks.map(function (k) { return k.name; }).join(', ') || 'Saved') + (dirty ? ' · in the wash' : '') + '</span></button>'; };
     var D2 = SHOP && SHOP.k === shopKey() ? SHOP : null;
     v.innerHTML = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px"><button class="iconbtn" data-act="style" aria-label="Style with ' + AI() + '">' + ic('claude', 22) + '</button><button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 20) + '</button></span></div>' +
-      '<h2 class="mono" style="margin-top:12px">Looks</h2><p class="note" style="margin-top:4px;color:var(--ink)"><b>' + all.length + ' look' + (all.length === 1 ? '' : 's') + '</b>' + (fresh.length && LK.kind === 'all' ? ' · ' + fresh.length + ' new this week' : '') + '</p>' +
+      '<h2 class="mono" style="margin-top:12px">Looks</h2><p class="note" style="margin-top:4px;color:var(--ink)"><b>' + all.length + ' look' + (all.length === 1 ? '' : 's') + '</b>' + (freshN && LK.kind === 'all' ? ' · ' + freshN + ' new this week' : '') + '</p>' +
+      '<div class="cl-row" style="margin:12px 0 4px"><button class="btn pri" data-act="style">' + ic('claude', 18) + 'Share with ' + AI() + '</button><button class="btn sec" data-act="paste">Paste reply</button></div>' +
       '<div class="seg"><button data-act="lkind" data-k="all" class="' + (LK.kind === 'all' ? 'on' : '') + '">All</button>' + kinds().map(function (k) { return '<button data-act="lkind" data-k="' + k.id + '" class="' + (LK.kind === k.id ? 'on' : '') + '">' + esc(k.name) + ' ' + cnt(k.id) + '</button>'; }).join('') + '</div>' +
       (!all.length ? '<div class="empty">Your bank fills from ' + AI() + '. Once all your clothes are in, tap ' + ic('claude', 16).replace('class="ic"', 'class="ic" style="display:inline;vertical-align:-3px"') + ' and share your wardrobe: ' + AI() + ' makes every look for every kind of day.</div>' : '') +
-      (fresh.length ? '<div class="sec-h"><span class="lab">New this week</span></div><div class="g3">' + fresh.slice(0, 12).map(mini).join('') + '</div>' : '') +
+      (fresh.length ? '<div class="sec-h"><span class="lab">New this week</span></div><div class="g3">' + fresh.map(mini).join('') + '</div>' : '') +
       (rest.length ? '<div class="sec-h"><span class="lab">' + (LK.kind === 'all' ? 'All looks' : esc(kindOf(LK.kind) ? kindOf(LK.kind).name : '')) + '</span>' + (LK.kind !== 'all' ? '<button data-act="morekind2" data-k="' + LK.kind + '">More looks</button>' : '') + '</div><div class="g3">' + rest.slice(0, LK.n).map(mini).join('') + '</div>' + (rest.length > LK.n ? '<div class="acts"><button class="btn sec wide" data-act="lmore">Show more</button></div>' : '') : '') +
       '<div id="ifbought"></div></section>';
     setTimeout(function () {
-      var el = $('#ifbought'); if (!el) return; var d = shopData(), top = d.buys[0], mb = d.maybes[0];
+      var el = $('#ifbought'); if (!el || !shopReady()) return; var d = shopData(), top = d.buys[0], mb = d.maybes[0];
       var h = '';
       if (mb && mb.examples.length) h += '<div class="sec-h"><span class="lab">If you bought the ' + esc(mb.item.name.toLowerCase()) + '</span><button data-act="maybe" data-id="' + mb.item.id + '">See it</button></div><div class="g3">' + mb.examples.slice(0, 3).map(function (e) { return '<div class="mini2 if"><div class="pl">' + flat(e.outfit, 112, 'mf') + '</div><b>' + esc(title(e.outfit)) + '</b><span>+' + mb.adds + ' looks in all</span></div>'; }).join('') + '</div>';
       if (top) h += '<div class="sec-h"><span class="lab">If you bought a ' + esc(top.item.name.toLowerCase()) + '</span><button data-act="buy" data-i="0">See it</button></div>' + top.examples.slice(0, 3).map(function (e) { return chipOutfit(e.outfit, top.item); }).join('');
@@ -2347,9 +2433,16 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.15';
+  var VERSION = '1.9.20';
   var WHATS_NEW = [
     ['Your full wardrobe', '84 pieces sorted and cut out in one go: jackets, overshirts, quarter zips, hoodies, tees, football shirts, shirts, shorts, joggers and trainers.'],
+    ['Shorts line up', 'Shorts now sit straight under the top instead of off to one side. Outfits redraw once to pick this up.'],
+    ['Shorts', 'Looks with shorts stay out of Today when it’s under 14°, and shoes now sit where your feet would be, not tucked under the shorts.'],
+    ['Share with Claude', 'The top of Looks now has Share with Claude and Paste reply, so the bank is easy to grow whenever you add clothes.'],
+    ['Steadier on iPhone', 'Turnout keeps far fewer photos in memory and draws one outfit at a time, only when it’s on screen, so Looks no longer lags or crashes the app.'],
+    ['Tap to open', 'Tap the outfit on Today to open it full size, to zoom, swap pieces and take layers on and off.'],
+    ['Collars that show', 'A shirt under a jumper now has its collar over the neckline, and only its hem shows at the bottom.'],
+    ['Faster with a big wardrobe', 'Looks, the outfit view and Shop no longer freeze now there are 100 pieces in. Best buys are worked out once and kept on the phone.'],
     ['Football shirts and shorts', 'They have their own filters in Wardrobe now, so T-shirts shows only T-shirts and Trousers only full-length pairs.'],
     ['Added on phone', 'A new Wardrobe filter shows only the pieces you added on this phone, so you can clear out the old copies with All and Delete.'],
     ['Clearer layers', 'When a look has two layers on top, like a cardigan and a jacket, the jacket is laid alongside the outfit instead of over everything, so every piece is easy to see.'],
@@ -2746,13 +2839,13 @@ var Engine = (function () {
     }).catch(function () { return null; });
     return GHP[c.id];
   }
-  function ghostsReady(n) { var D2 = shopData(); return Promise.all(D2.buys.slice(0, n || 8).map(function (g) { return ghostFor(g.item); })); }
+  function ghostsReady(n) { if (!shopReady()) return Promise.resolve([]); var D2 = shopData(); return Promise.all(D2.buys.slice(0, n || 8).map(function (g) { return ghostFor(g.item); })); }
   function pieceImg(it, cls) { var g = GH[it.id] || it; return g.ghost || tileOf(g) ? '<img class="' + (cls || '') + (g.ghost ? ' gh' : '') + '" src="' + esc(g.ghost ? g.img : tileOf(g)) + '" alt="">' : swatch(it, 48); }
 
   /* ---- the outfit, with a rail for each slot ---- */
   var RAILS = [['over', 'Layer'], ['coat', 'Coat'], ['top', 'Top'], ['shirt', 'Shirt'], ['bottom', 'Trousers'], ['shoes', 'Shoes']];
   function railItems(s) { return ITEMS.filter(function (i) { return !i.maybe && !i.archived && Brain.SLOT[i.kind] === s; }); }
-  function railBuys(s) { var D2 = SHOP || shopData(); return D2.buys.slice(0, 8).filter(function (g) { return Brain.SLOT[g.item.kind] === s && GH[g.item.id]; }).map(function (g) { return g.item.id; }); }
+  function railBuys(s) { if (!shopReady()) return []; var D2 = shopData(); return D2.buys.slice(0, 8).filter(function (g) { return Brain.SLOT[g.item.kind] === s && GH[g.item.id]; }).map(function (g) { return g.item.id; }); }
   function curO() { return D.list[D.idx].outfit; }
   function setO(o) { D.list[D.idx] = { outfit: o, score: 0, reasons: [] }; }
   function dressDraw() {
@@ -3039,6 +3132,11 @@ var Engine = (function () {
       '<p class="note">For Christmas: it goes to Our Hub for Jess once the hub’s update lands.</p>';
   }
   function shopTab(v) {
+    if (!shopReady()) {
+      v.innerHTML = '<section class="scr"><div class="bar">' + word() + '</div><h2 class="mono" style="margin-top:14px">Shop</h2><div class="empty" style="margin-top:24px">Working out which buys open up the most outfits from your ' + owned().length + ' pieces. This takes a few seconds the first time.</div></section>';
+      setTimeout(function () { shopData(); if (tab === 'shop' && !$('#sheet').classList.contains('open')) route(); }, 120);
+      return;
+    }
     var D2 = shopData(), mine = owned();
     var nM = D2.maybes.length, nW = S.wish.length;
     var head = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px"><button class="iconbtn" data-act="add" data-maybe="1" aria-label="Add a Maybe">' + ic('add', 22) + '</button><button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 22) + '</button></span></div>' +
@@ -3091,6 +3189,7 @@ var Engine = (function () {
       case 'kindadd': { var kn = ($('#kname').value || '').trim(); if (!kn) { toast('Give it a name'); break; } var kid2 = kn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20) || ('k' + Date.now().toString(36)); if (kindOf(kid2)) kid2 += '-2'; saveKinds(kinds().concat([{ id: kid2, name: kn.slice(0, 24), occ: KF, icon: { lounge: 'lounge', weekend: 'walk', work: 'work', out: 'drinks', party: 'xmas' }[KF] || 'weekend' }])); toast(kn + ' added'); kindsSheet(); break; }
       case 'rate2': { var dd = today.deck[+t.dataset.i]; if (dd) { setRating(dd.outfit, t.dataset.v); t.classList.toggle('on', S.ratings[Brain.core(dd.outfit)] === t.dataset.v); $$('.rate button', t.parentNode).forEach(function (b2) { if (b2 !== t) b2.classList.remove('on'); }); } break; }
       case 'wear2': { var d0 = today.deck[T.idx]; if (d0 && !d0.worn) { var was = today.worn; wearIt(todayIso(), d0.outfit, today.kind.occ, null, today.kind.id); T.idx = 0; toast(was ? 'Swapped. That’s today’s now.' : 'Logged. Enjoy it.'); route(); } break; }
+      case 'opencard': { var dc = today.deck[+t.dataset.i]; if (dc) dress({ date: todayIso(), occasion: today.kind.occ, first: dc.outfit, kind: today.kind.id }); break; }
       case 'swap2': { var d1 = today.deck[T.idx]; if (d1) dress({ date: todayIso(), occasion: today.kind.occ, first: d1.outfit, kind: today.kind.id }); break; }
       case 'evpick': { var de = deckFor(defaultKind(todayIso()) === 'lounge' && S.settings.workdays.indexOf(dObj(todayIso()).getDay()) >= 0 ? 'work' : T.kind || 'work', todayIso())[+t.dataset.i]; if (de) { wearIt(todayIso(), de.outfit, 'work', null, T.kind || 'work'); toast('Logged'); route(); } break; }
       case 'skiplog': S.skipLog[todayIso()] = 1; save(); route(); break;
