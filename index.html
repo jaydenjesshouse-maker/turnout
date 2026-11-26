@@ -1348,6 +1348,8 @@ var Engine = (function () {
   function db() {
     if (idb) return idb;
     idb = new Promise(function (res) {
+      var gave = setTimeout(function () { idb = null; res(null); }, 2500);   // iPhone storage can hang: never wait on it for long
+      var res0 = res; res = function (v) { clearTimeout(gave); res0(v); };
       try { var r = indexedDB.open('turnout', 1); r.onupgradeneeded = function () { r.result.createObjectStore('img'); }; r.onsuccess = function () { var dbx = r.result; try { dbx.onclose = function () { idb = null; }; dbx.onversionchange = function () { try { dbx.close(); } catch (x) {} idb = null; }; } catch (x) {} res(dbx); }; r.onerror = function () { res(null); }; } catch (e) { res(null); }
     });
     return idb;
@@ -2345,7 +2347,7 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.14';
+  var VERSION = '1.9.15';
   var WHATS_NEW = [
     ['Your full wardrobe', '84 pieces sorted and cut out in one go: jackets, overshirts, quarter zips, hoodies, tees, football shirts, shirts, shorts, joggers and trainers.'],
     ['Football shirts and shorts', 'They have their own filters in Wardrobe now, so T-shirts shows only T-shirts and Trousers only full-length pairs.'],
@@ -3252,15 +3254,21 @@ var Engine = (function () {
     var cached = null; try { cached = JSON.parse(localStorage.getItem('turnout-seed') || 'null'); } catch (e) {}
     var fresh = fetch('wardrobe.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).catch(function () { return null; });
     if (S.isOwner === false) { cached = []; fresh = Promise.resolve({ items: [] }); }
-    (cached ? Promise.resolve({ items: cached }) : fresh).then(function (j) {
+    var RI = null, booted = false;
+    var bootFail = function (e) { if (booted) return; booted = true; try { console.error(e); } catch (x) {} $('#view').innerHTML = '<section class="scr"><h2 class="mono" style="margin-top:40px">Turnout didn’t start</h2><p class="note">' + esc(String((e && e.message) || e || 'Unknown problem')) + '</p><div class="acts"><button class="btn" onclick="location.reload()">Try again</button></div></section>'; };
+    var bootTimer = setTimeout(function () { if (!booted) { try { route(); booted = true; } catch (e) { bootFail(e); } } }, 6000);   // never sit on the start screen
+    (cached ? Promise.resolve({ items: cached }) : Promise.race([fresh, new Promise(function (r) { setTimeout(function () { r(null); }, 4000); })])).then(function (j) {
       SEED = (j && j.items) || []; buildItems();
-      return resolveImages();
+      RI = resolveImages();   // photos fill in as they arrive; the first screen doesn't wait more than a moment
+      return Promise.race([RI, new Promise(function (r) { setTimeout(r, 1500); })]);
     }).then(function () {
+      clearTimeout(bootTimer); booted = true;
       route();
+      RI.then(function () { if (!$('#sheet').classList.contains('open')) route(); });
       fresh.then(function (j) { if (j && j.items && JSON.stringify(j.items) !== JSON.stringify(SEED)) { SEED = j.items; buildItems(); resolveImages().then(function () { if (!$('#sheet').classList.contains('open')) route(); }); } if (j && j.items) try { localStorage.setItem('turnout-seed', JSON.stringify(j.items)); } catch (e) {} });
       getWeather().then(function () { if (!$('#sheet').classList.contains('open')) route(); });
       var s = sync(false); (s && s.then ? s : Promise.resolve()).then(function () { setTimeout(maybeIntro, 300); });
-    });
+    }).catch(function (e) { clearTimeout(bootTimer); bootFail(e); });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) { flush(); sync(false); } });
     window.addEventListener('online', flush);
     if ('serviceWorker' in navigator && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
