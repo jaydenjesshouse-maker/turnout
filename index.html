@@ -1710,15 +1710,28 @@ var Engine = (function () {
   var SUBDEF = { jumper: [3, 4], sweatshirt: [2, 3], hoodie: [1, 3], quarterzip: [3, 3], tee: [2, 1], football: [1, 1], polo: [3, 1], shirt: [4, 1], overshirt: [3, 3], shacket: [2, 4], jacket: [3, 3], coat: [4, 5], trousers: [3, 2], chinos: [3, 2], jeans: [2, 2], joggers: [1, 3], shorts: [2, 1], henley: [3, 2], cardigan: [3, 3], shoes: [4, 2], trainers: [2, 2], boots: [3, 3] };
   var wSeg = 'pieces', SHOP = null;
   function owned() { return ITEMS.filter(function (i) { return !i.maybe; }); }
+  /* wardrobe filters: football shirts and shorts get their own chips, so Tees is only T-shirts and Trousers only long legs */
+  var WKINDS = [['all', 'All'], ['knit', 'Knitwear'], ['tee', 'T-shirts'], ['football', 'Football shirts'], ['shirt', 'Shirts'], ['overshirt', 'Overshirts'], ['coat', 'Jackets & coats'], ['trousers', 'Trousers'], ['shorts', 'Shorts'], ['shoes', 'Shoes']];
+  function inFilt(i, k) {
+    if (k === 'all') return true;
+    var s = subOf(i);
+    if (k === 'football' || k === 'shorts') return s === k;
+    if (k === 'tee') return i.kind === 'tee' && s !== 'football';
+    if (k === 'trousers') return i.kind === 'trousers' && s !== 'shorts';
+    return i.kind === k;
+  }
+  function segShow() {   // keep the chosen filter chips in view after a redraw
+    document.querySelectorAll('#view .seg').forEach(function (sg) { var on = sg.querySelector('button.on'); if (on && sg.scrollWidth > sg.clientWidth) sg.scrollLeft = Math.max(0, sg.scrollLeft + on.getBoundingClientRect().left - sg.getBoundingClientRect().left - 16); });
+  }
   function wardrobe(v) {
-    var mine = owned(), count = function (k) { return k === 'all' ? mine.length : mine.filter(function (i) { return i.kind === k; }).length; };
+    var mine = owned(), count = function (k) { return k === 'all' ? mine.length : mine.filter(function (i) { return inFilt(i, k); }).length; };
     wSeg = 'pieces'; var seg = ''; var seg0 = '<div class="seg3 two"><button data-act="wseg" data-k="pieces" class="' + (wSeg === 'pieces' ? 'on' : '') + '">Wardrobe</button><button data-act="wseg" data-k="shop" class="' + (wSeg === 'shop' ? 'on' : '') + '">Shop</button></div>';
     var head = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px">' + (wSeg === 'pieces' ? '<button class="iconbtn" data-act="selmode" aria-label="Pick a handful">' + ic('select', 22) + '</button>' : '<button class="chip" data-act="wish" style="height:44px;border-radius:22px;padding:0 14px">' + ic('gift', 16) + 'Wish list' + (S.wish.length ? ' ' + S.wish.length : '') + '</button>') + '<button class="iconbtn" data-act="add" aria-label="Add a piece">' + ic('add', 22) + '</button></span></div>' +
       '<h2 class="mono" style="margin-top:14px">' + (wSeg === 'shop' ? 'Shop smart' : wSeg === 'balance' ? 'Balance' : 'Wardrobe') + '</h2>' + seg;
     if (wSeg === 'shop') return shopView(v, head);
     if (wSeg === 'balance') return balanceView(v, head);
     var onPhone = mine.filter(function (i) { return /^up:/.test(i.id); }); if (wFilter === 'phone' && !onPhone.length) wFilter = 'all';
-    var inKind = wFilter === 'phone' ? onPhone : mine.filter(function (i) { return wFilter === 'all' || i.kind === wFilter; });
+    var inKind = wFilter === 'phone' ? onPhone : mine.filter(function (i) { return inFilt(i, wFilter); });
     var subs = {}; inKind.forEach(function (i) { var s = subOf(i); subs[s] = (subs[s] || 0) + 1; });
     var subKeys = Object.keys(subs); if (wSub !== 'all' && !subs[wSub]) wSub = 'all';
     var list = inKind.filter(function (i) { return wSub === 'all' || subOf(i) === wSub; }); WLIST = list.map(function (i) { return i.id; });
@@ -1727,7 +1740,7 @@ var Engine = (function () {
     v.innerHTML = head +
       (noPhotoIds().length ? '<div class="card nophoto"><b>' + noPhotoIds().length + ' piece' + (noPhotoIds().length > 1 ? 's are' : ' is') + ' missing a photo</b><p>The photo didn’t save on this phone or reach your Google Drive. Tap one and Change photo, or remove them all and add them again.</p><div class="acts"><button class="btn sec" data-act="nophotogo">Remove them</button><button class="btn sec" data-act="add">Add again</button></div></div>' : '') +
       (dirty.length ? '<div class="washbar">' + ic('wash', 20) + '<span><b>' + dirty.length + ' in the wash</b><br>Worn this week, or marked. Back on ' + LONGDAYS[washDay()] + '.</span><button data-act="allclean">All clean</button></div>' : '') +
-      (!mine.length ? '' : '<div class="seg">' + KINDS.filter(function (k) { return k[0] === 'all' || count(k[0]) > 0; }).map(function (k) { return '<button data-act="filter" data-k="' + k[0] + '" class="' + (wFilter === k[0] ? 'on' : '') + '">' + k[1] + ' ' + count(k[0]) + '</button>'; }).join('') + (onPhone.length ? '<button data-act="filter" data-k="phone" class="' + (wFilter === 'phone' ? 'on' : '') + '">Added on phone ' + onPhone.length + '</button>' : '') + '</div>' + subRow) +
+      (!mine.length ? '' : '<div class="seg">' + WKINDS.filter(function (k) { return k[0] === 'all' || count(k[0]) > 0; }).map(function (k, n) { return '<button data-act="filter" data-k="' + k[0] + '" class="' + (wFilter === k[0] ? 'on' : '') + '">' + k[1] + ' ' + count(k[0]) + '</button>' + (n === 0 && onPhone.length ? '<button data-act="filter" data-k="phone" class="' + (wFilter === 'phone' ? 'on' : '') + '">Added on phone ' + onPhone.length + '</button>' : ''); }).join('') + '</div>' + subRow) +
       (selMode ? '<p class="note">' + (logMode ? 'Pick what you wore, then log it.' : 'Pick a handful of pieces, and Turnout makes the best outfit from them.') + '</p>' : '') +
       (!mine.length ? photoGuide() : '') +
       '<div class="grid">' + list.map(function (it) {
@@ -2332,9 +2345,10 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.13';
+  var VERSION = '1.9.14';
   var WHATS_NEW = [
     ['Your full wardrobe', '84 pieces sorted and cut out in one go: jackets, overshirts, quarter zips, hoodies, tees, football shirts, shirts, shorts, joggers and trainers.'],
+    ['Football shirts and shorts', 'They have their own filters in Wardrobe now, so T-shirts shows only T-shirts and Trousers only full-length pairs.'],
     ['Added on phone', 'A new Wardrobe filter shows only the pieces you added on this phone, so you can clear out the old copies with All and Delete.'],
     ['Clearer layers', 'When a look has two layers on top, like a cardigan and a jacket, the jacket is laid alongside the outfit instead of over everything, so every piece is easy to see.'],
     ['Delete pieces', 'Edit a piece and tap Delete twice, or pick several in Wardrobe with the tick button and delete them together.'],
@@ -3121,8 +3135,8 @@ var Engine = (function () {
       case 'dwear': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } } wearIt(D.date, D.list[D.idx].outfit, D.occasion, D.ev, D.kind || ''); closeSheet(); toast(D.log ? 'Logged' : 'Logged. Enjoy it.'); if (D.log) tab = 'log'; logMode = false; route(); break;
       case 'dplan': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } var back = D.back; planIt(D.ev ? 'ev:' + D.ev.id : D.date, D.list[D.idx].outfit); toast(D.ev ? 'Planned for ' + D.ev.title : 'Planned for ' + fmt(D.date)); if (back === 'plan') planSheet(); else { closeSheet(); route(); } break; }
       case 'dsave': { var gq = ghostIn(D.list[D.idx].outfit); if (gq) { toast('You don’t own the ' + gq.name.toLowerCase() + ' yet'); break; } var lk = { id: 'l' + Date.now().toString(36), outfit: outfitOf(D.list[D.idx].outfit), name: title(D.list[D.idx].outfit), at: new Date().toISOString() }; S.looks.push(lk); save(); send('look', lk); toast('Saved to Looks'); break; }
-      case 'filter': wFilter = t.dataset.k; wSub = 'all'; route(); break;
-      case 'wsub': wSub = t.dataset.k; route(); break;
+      case 'filter': wFilter = t.dataset.k; wSub = 'all'; route(); segShow(); break;
+      case 'wsub': wSub = t.dataset.k; route(); segShow(); break;
       case 'selall': sel = sel.length >= WLIST.length ? [] : WLIST.slice(); route(); break;
       case 'wseg': if (t.dataset.k === 'shop') { tab = 'shop'; sSeg = 'buys'; route(); break; } wSeg = t.dataset.k; selMode = false; sel = []; route(); window.scrollTo(0, 0); break;
       case 'buy': buySheet(+t.dataset.i); break;
