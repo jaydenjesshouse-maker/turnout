@@ -544,6 +544,29 @@ details.more>*:last-child{margin-bottom:14px}
 
 .seg.sub{margin-top:8px}.seg.sub button{height:34px;padding:0 13px;font-size:14px;background:var(--paper);border:0}.seg.sub button.on{background:var(--ink);color:var(--cream)}
 .cl-f[data-act]{cursor:pointer}
+.fld{display:block;margin-top:14px}.fld>span{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);margin-bottom:6px}
+.fld input{width:100%;height:48px;border-radius:14px;border:0;background:var(--paper);padding:0 14px;font-size:16px}
+.wlb{display:flex;gap:12px;align-items:center;flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;color:inherit}
+.wlb>span{flex:1;min-width:0}.wl em.warn{color:#A0522D}.wl em svg{vertical-align:-1px}
+.wlb>.swt,.wlb>img{flex:none}
+.wlb>img{width:56px;height:56px}.wl em svg{display:inline;vertical-align:-1px;margin-right:2px}
+/* v2 */
+.sa2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.sa2 button{background:var(--linen);border-radius:20px;padding:14px;min-height:116px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;gap:8px}
+.sa2 b{font-size:16px}.sa2 span{font-size:13px;color:var(--ash);margin-top:-6px}
+.tov{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.tov>b{font-family:var(--mono);font-weight:500;font-size:40px;letter-spacing:-.05em;line-height:1}
+.tov>span{font-size:15px;line-height:1.45}.tov em{font-style:normal}
+.tostrip{display:flex;gap:8px;overflow-x:auto;margin:14px -20px 0;padding:0 20px 4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.tostrip>button,.tostrip>.pimg{flex:none;width:44%;height:220px;background:var(--plinth);border-radius:18px;display:flex;align-items:center;justify-content:center;scroll-snap-align:start;overflow:hidden}
+.tostrip>.pimg{width:100%}.tostrip>.pimg img{max-height:200px;max-width:80%;object-fit:contain}
+.tostrip img.mf{max-height:206px;width:auto}
+.chips2{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chips2>*{border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-size:14px;background:var(--cream)}
+.chips2 button{border-color:var(--ink);font-weight:600}
+.nudgepic{background:linear-gradient(var(--a) 0 55%, var(--b) 55%);border-radius:24px;margin-top:12px;display:flex;align-items:center;justify-content:center;padding:14px;min-height:300px}
+.nudgepic img.mf{max-height:46vh;width:auto}
+.sgrp select{width:100%;height:48px;border-radius:14px;border:0;background:var(--cream);padding:0 14px;font-size:16px;-webkit-appearance:none;appearance:none}
 
 </style>
 </head>
@@ -1954,13 +1977,205 @@ var Engine = (function () {
       '<div class="acts">' + (it.link ? '<a class="btn sec" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + ic('link', 18) + 'Open in the shop</a>' : '') + '<button class="btn sec" data-act="notforme" data-id="' + id + '">Not for me</button></div>');
   }
   /* ---- wish list ---- */
+  /* ============ v2: the Turnout server — the evening nudge, and adding from a shop ============ */
+  function srv() { try { return (localStorage.getItem('turnout-server') || '').trim().replace(/\/+$/, ''); } catch (e) { return ''; } }
+  function pushSt() { try { return JSON.parse(localStorage.getItem('turnout-push') || 'null') || {}; } catch (e) { return {}; } }
+  function pushSave(o) { try { localStorage.setItem('turnout-push', JSON.stringify(o)); } catch (e) {} }
+  function srvPost(path, d) { var u = srv(); if (!u) return Promise.reject(new Error('Add your Turnout server address first')); return fetch(u + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(function (r) { return r.json(); }); }
+  function keyBytes(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function canPush() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  function nudgeKind(date) {   // the kind of day you were dressed for, not the evening's (after six, Today switches to lounge)
+    if (T.date === date && T.kind && kindOf(T.kind)) return kindOf(T.kind);
+    var work = S.settings.workdays.indexOf(dObj(date).getDay()) >= 0;
+    return (work && kindOf('work')) || kindOf(defaultKind(date)) || kinds()[0];
+  }
+  function pieceLine(o) { return ['top', 'shirt', 'bottom'].map(function (s) { return W[o[s]]; }).filter(Boolean).map(function (x) { return (x.colour ? x.colour.toLowerCase() + ' ' : '') + x.name.toLowerCase(); }).join(', ').replace(/^./, function (c) { return c.toUpperCase(); }); }
+  var NOTE_T = null;
+  function pushNote() {   // tell the server what tonight's notification should say (or that today's logged)
+    clearTimeout(NOTE_T);
+    NOTE_T = setTimeout(function () {
+      var st = pushSt(); if (!st.on || !st.id || !srv()) return;
+      var date = todayIso();
+      if (S.wear.some(function (w) { return w.date === date && !w.event; })) { if (st.logged !== date) srvPost('/logged', { id: st.id, date: date }).then(function () { st.logged = date; pushSave(st); }).catch(function () {}); return; }
+      var k = nudgeKind(date), d = deckFor(k.id, date)[0]; if (!d) return;
+      var body = pieceLine(d.outfit) + '. Tap to confirm, or pick what you really wore.', nk = date + '|' + body;
+      if (st.noteK === nk) return;
+      srvPost('/note', { id: st.id, date: date, title: 'Was it this today?', body: body.slice(0, 178) }).then(function () { st.noteK = nk; pushSave(st); }).catch(function () {});
+    }, 1500);
+  }
+  function pushOn() {
+    var inp = $('#psrv'); if (inp) { var v = inp.value.trim(); if (v && !/^https:\/\//.test(v)) v = 'https://' + v; try { localStorage.setItem('turnout-server', v); } catch (e) {} }
+    if (!canPush()) { toast(navigator.standalone === false ? 'Open Turnout from its home screen icon, then try again' : 'This phone can’t do notifications here'); return; }
+    if (!srv()) { toast('Paste your Turnout server address first'); return; }
+    var tm = ($('#ptime') && $('#ptime').value) || pushSt().time || '18:30';
+    Notification.requestPermission().then(function (p) {   // asked straight from the tap, as iPhone needs
+      if (p !== 'granted') throw new Error('Notifications are off for Turnout. Turn them on in iPhone Settings › Notifications › Turnout.');
+      return fetch(srv() + '/key').then(function (r) { return r.json(); });
+    }).then(function (k) {
+      if (!k || !k.key) throw new Error('That server address didn’t answer. Check it in Settings.');
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (old) { return old ? old.unsubscribe().catch(function () {}) : null; })
+          .then(function () { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(k.key) }); });
+      });
+    }).then(function (sub) {
+      var st = pushSt(); st.id = st.id || (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)); st.on = true; st.time = tm; st.noteK = ''; st.logged = ''; pushSave(st);
+      return srvPost('/sub', { id: st.id, sub: sub.toJSON(), time: tm, tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'Europe/London' });
+    }).then(function (r) {
+      if (!r || !r.ok) throw new Error((r && r.why) || 'The server said no');
+      pushNote(); buzz(); toast('On. See you at ' + tm + '.'); settings();
+    }).catch(function (e) { toast((e && e.message) || 'Couldn’t turn it on'); });
+  }
+  function pushOff() { var st = pushSt(); st.on = false; pushSave(st); srvPost('/set', { id: st.id, on: false }).catch(function () {}); toast('Evening nudge off'); settings(); }
+  function pushTest() { var st = pushSt(); toast('Sending…'); srvPost('/test', { id: st.id }).then(function (r) { toast(r && r.ok ? 'Sent. It should arrive in a few seconds.' : 'Didn’t send' + (r && r.why ? ': ' + r.why : '') + (r && r.status ? ' (' + r.status + ')' : '')); }).catch(function (e) { toast(e.message || 'Couldn’t reach the server'); }); }
+  function nudgeHtml() {
+    var st = pushSt(), on = st.on && st.id, tm = st.time || '18:30', times = [];
+    for (var h = 16; h <= 22; h++) ['00', '30'].forEach(function (m) { times.push((h < 10 ? '0' : '') + h + ':' + m); });
+    return '<div class="sgrp"><span class="lab">Evening nudge</span>' +
+      '<p class="note" style="margin-top:4px">' + (on ? '<b style="color:var(--ink)">On.</b> If you haven’t logged what you wore, Turnout asks at ' + tm + '.' : 'Turnout asks “Was it this today?” in the evening, only if you haven’t logged anything. One tap to confirm.') + '</p>' +
+      '<label for="ptime">Time</label><select id="ptime">' + times.map(function (t) { return '<option' + (t === tm ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
+      '<label for="psrv">Turnout server address</label><input type="url" id="psrv" inputmode="url" value="' + esc(srv()) + '" placeholder="https://turnout.yourname.workers.dev">' +
+      '<div class="acts">' + (on ? '<button type="button" class="btn sec" data-act="pushtest">Send a test</button><button type="button" class="btn sec" data-act="pushoff">Turn off</button>' : '<button type="button" class="btn pri wide" data-act="pushon">' + ic('bell', 18) + 'Turn on</button>') + '</div>' +
+      '<p class="note">The server also reads shop links for Add from a shop. Open Turnout from its home screen icon to turn this on.</p></div>';
+  }
+  function checkNudge() {
+    if (!/[?&]nudge/.test(location.search)) return;
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+    setTimeout(nudgeSheet, 350);
+  }
+  var NUDGE = null;
+  function nudgeSheet() {
+    var date = todayIso(), worn = S.wear.filter(function (w) { return w.date === date && !w.event; })[0];
+    if (worn) { closeSheet(); tab = 'today'; route(); toast('Already logged today. Nice.'); return; }
+    var k = nudgeKind(date), d = deckFor(k.id, date)[0];
+    if (!d) { tab = 'today'; route(); return; }
+    NUDGE = { outfit: d.outfit, kind: k }; var c = cols(d.outfit);
+    openSheet('<div class="sh-h"><span class="lab">Today · ' + esc(k.name) + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">Was it this?</h2>' +
+      '<div class="nudgepic" style="--a:' + c[0] + ';--b:' + c[1] + '">' + flat(d.outfit, Math.min(380, Math.round(innerHeight * 0.46)), 'mf') + '</div>' +
+      '<p class="note" style="margin-top:10px;color:var(--ink)">' + esc(pieceLine(d.outfit)) + '</p>' +
+      '<div class="acts"><button class="btn pri wide" data-act="nudgeyes">' + ic('worn', 18) + 'Yes, wore this</button><button class="btn sec wide" data-act="nudgeno">Something else</button></div>');
+  }
+
+  /* ---- adding from a shop: paste a link or snap it, then see it in your looks ---- */
+  var SA = {}, TRY = null;
+  function shopAddSheet() {
+    SA = {};
+    openSheet('<div class="sh-h"><span class="lab">Add from a shop</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono hq">Seen<br>something?</h2>' +
+      '<div class="sa2"><button data-act="sapaste">' + ic('link', 22) + '<b>Paste a link</b><span>Copy it from any shop first</span></button><button data-act="saphoto">' + ic('camera', 22) + '<b>Photo or screenshot</b><span>In the shop, or online</span></button></div>' +
+      '<input type="file" accept="image/*" id="saph" hidden>' +
+      '<label class="fld"><span>Or type the link</span><input id="salink" type="url" inputmode="url" placeholder="https://www.next.co.uk/…"></label>' +
+      '<div class="acts"><button class="btn sec wide" data-act="sago">Look it up</button></div>' +
+      '<div id="sastat"></div>' +
+      '<p class="note">' + (srv() ? 'Screenshots work best cropped to just the product: tap Edit on it in Photos first.' : 'Links need your Turnout server (Settings › Evening nudge). Photos and screenshots work without it.') + '</p>' +
+      '<p class="note">Already bought it? <button class="ul" data-act="add">Add it to your wardrobe</button> instead.</p>');
+    var ph = $('#saph'); if (ph) ph.addEventListener('change', function () { var f = ph.files && ph.files[0]; if (f) saFromFile(f, {}); });
+  }
+  function saStat(t, warn) { var el = $('#sastat'); if (el) el.innerHTML = '<p class="note" style="color:' + (warn ? '#A0522D' : 'var(--ink)') + ';margin-top:12px">' + esc(t) + '</p>'; }
+  function saLink(u) {
+    var m = String(u || '').match(/https?:\/\/\S+/); if (!m) { saStat('That doesn’t look like a link.', true); return; }
+    u = m[0]; SA.link = u;
+    if (!srv()) { saStat('Reading links needs your Turnout server. Add it in Settings › Evening nudge, or use a photo or screenshot for now.', true); return; }
+    saStat('Reading the page…');
+    fetch(srv() + '/scrape?u=' + encodeURIComponent(u)).then(function (r) { return r.json(); }).then(function (p) {
+      if (!p || !p.ok) throw new Error((p && p.why ? p.why + '. ' : '') + 'Take a screenshot of the product and use Photo or screenshot instead. The link will still be saved.');
+      saStat('Cutting out the photo…');
+      return fetch(srv() + '/img?u=' + encodeURIComponent(p.image)).then(function (r) { if (!r.ok) throw new Error('Couldn’t get the photo. Try a screenshot instead.'); return r.blob(); })
+        .then(function (b) { return saFromFile(b, { name: p.name, price: p.price, brand: shopName(p.site, p.brand), link: p.url || u, imgUrl: p.image }); });
+    }).catch(function (e) { saStat((e && e.message) || 'Couldn’t read that page.', true); });
+  }
+  function shopName(site, brand) {
+    var map = { 'marksandspencer.com': 'M&S', 'next.co.uk': 'Next', 'uniqlo.com': 'Uniqlo', 'asos.com': 'ASOS', 'zara.com': 'Zara', 'hm.com': 'H&M', 'johnlewis.com': 'John Lewis', 'riverisland.com': 'River Island', 'jdsports.co.uk': 'JD', 'nike.com': 'Nike', 'adidas.co.uk': 'Adidas', 'endclothing.com': 'END.', 'selfridges.com': 'Selfridges', 'cos.com': 'COS', 'arket.com': 'Arket', 'fatface.com': 'FatFace', 'sportsdirect.com': 'Sports Direct' };
+    for (var k in map) if (String(site || '').indexOf(k) >= 0) return map[k];
+    return String(brand || '').slice(0, 30);
+  }
+  function subFromName(n) {
+    n = String(n || '').toLowerCase();
+    var rules = [[/quarter[- ]?zip|half[- ]?zip|1\/4 zip/, 'quarterzip'], [/hoodie|hooded sweat/, 'hoodie'], [/sweatshirt|crew sweat/, 'sweatshirt'], [/cardigan/, 'cardigan'], [/overshirt/, 'overshirt'], [/shacket/, 'shacket'],
+      [/coat|parka|mac\b|trench|puffer/, 'coat'], [/jacket|harrington|bomber|gilet|blazer/, 'jacket'], [/football shirt|home shirt|away shirt|third shirt|\bkit\b/, 'football'], [/polo/, 'polo'], [/henley/, 'henley'],
+      [/t-shirt|tee\b|t shirt/, 'tee'], [/jumper|knit|sweater|crew neck|roll neck|turtle/, 'jumper'], [/shirt/, 'shirt'], [/chino/, 'chinos'], [/jean|denim trouser/, 'jeans'], [/jogger|track pant|sweatpant/, 'joggers'],
+      [/short/, 'shorts'], [/trouser|pants/, 'trousers'], [/boot/, 'boots'], [/trainer|sneaker/, 'trainers'], [/shoe|loafer|derby|brogue/, 'shoes']];
+    for (var i = 0; i < rules.length; i++) if (rules[i][0].test(n) && (SUBKIND[rules[i][1]] || SUBS[rules[i][1]])) return rules[i][1];
+    return '';
+  }
+  function cleanName(n) { return String(n || '').replace(/\b(men'?s|mens|for men)\b/gi, '').replace(/\s{2,}/g, ' ').replace(/^[\s\-–|:]+|[\s\-–|:]+$/g, '').slice(0, 48); }
+  function saFromFile(f, info) {
+    saStat('Cutting it out…');
+    return Engine.cutout(f).then(function (r) {
+      return guessType(r.cut).then(function (shape) {
+        var sub = subFromName(info.name) || shape, rgb0 = Brain.rgb(r.hex);
+        if (sub === 'chinos' && rgb0[2] > rgb0[0] + 18 && rgb0[2] >= rgb0[1]) sub = 'jeans';
+        if (!SUBKIND[sub]) sub = shape;
+        F = Object.assign({ kind: 'knit', sub: 'jumper', name: '', colour: '', brand: '', hex: '#8A8B8C', pattern: 'plain', texture: '', smart: 3, warmth: 3, neck: 'crew', maybe: true, link: '', price: '' });
+        F.isNew = true; setKind(SUBKIND[sub] || 'knit', sub);
+        F.cut = r.cut; F.tileData = r.tile; F.cutPreview = r.cut; F.hex = r.hex; F.detHex = r.hex; F.guess = sub; F.colour = nearestColour(r.hex);
+        F.name = cleanName(info.name) || NAMES[sub] || 'Piece'; F.brand = info.brand || ''; F.price = String(info.price || '').replace(/[^0-9.]/g, '').replace(/\.00$/, '');
+        F.link = info.link || SA.link || ''; F.shopImg = /^https:/.test(info.imgUrl || '') ? info.imgUrl : '';
+        tryOnSheet();
+      });
+    }).catch(function (e) { saStat(((e && e.message) || 'That photo didn’t cut out.') + ' Try one with the product on a plain background, cropped close.', true); });
+  }
+  function tryItem() { var id = 'try' + Date.now().toString(36); return Object.assign({}, F, { id: id, img: 'try:' + id, src: F.cut, tileSrc: F.cut, tile: '', maybe: false, wash: false, colour: F.colour || nearestColour(F.hex), name: F.name || NAMES[F.sub] }); }
+  function tryOnSheet() {
+    var c = tryItem(); W[c.id] = c; TRY = { item: c, adds: 0 };
+    var chips = [TYPES.reduce(function (n, g) { return n || (g[1].filter(function (t) { return t[0] === F.sub; })[0] || [])[1]; }, '') || F.sub, c.colour].concat(F.price ? ['£' + F.price] : []);
+    openSheet('<div class="sh-h"><span class="lab">' + esc([F.brand, F.price ? '£' + F.price : ''].filter(Boolean).join(' · ') || 'Seen in a shop') + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">' + esc(c.name) + '</h2>' +
+      '<div id="tostat" class="tov"><b>…</b><span>Working out what it makes with your ' + owned().length + ' pieces.</span></div>' +
+      '<div class="tostrip" id="tostrip"><div class="pimg"><img src="' + esc(F.cut) + '" alt=""></div></div>' +
+      '<div class="chips2">' + chips.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '<button data-act="toedit">Edit</button></div>' +
+      '<div class="acts"><button class="btn sec" data-act="tomaybe">' + ic('bag', 18) + 'Maybe</button><button class="btn pri" data-act="towish">' + ic('gift', 18) + 'Wish list</button></div>' +
+      (F.link ? '' : '<p class="note">No link yet. Tap Wish list and you can paste one, so Jess gets the exact one.</p>'));
+    setTimeout(function () {
+      var b = base(), own = owned(), before = Brain.goodSet(own.filter(Brain.usable), b), a = Brain.adds(own, c, b, before);
+      var best = SHOP && SHOP.buys && SHOP.buys[0] ? SHOP.buys[0].adds : 0, v = verdict(c, a, own, best);
+      TRY.adds = a.adds; TRY.goes = a.goes;
+      var st = $('#tostat'); if (!st) return;
+      var layer0 = (c.kind === 'coat' || c.kind === 'overshirt') && !a.adds;   // a jacket opens few brand-new outfits, so say what it goes over instead
+      st.innerHTML = (layer0 ? '<b>' + a.goes + ' pieces</b><span style="margin-top:-2px">it goes with</span>' : '<b>+' + a.adds + ' look' + (a.adds === 1 ? '' : 's') + '</b>') + '<span><em class="vd ' + v.k + '">' + esc(v.t) + '</em> ' + esc(Brain.reason(own, c) || '') + '</span>';
+      var ex = a.examples.slice(0, 6);
+      $('#tostrip').innerHTML = ex.length ? ex.map(function (e, i) { return '<button data-act="tolook" data-i="' + i + '">' + flat(e.outfit, 190, 'mf') + '</button>'; }).join('') : '<div class="pimg"><img src="' + esc(F.cut) + '" alt=""></div>';
+      TRY.examples = ex;
+    }, 60);
+  }
+  function trySave(toWish) {
+    var it0 = TRY && TRY.item; if (!it0) return;
+    F.maybe = true; F.isNew = true; var id = formSaveCore();
+    if (toWish) {
+      var w = { id: 'w' + Date.now().toString(36), ref: id, name: F.name || NAMES[F.sub], kind: F.kind, colour: F.colour || nearestColour(F.hex), hex: F.hex, why: TRY.adds ? '+' + TRY.adds + ' outfits with what you own' : 'Goes with ' + (TRY.goes || 0) + ' of your pieces', link: F.link || '', price: F.price || '', img: F.shopImg || '', size: wSize(F.kind) || '', at: todayIso() };
+      S.wish.push(w); save(); send('wish', { list: wishOut() });
+      if (!w.link) { sSeg = 'wish'; wishEdit(S.wish.length - 1); toast('On the wish list. Add the link for Jess.'); return; }
+      closeSheet(); sSeg = 'wish'; tab = 'shop'; route(); toast('On the wish list, link and all'); return;
+    }
+    closeSheet(); sSeg = 'maybes'; tab = 'shop'; route(); toast('Added to your Maybes');
+  }
+  function wishOut() { return S.wish.map(function (w) { return w.size ? w : Object.assign({}, w, { size: wSize(w.kind) || '' }); }); }   // your usual size goes with anything that doesn't have its own
+  function wSize(k) { var sz = S.settings.sizes || {}; return k === 'trousers' ? sz.trousers : k === 'shoes' ? sz.shoes : sz.tops; }
+  function isSearch(u) { return /search|[?&](q|w|searchTerm)=/i.test(u || ''); }
+  function wlRow(w, i) {   // one wish-list row: tap it to add the exact link, price and size Jess will see
+    var sz = w.size || wSize(w.kind), lk = w.link ? (isSearch(w.link) ? 'Shop search only' : 'Link added') : 'No link yet';
+    return '<div class="wl"><button class="wlb" data-act="wishedit" data-i="' + i + '">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : swatch(w, 56)) + '<span><b>' + esc(w.name) + '</b><span>' + esc(w.why || '') + '</span><em class="' + (w.link && !isSearch(w.link) ? '' : 'warn') + '">' + ic('link', 12) + ' ' + lk + (w.price ? ' · £' + esc(w.price) : '') + (sz ? ' · size ' + esc(sz) : '') + '</em></span></button><button class="iconbtn sm" data-act="wishdel" data-i="' + i + '" aria-label="Remove">' + ic('close', 16) + '</button></div>';
+  }
+  function wishEdit(i) {
+    var w = S.wish[i]; if (!w) return;
+    var shops = (S.settings.shops && S.settings.shops.length ? S.settings.shops : ['ms', 'next']).filter(function (s2) { return SHOPS[s2]; }).slice(0, 3);
+    openSheet('<div class="sh-h"><span class="lab">Wish list</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono">' + esc(w.name) + '</h2>' +
+      '<p class="note" style="margin-top:6px">Paste the exact product so Jess buys the right one. Find it, tap Share › Copy, then paste below.</p>' +
+      '<div class="acts">' + shops.map(function (s2, n) { return '<a class="btn sec" href="' + SHOPS[s2][1] + encodeURIComponent('mens ' + w.name) + '" target="_blank" rel="noopener">Find at ' + esc(SHOPS[s2][0]) + '</a>'; }).join('') + '</div>' +
+      '<label class="fld"><span>Link</span><input id="wlink" type="url" inputmode="url" placeholder="https://…" value="' + esc(w.link && !isSearch(w.link) ? w.link : '') + '"></label>' +
+      '<button class="btn ghost" data-act="wishpaste" style="margin-top:8px">' + ic('link', 16) + 'Paste from clipboard</button>' +
+      '<label class="fld"><span>Price (£)</span><input id="wprice" inputmode="decimal" placeholder="e.g. 45" value="' + esc(w.price || '') + '"></label>' +
+      '<label class="fld"><span>Size</span><input id="wsize" placeholder="' + esc(wSize(w.kind) || 'e.g. M') + '" value="' + esc(w.size || '') + '"></label>' +
+      '<div class="acts"><button class="btn pri wide" data-act="wishsave" data-i="' + i + '">Save for Jess</button></div>');
+  }
   function wishSheet() {
     var sz = S.settings.sizes || {};
     var sizeFor = function (k) { return k === 'trousers' ? sz.trousers : k === 'shoes' ? sz.shoes : sz.tops; };
     openSheet('<div class="sh-h"><span class="lab">Wish list</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
       '<h2 class="mono">For Christmas</h2>' +
       '<div class="hubline">' + ic('link', 18) + '<span><b>Going to Our Hub</b> on your page, for Jess. She’ll be able to mark things bought without you seeing. That part arrives with the hub’s next update.</span></div>' +
-      (S.wish.length ? S.wish.map(function (w, i) { return '<div class="wl">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : swatch(w, 56)) + '<span><b>' + esc(w.name) + '</b><span>' + esc(w.why || '') + '</span><em>' + (sizeFor(w.kind) ? 'Size ' + esc(sizeFor(w.kind)) : 'Add your size in Settings') + (w.price ? ' · £' + esc(w.price) : '') + '</em></span><button class="iconbtn" data-act="wishdel" data-i="' + i + '" aria-label="Remove">' + ic('close', 16) + '</button></div>'; }).join('') : '<div class="empty">Add buys or Maybes from Shop and they land here.</div>') +
+      (S.wish.length ? S.wish.map(wlRow).join('') : '<div class="empty">Add buys or Maybes from Shop and they land here.</div>') +
       '<p class="note">Bought one yourself? Remove it here and it drops off Jess’ view too.</p>');
   }
   /* ---- Gemini prompts ---- */
@@ -2313,7 +2528,7 @@ var Engine = (function () {
     var worn = S.wear.filter(function (w) { return w.date === date && !w.event; })[0];
     var wx = wxText(date, new Date().getHours() >= 16), deck = deckFor(k.id, date);
     if (worn) { var wo = outfitOf(worn), wk = Brain.key(wo); deck = [{ outfit: wo, worn: true, note: names(wo).join(' · ') }].concat(deck.filter(function (d) { return Brain.key(d.outfit) !== wk; })); }
-    today.deck = deck; today.kind = k; today.worn = !!worn;
+    today.deck = deck; today.kind = k; today.worn = !!worn; pushNote();
     if (T.idx >= deck.length) T.idx = 0;
     var words = kinds().map(function (x) { return '<button data-act="kind" data-k="' + x.id + '" class="' + (x.id === k.id ? 'on' : '') + '">' + esc(x.name) + '</button>'; }).join('') + '<button data-act="kinds" class="kadd" aria-label="Your kinds of day">' + ic('add', 22) + '</button>';
     var card = function (d, i) {
@@ -2433,9 +2648,12 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '1.9.20';
+  var VERSION = '2.0.1';
   var WHATS_NEW = [
     ['Your full wardrobe', '84 pieces sorted and cut out in one go: jackets, overshirts, quarter zips, hoodies, tees, football shirts, shirts, shorts, joggers and trainers.'],
+    ['Evening nudge', 'Turn it on in Settings: if you haven’t logged what you wore, Turnout asks “Was it this today?” and one tap logs it.'],
+    ['Add from a shop', 'Tap + in Shop, paste a link or snap it, and see it in your own looks with how many new outfits it makes. Then Maybe or Wish list, link included.'],
+    ['Wish list links', 'Tap anything on your wish list to paste the exact product link, price and size, so Jess sees exactly what to buy in Our Hub.'],
     ['Shorts line up', 'Shorts now sit straight under the top instead of off to one side. Outfits redraw once to pick this up.'],
     ['Shorts', 'Looks with shorts stay out of Today when it’s under 14°, and shoes now sit where your feet would be, not tucked under the shorts.'],
     ['Share with Claude', 'The top of Looks now has Share with Claude and Paste reply, so the bank is easy to grow whenever you add clothes.'],
@@ -2740,6 +2958,7 @@ var Engine = (function () {
       '<label for="pabout">About you and your style</label><textarea id="pabout" rows="3" placeholder="Age, work, what you like wearing">' + esc(st.about || '') + '</textarea>' +
       '<p class="note">' + AI() + ' reads this when it styles you.</p>' +
       '<label>Sizes, for the wish list</label><div class="sizes"><input type="text" id="sz1" value="' + esc((st.sizes || {}).tops || '') + '" placeholder="Tops"><input type="text" id="sz2" value="' + esc((st.sizes || {}).trousers || '') + '" placeholder="Waist/leg"><input type="text" id="sz3" value="' + esc((st.sizes || {}).shoes || '') + '" placeholder="Shoes"></div></div>' +
+      nudgeHtml() +
       '<div class="sgrp"><span class="lab">Your week</span>' +
       '<label>Work days</label>' + multi('workdays', [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']], st.workdays) +
       '<div class="acts"><button class="btn sec wide" data-act="kinds">' + ic('add', 18) + 'Kinds of day (' + kinds().length + ')</button></div></div>' +
@@ -2786,11 +3005,12 @@ var Engine = (function () {
   function wearIt(date, o, occ, ev, kind) {
     S.wear = S.wear.filter(function (w) { return !(w.date === date && (w.event || '') === (ev ? ev.id : '')); });
     var rec = Object.assign({ date: date, occasion: occ, event: ev ? ev.id : '', crowd: ev ? (ev.crowd || '') : '', kind: kind || '' }, outfitOf(o));
-    S.wear.push(rec); markDirty(); SHOP = null; save(); send('wear', rec); buzz();
+    S.wear.push(rec); markDirty(); SHOP = null; save(); send('wear', rec); buzz(); if (date === todayIso()) pushNote();
   }
   function planIt(dateKey, o) { S.myplan[dateKey] = outfitOf(o); save(); send('plan', { date: dateKey, outfit: S.myplan[dateKey] }); buzz(); }
 
   I.down = '<path d="M6 9l6 6 6-6"/>';
+  I.bell = '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>';
   /* ============ 1.9: outfit rails, adding in three steps, the Shop tab ============ */
   var TYPES = [
     ['Tops', [['jumper', 'Jumper'], ['sweatshirt', 'Sweatshirt'], ['hoodie', 'Hoodie'], ['quarterzip', 'Quarter zip'], ['tee', 'T-shirt'], ['polo', 'Polo'], ['henley', 'Henley'], ['football', 'Football shirt'], ['shirt', 'Shirt']]],
@@ -3127,9 +3347,9 @@ var Engine = (function () {
   function wishHtml() {
     var sz = S.settings.sizes || {};
     var sizeFor = function (k) { return k === 'trousers' ? sz.trousers : k === 'shoes' ? sz.shoes : sz.tops; };
-    return (S.wish.length ? S.wish.map(function (w, i) { return '<div class="wl">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : swatch(w, 56)) + '<span><b>' + esc(w.name) + '</b><span>' + esc(w.why || '') + '</span><em>' + (sizeFor(w.kind) ? 'Size ' + esc(sizeFor(w.kind)) : 'Add your size in Settings') + (w.price ? ' · £' + esc(w.price) : '') + '</em></span><button class="iconbtn sm" data-act="wishdel" data-i="' + i + '" aria-label="Remove">' + ic('close', 16) + '</button></div>'; }).join('')
+    return (S.wish.length ? S.wish.map(wlRow).join('')
       : '<div class="empty">Nothing on it yet. Open a buy or a Maybe and tap Wish list.</div>') +
-      '<p class="note">For Christmas: it goes to Our Hub for Jess once the hub’s update lands.</p>';
+      '<p class="note">Everything here shows on your page in Our Hub for Jess. Tap one to add its link, price and size.</p>';
   }
   function shopTab(v) {
     if (!shopReady()) {
@@ -3139,7 +3359,7 @@ var Engine = (function () {
     }
     var D2 = shopData(), mine = owned();
     var nM = D2.maybes.length, nW = S.wish.length;
-    var head = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px"><button class="iconbtn" data-act="add" data-maybe="1" aria-label="Add a Maybe">' + ic('add', 22) + '</button><button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 22) + '</button></span></div>' +
+    var head = '<section class="scr"><div class="bar">' + word() + '<span style="display:flex;gap:8px"><button class="iconbtn" data-act="shopadd" aria-label="Add from a shop">' + ic('add', 22) + '</button><button class="iconbtn" data-act="settings" aria-label="Settings">' + ic('gear', 22) + '</button></span></div>' +
       '<h2 class="mono" style="margin-top:14px">Shop</h2>' +
       '<div class="seg3"><button data-act="sseg" data-k="buys" class="' + (sSeg === 'buys' ? 'on' : '') + '">Buys</button><button data-act="sseg" data-k="maybes" class="' + (sSeg === 'maybes' ? 'on' : '') + '">Maybes' + (nM ? ' ' + nM : '') + '</button><button data-act="sseg" data-k="wish" class="' + (sSeg === 'wish' ? 'on' : '') + '">Wish list' + (nW ? ' ' + nW : '') + '</button></div>';
     if (sSeg === 'wish') { v.innerHTML = head + wishHtml() + '</section>'; return; }
@@ -3147,7 +3367,7 @@ var Engine = (function () {
       v.innerHTML = head + (D2.maybes.length ? D2.maybes.map(function (m) {
         return '<button class="mb" data-act="maybe" data-id="' + m.item.id + '"><img src="' + esc(tileOf(m.item)) + '" alt=""><span><span class="vd ' + m.verdict.k + '">' + esc(m.verdict.t) + '</span><b>' + esc(m.item.name) + '</b><span>' + esc(m.item.colour) + (m.item.brand ? ' · ' + esc(m.item.brand) : '') + (m.item.price ? ' · £' + esc(m.item.price) : '') + '</span></span><span class="n"><b>+' + m.adds + '</b><span>outfits</span></span></button>';
       }).join('') : '') +
-        '<button class="card maycard" data-act="add" data-maybe="1">' + ic('bag', 24) + '<span><b>In a shop now?</b>Snap it and see what it would make with what you own.</span></button></section>';
+        '<button class="card maycard" data-act="shopadd">' + ic('bag', 24) + '<span><b>In a shop now?</b>Snap it and see what it would make with what you own.</span></button></section>';
       return;
     }
     var missing = Object.keys(KNAME).filter(function (k) { return !mine.some(function (i) { return i.kind === k; }) && S.settings.none.indexOf(k) < 0; });
@@ -3249,11 +3469,29 @@ var Engine = (function () {
       case 'nonekind': S.settings.none.push(t.dataset.k); save(); send('settings', S.settings); SHOP = null; route(); toast('Got it. Suggestions updated.'); break;
       case 'unnone': S.settings.none = S.settings.none.filter(function (k) { return k !== t.dataset.k; }); save(); send('settings', S.settings); SHOP = null; t.remove(); break;
       case 'foundone': { var g0 = shopData().buys[+t.dataset.i].item; addSheet(null, { maybe: true, kind: g0.kind, sub: g0.sub, name: g0.name, hex: g0.hex, colour: g0.colour, smart: g0.smart, warmth: g0.warmth, neck: g0.neck, texture: g0.texture, length: g0.kind === 'knit' ? S.settings.knit : g0.kind === 'trousers' ? S.settings.trousers : Engine.REAL[g0.kind] }); break; }
-      case 'bought': { var bi = S.custom[t.dataset.id]; if (bi) { bi.maybe = false; bi.added = todayIso(); save(); buildItems(); resolveImages(); send('item', { item: bi }); } S.wish = S.wish.filter(function (w) { return w.ref !== t.dataset.id; }); send('wish', { list: S.wish }); SHOP = null; closeSheet(); wSeg = 'pieces'; route(); toast('In your wardrobe. Nice buy.'); break; }
-      case 'notforme': { var nf = S.custom[t.dataset.id]; if (nf) { nf.archived = true; save(); buildItems(); send('item', { item: nf }); } S.wish = S.wish.filter(function (w) { return w.ref !== t.dataset.id; }); send('wish', { list: S.wish }); SHOP = null; closeSheet(); route(); toast('Gone'); break; }
-      case 'wishadd': { var gb = shopData().buys[+t.dataset.i]; if (!S.wish.some(function (w) { return w.ref === gb.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: gb.item.id, name: gb.item.name, kind: gb.item.kind, colour: gb.item.colour, hex: gb.item.hex, why: '+' + gb.adds + ' outfits. ' + gb.why, at: todayIso() }); save(); send('wish', { list: S.wish }); } t.innerHTML = ic('gift', 18) + 'On wish list'; toast('On the wish list'); break; }
-      case 'wishmaybe': { var mm = shopData().maybes.filter(function (x) { return x.item.id === t.dataset.id; })[0]; if (mm && !S.wish.some(function (w) { return w.ref === mm.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: mm.item.id, name: mm.item.name, kind: mm.item.kind, colour: mm.item.colour, hex: mm.item.hex, why: '+' + mm.adds + ' outfits with what you own', link: mm.item.link || '', price: mm.item.price || '', at: todayIso() }); save(); send('wish', { list: S.wish }); } toast('On the wish list'); break; }
-      case 'wishdel': S.wish.splice(+t.dataset.i, 1); save(); send('wish', { list: S.wish }); if (tab === 'shop' && !$('#sheet.open')) route(); else wishSheet(); break;
+      case 'bought': { var bi = S.custom[t.dataset.id]; if (bi) { bi.maybe = false; bi.added = todayIso(); save(); buildItems(); resolveImages(); send('item', { item: bi }); } S.wish = S.wish.filter(function (w) { return w.ref !== t.dataset.id; }); send('wish', { list: wishOut() }); SHOP = null; closeSheet(); wSeg = 'pieces'; route(); toast('In your wardrobe. Nice buy.'); break; }
+      case 'notforme': { var nf = S.custom[t.dataset.id]; if (nf) { nf.archived = true; save(); buildItems(); send('item', { item: nf }); } S.wish = S.wish.filter(function (w) { return w.ref !== t.dataset.id; }); send('wish', { list: wishOut() }); SHOP = null; closeSheet(); route(); toast('Gone'); break; }
+      case 'wishadd': { var gb = shopData().buys[+t.dataset.i]; if (!S.wish.some(function (w) { return w.ref === gb.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: gb.item.id, name: gb.item.name, kind: gb.item.kind, colour: gb.item.colour, hex: gb.item.hex, why: '+' + gb.adds + ' outfits. ' + gb.why, at: todayIso() }); save(); send('wish', { list: wishOut() }); } t.innerHTML = ic('gift', 18) + 'On wish list'; var wi = S.wish.map(function (w) { return w.ref; }).indexOf(gb.item.id); if (wi >= 0 && !S.wish[wi].link) wishEdit(wi); else toast('On the wish list'); break; }
+      case 'wishmaybe': { var mm = shopData().maybes.filter(function (x) { return x.item.id === t.dataset.id; })[0]; if (mm && !S.wish.some(function (w) { return w.ref === mm.item.id; })) { S.wish.push({ id: 'w' + Date.now().toString(36), ref: mm.item.id, name: mm.item.name, kind: mm.item.kind, colour: mm.item.colour, hex: mm.item.hex, why: '+' + mm.adds + ' outfits with what you own', link: mm.item.link || '', price: mm.item.price || '', at: todayIso() }); save(); send('wish', { list: wishOut() }); } var wj = S.wish.map(function (w) { return w.ref; }).indexOf(t.dataset.id); if (wj >= 0 && !S.wish[wj].link) wishEdit(wj); else toast('On the wish list'); break; }
+      case 'pushon': pushOn(); break;
+      case 'pushoff': pushOff(); break;
+      case 'pushtest': pushTest(); break;
+      case 'nudgeyes': { if (!NUDGE) break; var nk2 = NUDGE.kind; wearIt(todayIso(), NUDGE.outfit, nk2.occ, null, nk2.id); closeSheet(); tab = 'today'; T.kind = nk2.id; T.idx = 0; route(); toast('Logged. Enjoy your evening.'); break; }
+      case 'nudgeno': { var nk3 = NUDGE && NUDGE.kind; closeSheet(); tab = 'today'; if (nk3) T.kind = nk3.id; T.idx = 1; route(); toast('Swipe to the one you wore and tap Wore this, or Swap a piece'); break; }
+      case 'shopadd': shopAddSheet(); break;
+      case 'saphoto': { var ph2 = $('#saph'); if (ph2) ph2.click(); break; }
+      case 'sapaste': { if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (tx) { var m2 = String(tx || '').match(/https?:\/\/\S+/); if (m2) { $('#salink').value = m2[0]; saLink(m2[0]); } else saStat('No link on the clipboard. In the shop app or Safari tap Share › Copy, then try again.', true); }).catch(function () { saStat('Long-press the box below and tap Paste.', true); }); else saStat('Long-press the box below and tap Paste.', true); break; }
+      case 'sago': saLink(($('#salink') || {}).value); break;
+      case 'tomaybe': trySave(false); break;
+      case 'towish': trySave(true); break;
+      case 'toedit': F.step = 2; formDraw(); break;
+      case 'tolook': { var te2 = TRY && TRY.examples && TRY.examples[+t.dataset.i]; if (te2) dress({ first: te2.outfit }); break; }
+      case 'wishedit': wishEdit(+t.dataset.i); break;
+      case 'wishpaste': { if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (tx) { var m = String(tx || '').match(/https?:\/\/\S+/); if (m) $('#wlink').value = m[0]; else toast('No link on the clipboard'); }).catch(function () { toast('Long-press the box and tap Paste'); }); else toast('Long-press the box and tap Paste'); break; }
+      case 'wishsave': { var we = S.wish[+t.dataset.i]; if (!we) break; var lu = ($('#wlink').value || '').trim(), lm = lu.match(/https?:\/\/\S+/); if (lu && !lm) { toast('That doesn’t look like a link'); break; }
+        we.link = lm ? lm[0] : ''; we.price = ($('#wprice').value || '').replace(/[^0-9.]/g, '').slice(0, 8); we.size = ($('#wsize').value || '').trim().slice(0, 12);
+        save(); send('wish', { list: wishOut() }); closeSheet(); toast(we.link ? 'Saved. Jess will see the link.' : 'Saved'); if (tab === 'shop') route(); break; }
+      case 'wishdel': S.wish.splice(+t.dataset.i, 1); save(); send('wish', { list: wishOut() }); if (tab === 'shop' && !$('#sheet.open')) route(); else wishSheet(); break;
       case 'wash': { var wid = t.dataset.id, wv = !W[wid].wash; S.custom[wid] = Object.assign({}, S.custom[wid] || {}, { wash: wv }); if (!S.custom[wid].kind) S.custom[wid].id = wid; save(); buildItems(); resolveImages(); send('wash', { ids: [wid], v: wv }); SHOP = null; itemSheet(wid, false); toast(wv ? 'In the wash. Turnout will leave it out.' : 'Back in the wardrobe'); break; }
       case 'allclean': { var ids = ITEMS.filter(function (i) { return i.wash; }).map(function (i) { return i.id; }); ids.forEach(function (x) { S.custom[x] = Object.assign({}, S.custom[x], { wash: false }); }); ITEMS.filter(function (i) { return i.dirty; }).forEach(function (i) { (S.settings.clean || (S.settings.clean = {}))[i.id] = todayIso(); }); send('settings', S.settings); save(); buildItems(); resolveImages(); send('wash', { ids: ids, v: false }); SHOP = null; route(); toast('All clean'); break; }
       case 'logphoto': { var mi = $('#mph'); if (mi) mi.click(); break; }
@@ -3310,7 +3548,7 @@ var Engine = (function () {
       case 'step': { var el2 = $('#' + t.dataset.t); el2.textContent = Math.max(1, Math.min(7, +el2.textContent + +t.dataset.d)); break; }
       case 'ssave': {
         var st = S.settings, gv = function (id) { return document.getElementById(id).value; };
-        st.knit = +gv('sk') || 74; st.trousers = +gv('st') || 98; st.overlap = +gv('so') || 9; st.calendars = gv('sc'); st.sizes = { tops: gv('sz1').trim(), trousers: gv('sz2').trim(), shoes: gv('sz3').trim() };
+        st.knit = +gv('sk') || 74; st.trousers = +gv('st') || 98; st.overlap = +gv('so') || 9; st.calendars = gv('sc'); st.sizes = { tops: gv('sz1').trim(), trousers: gv('sz2').trim(), shoes: gv('sz3').trim() }; if (S.wish.length) send('wish', { list: wishOut() });
         st.workdays = $$('.pills[data-f="workdays"] button.on').map(function (b) { return +b.dataset.v; });
         st.name = gv('pname').trim(); st.about = gv('pabout').trim();
         var wd2 = $('.pills[data-f="washday"] button.on'); st.washDay = wd2 ? +wd2.dataset.v : 0;
@@ -3362,7 +3600,7 @@ var Engine = (function () {
       return Promise.race([RI, new Promise(function (r) { setTimeout(r, 1500); })]);
     }).then(function () {
       clearTimeout(bootTimer); booted = true;
-      route();
+      route(); checkNudge();
       RI.then(function () { if (!$('#sheet').classList.contains('open')) route(); });
       fresh.then(function (j) { if (j && j.items && JSON.stringify(j.items) !== JSON.stringify(SEED)) { SEED = j.items; buildItems(); resolveImages().then(function () { if (!$('#sheet').classList.contains('open')) route(); }); } if (j && j.items) try { localStorage.setItem('turnout-seed', JSON.stringify(j.items)); } catch (e) {} });
       getWeather().then(function () { if (!$('#sheet').classList.contains('open')) route(); });
@@ -3370,7 +3608,12 @@ var Engine = (function () {
     }).catch(function (e) { clearTimeout(bootTimer); bootFail(e); });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) { flush(); sync(false); } });
     window.addEventListener('online', flush);
-    if ('serviceWorker' in navigator && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.nudge) nudgeSheet(); });
+    document.addEventListener('change', function (e) {   // evening nudge settings save as you change them
+      if (e.target.id === 'ptime') { var st = pushSt(); st.time = e.target.value; pushSave(st); if (st.on && st.id) srvPost('/set', { id: st.id, time: st.time }).then(function () { toast('Nudge moved to ' + st.time); }).catch(function () {}); }
+      if (e.target.id === 'psrv') { var v = e.target.value.trim(); if (v && !/^https:\/\//.test(v)) v = 'https://' + v; try { localStorage.setItem('turnout-server', v); } catch (x) {} }
+    });
   }
   window.TurnoutApp = { S: S, route: route, dress: dress, itemSheet: itemSheet, addSheet: addSheet, settings: settings, W: function () { return W; }, setTab: function (t) { tab = t; route(); } };
   start();

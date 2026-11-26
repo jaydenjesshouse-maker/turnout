@@ -1,7 +1,7 @@
 /* Turnout: keeps a copy of the app and your clothes' photos on the phone,
    so it opens instantly and works on a bad signal. Checks GitHub for newer
    copies each time. The Apps Script and the weather are never cached. */
-var C = "turnout-v1-9-20";
+var C = "turnout-v2-0-1";
 self.addEventListener("install", function (e) { self.skipWaiting(); });
 self.addEventListener("activate", function (e) { e.waitUntil(self.clients.claim()); });
 self.addEventListener("fetch", function (e) {
@@ -16,5 +16,21 @@ self.addEventListener("fetch", function (e) {
       if (hit) { e.waitUntil(net); return hit; }
       return net;
     });
+  }));
+});
+/* The evening nudge: show it, and open Turnout on "Was it this?" when tapped */
+self.addEventListener("push", function (e) {
+  var d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) {}
+  e.waitUntil(self.registration.showNotification(d.title || "What did you wear today?", {
+    body: d.body || "Tap to log it. Ten seconds.", icon: "icon-192.png", badge: "icon-192.png", tag: "turnout-nudge",
+    data: { url: "./?nudge=" + (d.date || "") }
+  }));
+});
+self.addEventListener("notificationclick", function (e) {
+  e.notification.close();
+  var url = new URL((e.notification.data && e.notification.data.url) || "./", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (cs) {
+    for (var i = 0; i < cs.length; i++) { if ("focus" in cs[i]) { cs[i].postMessage({ nudge: 1 }); return cs[i].focus(); } }
+    return self.clients.openWindow(url);
   }));
 });
