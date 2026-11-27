@@ -130,11 +130,12 @@ h2.mono{font-size:clamp(28px,8.5vw,38px)}
 /* sheets */
 .sheet{position:fixed;inset:0;z-index:80;display:none}
 .sheet.open{display:block}
-.sheet .scrim{position:absolute;inset:0;background:rgba(14,14,18,.4);opacity:0;transition:opacity .25s}
+.sheet .scrim{position:absolute;inset:0;z-index:0;background:rgba(14,14,18,.4);opacity:0;transition:opacity .25s}
 .sheet.open .scrim{opacity:1}
 .sheet .panel{position:absolute;left:0;right:0;bottom:0;max-height:calc(100% - var(--st) - 8px);overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:28px 28px 0 0;background:var(--cream);
   padding:10px 20px calc(24px + var(--sb));transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
-.sheet.open .panel{transform:none}
+.sheet .panel{z-index:1;isolation:isolate}
+.sheet.open .panel{transform:translate3d(0,0,0)}   /* stays on its own layer: on iPhone, a sheet that grew after opening could slide under the dimmed backdrop */
 .sheet.full .panel{top:0;max-height:none;border-radius:0;padding-top:calc(var(--st) + 6px)}
 .grab{width:38px;height:5px;border-radius:3px;background:var(--line2);margin:0 auto 8px}
 .sh-h{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
@@ -495,7 +496,7 @@ details.more>*:last-child{margin-bottom:14px}
   .pair{grid-template-columns:repeat(3,1fr)}
   /* sheets become centred cards */
   .sheet:not(.full) .panel{left:50%;right:auto;width:680px;bottom:24px;max-height:calc(100% - var(--st) - 48px);border-radius:28px;transform:translate(-50%,110%)}
-  .sheet.open:not(.full) .panel{transform:translate(-50%,0)}
+  .sheet.open:not(.full) .panel{transform:translate3d(-50%,0,0)}
   .sheet.full .panel{padding-left:max(40px,calc((100% - 1180px)/2));padding-right:max(40px,calc((100% - 1180px)/2))}
   /* the outfit view: picture left, rails right */
   .panel.studio{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:36px;align-content:start}
@@ -567,6 +568,12 @@ details.more>*:last-child{margin-bottom:14px}
 .nudgepic{background:linear-gradient(var(--a) 0 55%, var(--b) 55%);border-radius:24px;margin-top:12px;display:flex;align-items:center;justify-content:center;padding:14px;min-height:300px}
 .nudgepic img.mf{max-height:46vh;width:auto}
 .sgrp select{width:100%;height:48px;border-radius:14px;border:0;background:var(--cream);padding:0 14px;font-size:16px;-webkit-appearance:none;appearance:none}
+.bkn{width:100%;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);padding:0 10px;font-size:15px}
+.sapix{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.sapix button{aspect-ratio:3/4;border-radius:14px;background:var(--plinth);overflow:hidden;padding:0;border:0}
+.sapix button.on{outline:2.5px solid var(--ink);outline-offset:1px}
+.sapix img{width:100%;height:100%;object-fit:cover}
+.note svg{display:inline;vertical-align:-1px}
 
 </style>
 </head>
@@ -1897,7 +1904,7 @@ var Engine = (function () {
   function chipOutfit(o, cand) {   // colour-block card for an outfit that includes a piece you don't have a photo of yet
     var Wc = Object.assign({}, W); if (cand) Wc[cand.id] = cand;
     var t = Wc[o.over] || Wc[o.top] || Wc[o.shirt], b = Wc[o.bottom], sh = o.shirt && o.top ? Wc[o.shirt] : null;
-    var nm = ['top', 'shirt', 'over', 'bottom'].filter(function (s) { return o[s]; }).map(function (s) { var x = Wc[o[s]]; return x.id === (cand && cand.id) ? '<b>' + esc(x.name) + '</b>' : esc(x.colour + ' ' + (x.sub && x.sub !== x.kind ? x.sub : x.name).toLowerCase()); });
+    var nm = ['top', 'shirt', 'over', 'bottom'].filter(function (s) { return o[s]; }).map(function (s) { var x = Wc[o[s]]; return x.id === (cand && cand.id) ? '<b>' + esc(x.name) + '</b>' : esc(x.colour + ' ' + (NAMES[x.sub] || x.name).toLowerCase()); });
     return '<div class="oc"><div class="oc-b"><i style="background:' + t.hex + '"></i>' + (sh ? '<i class="col" style="background:' + sh.hex + '"></i>' : '') + '<i style="background:' + b.hex + '"></i></div><span>' + nm.join(' + ') + '</span></div>';
   }
   function shopView(v, head) {
@@ -1978,7 +1985,9 @@ var Engine = (function () {
   }
   /* ---- wish list ---- */
   /* ============ v2: the Turnout server — the evening nudge, and adding from a shop ============ */
-  function srv() { try { return (localStorage.getItem('turnout-server') || '').trim().replace(/\/+$/, ''); } catch (e) { return ''; } }
+  var SRV0 = 'https://turnout.jaydenjesshouse.workers.dev';   // Jayden's own Turnout server
+  function srvClean(v) { v = String(v || '').trim(); if (!v) return ''; if (!/^https?:\/\//.test(v)) v = 'https://' + v; try { return new URL(v).origin; } catch (e) { return ''; } }   // just the address: drops /key or anything pasted after it
+  function srv() { var v = ''; try { v = localStorage.getItem('turnout-server') || ''; } catch (e) {} return srvClean(v) || SRV0; }
   function pushSt() { try { return JSON.parse(localStorage.getItem('turnout-push') || 'null') || {}; } catch (e) { return {}; } }
   function pushSave(o) { try { localStorage.setItem('turnout-push', JSON.stringify(o)); } catch (e) {} }
   function srvPost(path, d) { var u = srv(); if (!u) return Promise.reject(new Error('Add your Turnout server address first')); return fetch(u + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(function (r) { return r.json(); }); }
@@ -2004,15 +2013,15 @@ var Engine = (function () {
     }, 1500);
   }
   function pushOn() {
-    var inp = $('#psrv'); if (inp) { var v = inp.value.trim(); if (v && !/^https:\/\//.test(v)) v = 'https://' + v; try { localStorage.setItem('turnout-server', v); } catch (e) {} }
+    var inp = $('#psrv'); if (inp) { try { localStorage.setItem('turnout-server', srvClean(inp.value)); } catch (e) {} }
     if (!canPush()) { toast(navigator.standalone === false ? 'Open Turnout from its home screen icon, then try again' : 'This phone can’t do notifications here'); return; }
     if (!srv()) { toast('Paste your Turnout server address first'); return; }
     var tm = ($('#ptime') && $('#ptime').value) || pushSt().time || '18:30';
     Notification.requestPermission().then(function (p) {   // asked straight from the tap, as iPhone needs
       if (p !== 'granted') throw new Error('Notifications are off for Turnout. Turn them on in iPhone Settings › Notifications › Turnout.');
-      return fetch(srv() + '/key').then(function (r) { return r.json(); });
+      return fetch(srv() + '/key').then(function (r) { return r.json(); }).catch(function () { throw new Error('Couldn’t reach ' + srv().replace('https://', '') + '. Check the address in Settings.'); });
     }).then(function (k) {
-      if (!k || !k.key) throw new Error('That server address didn’t answer. Check it in Settings.');
+      if (!k || !k.key) throw new Error(srv().replace('https://', '') + ' answered, but not as a Turnout server' + (k && k.why ? ' (' + k.why + ')' : '') + '.');
       return navigator.serviceWorker.ready.then(function (reg) {
         return reg.pushManager.getSubscription().then(function (old) { return old ? old.unsubscribe().catch(function () {}) : null; })
           .then(function () { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(k.key) }); });
@@ -2072,17 +2081,49 @@ var Engine = (function () {
     var ph = $('#saph'); if (ph) ph.addEventListener('change', function () { var f = ph.files && ph.files[0]; if (f) saFromFile(f, {}); });
   }
   function saStat(t, warn) { var el = $('#sastat'); if (el) el.innerHTML = '<p class="note" style="color:' + (warn ? '#A0522D' : 'var(--ink)') + ';margin-top:12px">' + esc(t) + '</p>'; }
-  function saLink(u) {
+  function saLink(u) {   // paste a link: read what we can, then a page to pick (or add) its photo
     var m = String(u || '').match(/https?:\/\/\S+/); if (!m) { saStat('That doesn’t look like a link.', true); return; }
-    u = m[0]; SA.link = u;
-    if (!srv()) { saStat('Reading links needs your Turnout server. Add it in Settings › Evening nudge, or use a photo or screenshot for now.', true); return; }
+    u = m[0]; SA = { link: u };
     saStat('Reading the page…');
-    fetch(srv() + '/scrape?u=' + encodeURIComponent(u)).then(function (r) { return r.json(); }).then(function (p) {
-      if (!p || !p.ok) throw new Error((p && p.why ? p.why + '. ' : '') + 'Take a screenshot of the product and use Photo or screenshot instead. The link will still be saved.');
-      saStat('Cutting out the photo…');
-      return fetch(srv() + '/img?u=' + encodeURIComponent(p.image)).then(function (r) { if (!r.ok) throw new Error('Couldn’t get the photo. Try a screenshot instead.'); return r.blob(); })
-        .then(function (b) { return saFromFile(b, { name: p.name, price: p.price, brand: shopName(p.site, p.brand), link: p.url || u, imgUrl: p.image }); });
-    }).catch(function (e) { saStat((e && e.message) || 'Couldn’t read that page.', true); });
+    fetch(srv() + '/scrape?u=' + encodeURIComponent(u)).then(function (r) { return r.json(); }).catch(function () { return { ok: false, why: 'Couldn’t reach your Turnout server' }; }).then(function (p) {
+      p = p || {};
+      var host = ''; try { host = new URL(p.url || u).hostname.replace(/^www\d?\./, ''); } catch (e) {}
+      SA.name = cleanName(p.name || ''); SA.price = String(p.price || '').replace(/[^0-9.]/g, '').replace(/\.00$/, '');
+      SA.shop = shopName(p.site || host, p.brand); SA.link = p.url || u;
+      SA.images = (p.images && p.images.length ? p.images : p.image ? [p.image] : []).slice(0, 8);
+      SA.why = p.ok ? '' : (p.why || 'Couldn’t read that page');
+      linkPage();
+    });
+  }
+  function linkPage() {
+    var imgs = SA.images || [];
+    openSheet('<div class="sh-h"><span class="lab">' + esc(SA.shop || 'From a shop') + '</span><button class="iconbtn" data-act="close" aria-label="Close">' + ic('close', 20) + '</button></div>' +
+      '<h2 class="mono hq">' + (SA.name ? esc(SA.name) : 'Add its photo') + '</h2>' +
+      '<p class="note" style="margin-top:6px;word-break:break-all">' + ic('link', 12) + ' ' + esc(SA.link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 70)) + '</p>' +
+      (SA.why ? '<p class="note" style="color:#A0522D">' + esc(SA.why) + '. Add the photo yourself below. The link is kept.</p>' : '') +
+      '<label class="fld"><span>Name it</span><input id="saname" value="' + esc(SA.name || '') + '" placeholder="e.g. Navy knitted polo"></label>' +
+      '<label class="fld"><span>Price (£)</span><input id="saprice" inputmode="decimal" value="' + esc(SA.price || '') + '" placeholder="Optional"></label>' +
+      '<div class="lab" style="margin-top:18px">' + (imgs.length ? 'Pick its photo' : 'Add its photo') + '</div>' +
+      (imgs.length ? '<p class="note" style="margin-top:4px">The one with just the clothes on a plain background works best, not one on a model.</p><div class="sapix">' + imgs.map(function (im, i) { return '<button data-act="sapick" data-i="' + i + '"><img src="' + esc(srv() + '/img?u=' + encodeURIComponent(im)) + '" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'"></button>'; }).join('') + '</div>' : '') +
+      '<div class="sa2" style="margin-top:10px"><button data-act="saphoto">' + ic('camera', 22) + '<b>' + (imgs.length ? 'None of these' : 'Photo or screenshot') + '</b><span>' + (imgs.length ? 'Snap it or use a screenshot' : 'Screenshot the product, crop it close') + '</span></button><button data-act="salinkwish">' + ic('gift', 22) + '<b>Just the wish list</b><span>Save the link without a photo</span></button></div>' +
+      '<input type="file" accept="image/*" id="saph" hidden>' +
+      '<div id="sastat"></div>');
+    var ph = $('#saph'); if (ph) ph.addEventListener('change', function () { var f = ph.files && ph.files[0]; if (f) saFromFile(f, saInfo()); });
+  }
+  function saInfo(img) { return { name: ($('#saname') || {}).value || SA.name, price: ($('#saprice') || {}).value || SA.price, brand: SA.shop, link: SA.link, imgUrl: img || '' }; }
+  function saPick(i) {
+    var im = (SA.images || [])[i]; if (!im) return; var info = saInfo(im);
+    $$('.sapix button').forEach(function (b, n) { b.classList.toggle('on', n === i); });
+    saStat('Cutting it out…');
+    fetch(srv() + '/img?u=' + encodeURIComponent(im)).then(function (r) { if (!r.ok) throw new Error('Couldn’t get that photo.'); return r.blob(); })
+      .then(function (b) { return saFromFile(b, info, true); })
+      .catch(function (e) { saStat(((e && e.message) || 'Couldn’t get that photo.') + ' Pick another, or use a photo or screenshot.', true); });
+  }
+  function saLinkWish() {
+    var info = saInfo(), sub = subFromName(info.name), kind = SUBKIND[sub] || 'knit';
+    var w = { id: 'w' + Date.now().toString(36), ref: '', name: cleanName(info.name) || 'From ' + (SA.shop || 'a shop'), kind: kind, colour: '', hex: '#B8B0A4', why: 'Seen at ' + (SA.shop || 'a shop'), link: SA.link, price: String(info.price || '').replace(/[^0-9.]/g, ''), img: (SA.images || [])[0] || '', size: wSize(kind) || '', at: todayIso() };
+    S.wish.push(w); save(); send('wish', { list: wishOut() });
+    closeSheet(); sSeg = 'wish'; tab = 'shop'; route(); toast('On the wish list, link and all');
   }
   function shopName(site, brand) {
     var map = { 'marksandspencer.com': 'M&S', 'next.co.uk': 'Next', 'uniqlo.com': 'Uniqlo', 'asos.com': 'ASOS', 'zara.com': 'Zara', 'hm.com': 'H&M', 'johnlewis.com': 'John Lewis', 'riverisland.com': 'River Island', 'jdsports.co.uk': 'JD', 'nike.com': 'Nike', 'adidas.co.uk': 'Adidas', 'endclothing.com': 'END.', 'selfridges.com': 'Selfridges', 'cos.com': 'COS', 'arket.com': 'Arket', 'fatface.com': 'FatFace', 'sportsdirect.com': 'Sports Direct' };
@@ -2099,9 +2140,24 @@ var Engine = (function () {
     return '';
   }
   function cleanName(n) { return String(n || '').replace(/\b(men'?s|mens|for men)\b/gi, '').replace(/\s{2,}/g, ' ').replace(/^[\s\-–|:]+|[\s\-–|:]+$/g, '').slice(0, 48); }
-  function saFromFile(f, info) {
+  function fillOf(src) {   // how much of the cut-out's box is solid: a real piece of clothing leaves gaps round it
+    return new Promise(function (res) {
+      var im = new Image(); im.onload = function () {
+        var w = 80, h = Math.max(1, Math.round(80 * im.naturalHeight / im.naturalWidth)), c = document.createElement('canvas'); c.width = w; c.height = h;
+        var x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h); var d = x.getImageData(0, 0, w, h).data, n = 0;
+        for (var i = 3; i < d.length; i += 4) if (d[i] > 128) n++;
+        c.width = 0; res(n / (w * h));
+      }; im.onerror = function () { res(0); }; im.src = src;
+    });
+  }
+  function saFromFile(f, info, picked) {
     saStat('Cutting it out…');
     return Engine.cutout(f).then(function (r) {
+      return fillOf(r.cut).then(function (fill) {
+        if (fill > 0.93) throw new Error('That photo has no plain background to cut it out from.');   // nothing was removed: a model shot or busy scene
+        return r;
+      });
+    }).then(function (r) {
       return guessType(r.cut).then(function (shape) {
         var sub = subFromName(info.name) || shape, rgb0 = Brain.rgb(r.hex);
         if (sub === 'chinos' && rgb0[2] > rgb0[0] + 18 && rgb0[2] >= rgb0[1]) sub = 'jeans';
@@ -2113,9 +2169,9 @@ var Engine = (function () {
         F.link = info.link || SA.link || ''; F.shopImg = /^https:/.test(info.imgUrl || '') ? info.imgUrl : '';
         tryOnSheet();
       });
-    }).catch(function (e) { saStat(((e && e.message) || 'That photo didn’t cut out.') + ' Try one with the product on a plain background, cropped close.', true); });
+    }).catch(function (e) { saStat(((e && e.message) || 'That photo didn’t cut out.') + (picked ? ' That one probably has a model or a busy background. Pick another, or use a screenshot cropped close.' : ' Try one with the product on a plain background, cropped close.'), true); });
   }
-  function tryItem() { var id = 'try' + Date.now().toString(36); return Object.assign({}, F, { id: id, img: 'try:' + id, src: F.cut, tileSrc: F.cut, tile: '', maybe: false, wash: false, colour: F.colour || nearestColour(F.hex), name: F.name || NAMES[F.sub] }); }
+  function tryItem() { var id = 'try' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); return Object.assign({}, F, { id: id, img: 'try:' + id, src: F.cut, tileSrc: F.cut, tile: '', maybe: false, wash: false, colour: F.colour || nearestColour(F.hex), name: F.name || NAMES[F.sub] }); }
   function tryOnSheet() {
     var c = tryItem(); W[c.id] = c; TRY = { item: c, adds: 0 };
     var chips = [TYPES.reduce(function (n, g) { return n || (g[1].filter(function (t) { return t[0] === F.sub; })[0] || [])[1]; }, '') || F.sub, c.colour].concat(F.price ? ['£' + F.price] : []);
@@ -2123,7 +2179,7 @@ var Engine = (function () {
       '<h2 class="mono">' + esc(c.name) + '</h2>' +
       '<div id="tostat" class="tov"><b>…</b><span>Working out what it makes with your ' + owned().length + ' pieces.</span></div>' +
       '<div class="tostrip" id="tostrip"><div class="pimg"><img src="' + esc(F.cut) + '" alt=""></div></div>' +
-      '<div class="chips2">' + chips.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '<button data-act="toedit">Edit</button></div>' +
+      '<div class="chips2">' + chips.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '<button data-act="toedit">Edit</button>' + (SA.link ? '<button data-act="tophoto">Change photo</button>' : '') + '</div>' +
       '<div class="acts"><button class="btn sec" data-act="tomaybe">' + ic('bag', 18) + 'Maybe</button><button class="btn pri" data-act="towish">' + ic('gift', 18) + 'Wish list</button></div>' +
       (F.link ? '' : '<p class="note">No link yet. Tap Wish list and you can paste one, so Jess gets the exact one.</p>'));
     setTimeout(function () {
@@ -2648,9 +2704,11 @@ var Engine = (function () {
       else el.innerHTML = '<b>Your Apps Script is ' + esc((r && r.v) || 'an older version') + '.</b> Paste the new Code.gs and deploy a new version.';
     });
   }
-  var VERSION = '2.0.1';
+  var VERSION = '2.1.1';
   var WHATS_NEW = [
     ['Your full wardrobe', '84 pieces sorted and cut out in one go: jackets, overshirts, quarter zips, hoodies, tees, football shirts, shirts, shorts, joggers and trainers.'],
+    ['Name your clothes', 'Adding a piece now asks for its name up front, and Add lots at once has a name box under each one, so your jeans aren’t all just “Jeans”.'],
+    ['Links open a page', 'Paste a shop link and Turnout opens a page for it: pick the best photo from the shop, snap your own, or just save the link to your wish list.'],
     ['Evening nudge', 'Turn it on in Settings: if you haven’t logged what you wore, Turnout asks “Was it this today?” and one tap logs it.'],
     ['Add from a shop', 'Tap + in Shop, paste a link or snap it, and see it in your own looks with how many new outfits it makes. Then Maybe or Wish list, link included.'],
     ['Wish list links', 'Tap anything on your wish list to paste the exact product link, price and size, so Jess sees exactly what to buy in Our Hub.'],
@@ -3236,8 +3294,9 @@ var Engine = (function () {
       (layer ? '<button class="lrow" data-act="pickopen">' + (F.openCut || F.openImg ? '<img src="' + esc(F.openCut || F.openImg) + '" alt="">' : '<span class="lph">' + ic('camera', 20) + '</span>') + '<span><b>Worn open shot</b>' + (F.openCut || F.openImg ? 'Added · tap to change' : 'Optional · makes layers look real') + '</span><span class="chip">' + (F.openCut || F.openImg ? 'Change' : 'Add') + '</span></button>' +
         '<input type="file" accept="image/*" id="openphoto" hidden>' +
         '<div class="lks"><button type="button" class="plink" data-act="copyprompt" data-sub="__open">' + ic('copy', 16) + 'Gemini prompt for the open shot</button>' + (F.openCut || F.openImg ? '<button type="button" class="plink" data-act="dropopen">Remove</button>' : '') + '</div>' : '') +
-      '<details class="more"' + (F.step === 0 ? ' open' : '') + '><summary>Name, brand, pattern, length' + ic('down', 18) + '</summary>' +
-      '<label for="fname">Name</label><input type="text" id="fname" value="' + esc(F.name) + '" placeholder="' + esc(NAMES[F.sub] || 'Name') + '">' +
+      '<label for="fname">Name it</label><input type="text" id="fname" value="' + esc(F.name && F.name !== NAMES[F.sub] ? F.name : '') + '" placeholder="e.g. ' + esc(((F.colour || nearestColour(F.hex) || '') + ' ' + (NAMES[F.sub] || 'piece')).trim()) + '">' +
+      '<p class="note" style="margin-top:4px">So you can tell it apart, e.g. “Washed black jeans”. Blank, it’s just “' + esc(NAMES[F.sub] || 'Piece') + '”.</p>' +
+      '<details class="more"' + (F.step === 0 ? ' open' : '') + '><summary>Colour, brand, pattern, length' + ic('down', 18) + '</summary>' +
       '<label for="fcol">Colour name</label><input type="text" id="fcol" value="' + esc(F.colour) + '" placeholder="' + esc(nearestColour(F.hex)) + '">' +
       '<label for="fbrand">Brand</label><input type="text" id="fbrand" value="' + esc(F.brand) + '" placeholder="' + (F.maybe ? 'M&amp;S, Next…' : 'Optional') + '">' +
       (F.maybe ? '<label for="flink">Link to it</label><input type="url" id="flink" value="' + esc(F.link || '') + '" placeholder="Optional, paste from the shop" inputmode="url"><label for="fprice">Price (£)</label><input type="text" id="fprice" value="' + esc(F.price || '') + '" placeholder="Optional" inputmode="decimal">' : '') +
@@ -3323,11 +3382,18 @@ var Engine = (function () {
     var items = BULK.ids.map(function (id) { return W[id]; }).filter(Boolean);
     var p = openSheet('<div class="sh-h"><span class="lab">Check them</span><button class="iconbtn" data-act="bulkdone" aria-label="Done">' + ic('close', 20) + '</button></div>' +
       '<h2 class="mono hq">' + items.length + ' added' + (BULK.bad ? ', ' + BULK.bad + ' didn’t cut out' : '') + '</h2>' +
-      '<p class="note">Turnout guessed what each one is. Fix any that are wrong here (cardigans, quarter zips and hoodies usually need a tap). Tap a photo to change anything else, or to add an open shot for a layer.' + (BULK.bad ? ' For the ones that didn’t cut out, try them again one at a time with more space around the piece.' : '') + '</p>' +
+      '<p class="note">Turnout guessed what each one is. Fix any that are wrong (cardigans, quarter zips and hoodies usually need a tap), and name each one so you can tell them apart. Tap a photo to change anything else, or to add an open shot for a layer.' + (BULK.bad ? ' For the ones that didn’t cut out, try them again one at a time with more space around the piece.' : '') + '</p>' +
       '<div class="bkrev">' + items.map(function (it) {
-        return '<div class="bkr"><button class="bkimg" data-act="edit1" data-id="' + it.id + '"><img src="' + esc(tileOf(it)) + '" alt=""></button>' + typeSelect(it) + '<span class="bkc">' + esc(it.colour) + '</span></div>';
+        return '<div class="bkr"><button class="bkimg" data-act="edit1" data-id="' + it.id + '"><img src="' + esc(tileOf(it)) + '" alt=""></button>' + typeSelect(it) + '<input class="bkn" data-id="' + it.id + '" value="' + esc(it.name && it.name !== NAMES[it.sub] ? it.name : '') + '" placeholder="Name it (' + esc(it.colour) + ')" aria-label="Name"></div>';
       }).join('') + '</div>' +
       '<div class="acts sticky"><button class="btn pri wide" data-act="bulkdone">' + ic('worn', 18) + 'Done</button></div>', { full: true });
+    $$('.bkn', p).forEach(function (n) {
+      n.addEventListener('change', function () {
+        var id = n.dataset.id, cur = S.custom[id]; if (!cur) return;
+        var it = Object.assign({}, cur, { name: n.value.trim().slice(0, 48) || NAMES[cur.sub] || 'Piece' });
+        S.custom[id] = it; save(); if (W[id]) W[id].name = it.name; send('item', { item: it });
+      });
+    });
     $$('.bksel', p).forEach(function (s) {
       s.addEventListener('change', function () {
         var id = s.dataset.id, cur = S.custom[id]; if (!cur) return;
@@ -3482,6 +3548,9 @@ var Engine = (function () {
       case 'saphoto': { var ph2 = $('#saph'); if (ph2) ph2.click(); break; }
       case 'sapaste': { if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (tx) { var m2 = String(tx || '').match(/https?:\/\/\S+/); if (m2) { $('#salink').value = m2[0]; saLink(m2[0]); } else saStat('No link on the clipboard. In the shop app or Safari tap Share › Copy, then try again.', true); }).catch(function () { saStat('Long-press the box below and tap Paste.', true); }); else saStat('Long-press the box below and tap Paste.', true); break; }
       case 'sago': saLink(($('#salink') || {}).value); break;
+      case 'sapick': saPick(+t.dataset.i); break;
+      case 'tophoto': linkPage(); break;
+      case 'salinkwish': saLinkWish(); break;
       case 'tomaybe': trySave(false); break;
       case 'towish': trySave(true); break;
       case 'toedit': F.step = 2; formDraw(); break;
@@ -3612,7 +3681,7 @@ var Engine = (function () {
     if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.nudge) nudgeSheet(); });
     document.addEventListener('change', function (e) {   // evening nudge settings save as you change them
       if (e.target.id === 'ptime') { var st = pushSt(); st.time = e.target.value; pushSave(st); if (st.on && st.id) srvPost('/set', { id: st.id, time: st.time }).then(function () { toast('Nudge moved to ' + st.time); }).catch(function () {}); }
-      if (e.target.id === 'psrv') { var v = e.target.value.trim(); if (v && !/^https:\/\//.test(v)) v = 'https://' + v; try { localStorage.setItem('turnout-server', v); } catch (x) {} }
+      if (e.target.id === 'psrv') { var v = srvClean(e.target.value); try { localStorage.setItem('turnout-server', v); } catch (x) {} e.target.value = v || SRV0; }
     });
   }
   window.TurnoutApp = { S: S, route: route, dress: dress, itemSheet: itemSheet, addSheet: addSheet, settings: settings, W: function () { return W; }, setTab: function (t) { tab = t; route(); } };
